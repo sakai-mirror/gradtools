@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+
+<registration>
+
+	<tool
+			id="ctools.gradToolsHelp"
+			title="Grad Tools Help"
+			description="Help guides for using Grad Tools.">
+
+		<configuration name="source" value="https://coursetools.ummu.umich.edu/disstools/help.nsf" />
+		<configuration name="height" value="800px" />
+		<configuration name="special" value="" />
+
+	</tool>
+
+</registration>

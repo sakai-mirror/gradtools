@@ -1,0 +1,7 @@
+##<!-- $Header: /cvs/ctools/gradtools/tool/src/webapp/vm/dissertation/chef_dissertations_no_candidate_path.vm,v 1.2 2005/06/01 22:23:39 gsilver.umich.edu Exp $ -->
+## Dissertations - Administrator's no candidate path yet created for candidate view.
+<div class="portletBody">
+	<p class="instruction">
+		This student has not yet started to use the checklist.
+	</p>
+</div>

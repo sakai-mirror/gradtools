@@ -1,0 +1,25 @@
+##<!-- $Header: /cvs/ctools/gradtools/tool/src/webapp/vm/chef_Title.vm,v 1.1 2005/05/04 20:27:12 ggolden.umich.edu Exp $ -->
+#set ($loggedin=$data.User.hasLoggedIn())
+	<table border="0" cellpadding="0" cellspacing="0" width="100%" class="chefPortletStyleClass" summary="layout">
+	<tr>
+		<td class="chefTitleStyleClass">
+## include the home link if desired
+			#if($includeReset)
+				<a href="#toolLink("$action" "doReset")" title="$tlang.getString('tit.reset')"><img src="#imageLink("toolhome.gif")" alt="$tlang.getString('tit.reset')" border="0"></a> $title
+			#else
+				$title
+			#end
+		</td>
+		<td class="chefActionTitleStyleClass">
+			#if($sakai_HelpURL)
+			 	<a href="javascript:;" onClick="window.open('$sakai_HelpURL','Help','resizable=0,toolbar=no,scrollbars=yes, width=800,height=600')"><img src="#imageLink("help.gif")" alt="$tlang.getString('tit.help')" border="0"></a>
+			#end
+			#if ($loggedin)
+				#if ($myPortal.getFloating($data, $portlet.ID))
+					<a href="#toolForm("FloatAction")" title="$tlang.getString('tit.dock')" ><img src="#imageLink("dock.gif")" alt="$tlang.getString('tit.dock')" border="0"></a>				#else
+					<a href="#toolForm("FloatAction")" title="$tlang.getString('tit.float')" ><img src="#imageLink("float.gif")" alt="$tlang.getString('tit.float')" border="0"></a>
+				#end
+			#end
+		</td>
+	</tr>
+</table>

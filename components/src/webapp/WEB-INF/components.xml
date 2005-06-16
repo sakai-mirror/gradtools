@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springkernel.org/dtd/spring-beans.dtd">
+
+<beans>
+
+	<bean id="org.sakaiproject.api.app.dissertation.DissertationService"
+			class="org.sakaiproject.component.app.dissertation.DbDissertationService"
+			init-method="init"
+			destroy-method="destroy"
+			singleton="true">
+		<property name="logger"><ref bean="org.sakaiproject.service.framework.log.Logger"/></property>
+		<property name="memoryService"><ref bean="org.sakaiproject.service.framework.memory.MemoryService"/></property>
+		<property name="sqlService"><ref bean="org.sakaiproject.service.framework.sql.SqlService"/></property>
+ 		<property name="dissertationTableName"><value>DISSERTATION_DISSERTATION</value></property>
+ 		<property name="stepTableName"><value>DISSERTATION_STEP</value></property>
+ 		<property name="pathTableName"><value>DISSERTATION_PATH</value></property>
+ 		<property name="statusTableName"><value>DISSERTATION_STATUS</value></property>
+ 		<property name="infoTableName"><value>DISSERTATION_CANDIDATEINFO</value></property>
+ 		<property name="groupTableName"><value>DISSERTATION_GROUP</value></property>
+ 		<property name="locksInDb"><value>false</value></property>
+ 		<property name="autoDdl"><value>true</value></property>
+	</bean>
+
+</beans>

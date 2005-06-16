@@ -1,0 +1,7 @@
+##<!-- $Header: /cvs/ctools/gradtools/tool/src/webapp/vm/dissertation/chef_dissertations_siteid_not_rackham.vm,v 1.2 2005/06/01 22:23:39 gsilver.umich.edu Exp $ -->
+## Dissertations - This message appears if DissertationUploadAction is called from a site other than the Rackham site - view.
+<div class="portletBody">
+	<p class="instruction">
+		This tool is only for use by the Rackham Graduate School.
+	</p>
+</div>

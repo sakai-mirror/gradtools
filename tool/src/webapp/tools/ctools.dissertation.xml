@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+
+<registration>
+
+	<tool
+			id="ctools.dissertation"
+			title="Dissertation Checklist"
+			description="Grad Tools Dissertation Checklist tool.">
+	</tool>
+
+</registration>

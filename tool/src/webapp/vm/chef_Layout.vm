@@ -1,0 +1,33 @@
+##<!-- $Header: /cvs/ctools/gradtools/tool/src/webapp/vm/chef_Layout.vm,v 1.1 2005/05/04 20:27:12 ggolden.umich.edu Exp $ -->
+#if($title)
+	#set($portlet_frame_name=$title)
+#else
+	#set($portlet_frame_name="Main")
+#end
+<div class="PortletContainer">
+<iframe
+	name="$validator.escapeJavascript("Title$pid")"
+	id="$validator.escapeJavascript("Title$pid")"
+	title="Title Bar"
+	class ="chefTitleIFrame"
+	width="100%"
+	frameborder="0"
+	marginwidth="0"
+	marginheight="0"
+	scrolling="no"
+	align="middle"
+	src="#contentLink("Title")">
+</iframe>
+<iframe
+	name="$validator.escapeJavascript("Main$pid")"
+	id="$validator.escapeJavascript("Main$pid")"
+	title="$portlet_frame_name"
+	class ="chefContentIFrame"
+	width="100%"
+	frameborder="0"
+	marginwidth="0"
+	marginheight="0"
+	scrolling="auto"
+	src="#contentLink("Main")">
+</iframe>
+</div>
