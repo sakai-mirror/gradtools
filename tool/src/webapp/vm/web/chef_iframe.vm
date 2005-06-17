@@ -1,0 +1,33 @@
+##<!-- $Header: /cvs/sakai2/legacy/tools/src/webapp/vm/web/chef_iframe.vm,v 1.4 2005/05/15 17:05:28 gsilver.umich.edu Exp $ -->
+#if ($!source && $source.length() != 0)
+	<div class="portletBody">
+#else
+	<div class="portletBody">
+#end
+	#if($menu) 
+		<div class="chefToolBarWrap">
+			<a href="#" title="$title" onclick="location = '#toolLink("$action" "doOptions")';return false;">
+			$tlang.getString("gen.options") </a>
+		</div>
+	#end
+
+		#if ($alertMessage)<div class="chefAlertBox">$tlang.getString("gen.alert") $validator.escapeHtml($alertMessage)</div>#end
+		#if ($!source && $source.length() != 0)
+		
+		<div style="padding:0; margin:0 -2em !important;">
+			<iframe 
+				width="100%"
+				style="width:100%;padding:0 !important;#if ($height) height:$height #end"
+				## moving the height setting into the a style attribute of the iframe, since it is being setas pixels for sure now anyways (gsilver)
+				frameborder="0"
+				marginwidth="0"
+				marginheight="0"
+				scrolling="auto"
+				src="$!source">
+			</iframe>
+			</div>
+		#else
+			 <p style="margin:1em -1.5em">$validator.escapeHtml($!text)</p>
+		#end
+
+</div>

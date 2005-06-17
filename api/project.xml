@@ -2,9 +2,9 @@
 
 <project>
 	<pomVersion>3</pomVersion>
-	<name>Sakai GradTools API</name>
+	<name>CTools GradTools API</name>
 	<groupId>sakaiproject</groupId>
-	<id>sakai-gradtools-api</id>
+	<id>ctools-gradtools-api</id>
 	<currentVersion>2.0.0</currentVersion>
 	<organization>
 		<name>University of Michigan</name>
