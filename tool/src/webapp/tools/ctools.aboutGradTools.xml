@@ -11,6 +11,10 @@
 		<configuration name="height" value="475px" />
 		<configuration name="special" value="" />
 
+		<category name="GradToolsStudent" />
+		<category name="GradToolsRackham" />
+		<category name="GradToolsDepartment" />
+
 	</tool>
 
 </registration>

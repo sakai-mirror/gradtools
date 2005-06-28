@@ -5,6 +5,9 @@
 			id="ctools.dissertation.upload"
 			title="Dissertation Upload"
 			description="Grad Tools Rackham Data Upload tool.">
+
+		<category name="GradToolsRackham" />
+
 	</tool>
 	
 </registration>

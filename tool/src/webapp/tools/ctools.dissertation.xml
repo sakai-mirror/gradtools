@@ -6,6 +6,11 @@
 			id="ctools.dissertation"
 			title="Dissertation Checklist"
 			description="Grad Tools Dissertation Checklist tool.">
+
+		<category name="GradToolsStudent" />
+		<category name="GradToolsRackham" />
+		<category name="GradToolsDepartment" />
+
 	</tool>
 
 </registration>
