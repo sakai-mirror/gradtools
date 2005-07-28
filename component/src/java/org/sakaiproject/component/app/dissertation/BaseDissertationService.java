@@ -527,6 +527,7 @@ public abstract class BaseDissertationService
 	{
 		try
 		{
+			//TODO is this set?
 			m_relativeAccessPoint = REFERENCE_ROOT;
 			
 			setSchoolSite("rackham");
@@ -589,6 +590,7 @@ public abstract class BaseDissertationService
 			else
 			{
 				//initialize the group code storage
+				//TODO permission exception during init
 				m_schoolGroups = initCodes();
 			}
 			
@@ -2019,8 +2021,50 @@ public abstract class BaseDissertationService
 	*/
 	public boolean isLoading()
 	{
+		CandidateInfoEdit lock = null;
+		String lock_ref = DissertationService.IS_LOADING_LOCK_REFERENCE;
+		
+		//initialize
+		m_loading = false;
+		try
+		{
+			//take out a lock on a well-known object
+			lock = editCandidateInfo(lock_ref);
+			
+			//remove it
+			if(lock != null && lock.isActiveEdit())
+				removeCandidateInfo(lock);
+		}
+		catch(IdUnusedException e)
+		{
+			//lock is free
+			if(lock != null && lock.isActiveEdit())
+			{
+				try
+				{
+					removeCandidateInfo(lock);
+				}
+				catch(Exception ee)
+				{
+					if(m_logger.isWarnEnabled())
+						m_logger.warn(this + ".isLoading removeCandidateInfo(lock) " + ee);
+				}
+			}
+		}
+		catch(InUseException e)
+		{
+			//lock is in use
+			m_loading = true;
+			
+		}
+		catch(Exception e)
+		{
+			if(m_logger.isWarnEnabled())
+				m_logger.warn(this + ".isLoading Exception " + e);
+		}
 		return m_loading;
-	}
+		
+	}//isLoading
 	
 	/**
 	* Load the Rackham data extract files.
@@ -2030,9 +2074,26 @@ public abstract class BaseDissertationService
 	*/
 	public List loadData(byte[] oard, byte[] mp)
 	{
-		//isLoading()
-		m_loading = true;
+		CandidateInfoEdit lock = null;
 		Vector rv = new Vector();
+
+		//TODO replace CandidateInfoEdit as lock object
+		String lock_ref = DissertationService.IS_LOADING_LOCK_REFERENCE;
+		try
+		{
+			//we are staring a load
+			lock = addCandidateInfoLock(getSchoolSite());
+			if(lock == null)
+				return rv;
+		}
+		catch(Exception e)
+		{
+			//TODO throw InUseException
+			//but we should not get here because tool checks earlier
+			if(m_logger.isWarnEnabled())
+				m_logger.warn(this + ".loadData addCandidateInfoLock " + e);
+			return rv;
+		}
 		Hashtable ids = new Hashtable();
 		String msg = "";
 		List OARDRecords = new Vector();
@@ -2042,27 +2103,19 @@ public abstract class BaseDissertationService
 		try
 		{
 			//parse and check for data validation errors
-			if(oard.length > 1) 
-			{
+			if(oard.length > 1)
 				rv.addAll((Collection)validateOARDData(oard));
-			}
 			if(mp.length > 1)
-			{
 				rv.addAll((Collection) validateMPData(mp));
-			}
 			
 			//if data was validated, load it, otherwise return validation errors
 			if((rv==null || rv.size() == 0))
 			{
 				//no errors reported, so create records to use
 				if(oard.length > 1)
-				{
 					OARDRecords = (Vector) createOARDRecords(oard, ids);
-				}
 				if(mp.length > 1)
-				{
 					MPRecords = (Vector) createMPRecords(mp, ids);
-				}
 				
 				//if we have no Chef ids at this point, raise an error
 				if(!ids.elements().hasMoreElements())
@@ -2091,8 +2144,22 @@ public abstract class BaseDissertationService
 			msg = this + ".loadData exception: " + e.getMessage();
 			rv.add(0, msg);
 		}
-		//isLoading()
-		m_loading = false;
+		finally
+		{
+			try
+			{
+				//at the end remove the lock object
+				if(lock != null && lock.isActiveEdit())
+					removeCandidateInfo(lock);
+			}
+			catch(Exception e)
+			{
+				if(m_logger.isWarnEnabled())
+					m_logger.warn(this + ".loadData cancelEdit(lock) " + e);
+			}
+			
+		}
+			
 		return rv;
 		
 	} //loadData
@@ -2777,7 +2844,8 @@ public abstract class BaseDissertationService
 						//number of fields exception
 						lineNumber = i + 1;
 						message = "Source: OARD File: Location: line " + lineNumber + " Explanation: has " + flds.length + " fields: 29 expected.";
-						m_logger.warn(this + ".createRecordsMP: " + message);
+						if(m_logger.isInfoEnabled())
+							m_logger.info(this + ".createRecordsMP: " + message);
 						rv.add(message);
 					}
 				}
@@ -2786,7 +2854,8 @@ public abstract class BaseDissertationService
 		catch (Exception e)
 		{
 			message = "Source: OARD File: Explanation: unexpected problem: "  + e.getMessage();
-			m_logger.warn(this + ".validateOARDData: " + message);
+			if(m_logger.isWarnEnabled())
+				m_logger.warn(this + ".validateOARDData: " + message);
 			rv.add(message);
 		}
 		
@@ -3071,7 +3140,8 @@ public abstract class BaseDissertationService
 					{
 						lineNumber = i + 1;
 						message = "Source: MP File: Location: line " + lineNumber + " Explanation: has " + flds.length + " fields: 7 expected.";
-						m_logger.warn(this + ".validateMPData: " + message);
+						if(m_logger.isInfoEnabled())
+							m_logger.info(this + ".validateMPData: " + message);
 						rv.add(message);
 					}
 				}
@@ -3080,7 +3150,8 @@ public abstract class BaseDissertationService
 		catch (Exception e)
 		{
 			message = "Source: MP File: Explanation: unexpected problem with data: "  + e.getMessage();
-			m_logger.warn(this + ".validateMPData: " + message);
+			if(m_logger.isWarnEnabled())
+				m_logger.warn(this + ".validateMPData: " + message);
 			rv.add(message);
 		}
 		
@@ -3392,8 +3463,13 @@ public abstract class BaseDissertationService
 							//GET THE AUTO VALID NUMBER
 							autoValidNumber = Integer.parseInt(autoValidationId);
 							
-							//We want to display all committee member names/dates with Return Final Oral Examination report to Rackham
-							if(autoValidNumber == 7 && ((Vector)info.getCommitteeEvalsCompleted()).size() > 0)
+							//remove prior auxiliary text
+							if(statusEdit.getAuxiliaryText() != null)
+								statusEdit.setAuxiliaryText(null);
+							
+							//display committee member names/dates with Submit completed evaluation forms to Rackham three days before defense
+							//previously was with Return Final Oral Examination report to Rackham
+							if(autoValidNumber == 6 && ((Vector)info.getCommitteeEvalsCompleted()).size() > 0)
 							{
 								statusEdit.setAuxiliaryText(info.getCommitteeEvalsCompleted());
 							}
@@ -5625,6 +5701,43 @@ public abstract class BaseDissertationService
 		}
 
 	}//removeStepStatus
+	
+	/** 
+	* Adds a well-known CandidateInfo as a lock during uploads.
+	* @param site - The site for which permissions are being checked.
+	* @throws PermissionException if the current User does not have permission
+	*  to do this.
+	* @return CandidateInfoEdit The edit used to lock uploads.
+	*/
+	public CandidateInfoEdit addCandidateInfoLock(String site)
+		throws PermissionException
+	{
+		String infoId = null;
+		CandidateInfoEdit info = null;
+			
+		//set an id that can be easily identified in the datbase
+		infoId = DissertationService.IS_LOADING_LOCK_ID;
+
+		//check for the locked object
+		if(m_infoStorage.check(infoId))
+			return info;
+		
+		String key = infoReference(site, infoId);
+		unlock(SECURE_ADD_DISSERTATION_CANDIDATEINFO, key);
+		info = m_infoStorage.put(infoId, site);
+		info.setSite(site);
+		try
+		{
+			((BaseCandidateInfoEdit) info).setEvent(SECURE_ADD_DISSERTATION_CANDIDATEINFO);
+		}
+		catch(Exception e)
+		{
+			m_logger.warn(this + ".addCandidateInfoLock setEvent " + e);
+		}
+		
+		return info;
+		
+	}//addCandidateInfoLock
 
 	/** 
 	* Adds an CandidateInfo to the service.
@@ -11352,8 +11465,7 @@ public abstract class BaseDissertationService
 		*/
 		public void setAuxiliaryText(List text)
 		{
-			if(text != null)
-				m_auxiliaryText = text;
+			m_auxiliaryText = text;
 		}
 
 		/**

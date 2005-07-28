@@ -156,6 +156,18 @@ public interface DissertationService
 	/** Rackham dissertation type for steps not associated with Music Performance. */
 	public static final String DISSERTATION_TYPE_DISSERTATION_STEPS = "Dissertation Steps";
 	
+	/** The reference of the object that is locked in the db during upload */
+	public static final String IS_LOADING_LOCK_REFERENCE = "/dissertation/i/rackham/rackham/dissertation.isloading.lock";
+	
+	/** The id of the object that is locked in the db during upload */
+	public static final String IS_LOADING_LOCK_ID = "dissertation.isloading.lock";
+	
+	/** The template and properties for creating a static checklist */
+	public static final String STATIC_CHECKLIST_TEMPLATE = "static_checklist_template.txt";
+	public static final String STATIC_CHECKLIST_NAME = "checklist.html";
+	public static final String STATIC_CHECKLIST_DISPLAY_NAME = "Dissertation Checklist";
+	public static final String STATIC_CHECKLIST_DESCRIPTION = "Saved copy of the Dissertation Checklist";
+	
 	/**
 	* Check permissions for adding a Block Grant Group.
 	* @param site - The site for which permissions are being checked.

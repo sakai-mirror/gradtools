@@ -26,17 +26,30 @@
 package org.sakaiproject.tool.dissertation;
 
 // imports
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Set;
 import java.util.Vector;
 
 import org.sakaiproject.api.app.dissertation.BlockGrantGroup;
 import org.sakaiproject.api.app.dissertation.BlockGrantGroupEdit;
+import org.sakaiproject.api.app.dissertation.CandidateInfo;
+import org.sakaiproject.api.app.dissertation.CandidateInfoEdit;
+import org.sakaiproject.api.app.dissertation.CandidatePath;
+import org.sakaiproject.api.app.dissertation.CandidatePathEdit;
+import org.sakaiproject.api.app.dissertation.DissertationStep;
+import org.sakaiproject.api.app.dissertation.StepStatus;
+import org.sakaiproject.api.app.dissertation.StepStatusEdit;
 import org.sakaiproject.api.app.dissertation.cover.DissertationService;
+import org.sakaiproject.api.kernel.thread_local.cover.ThreadLocalManager;
+import org.sakaiproject.api.kernel.tool.cover.ToolManager;
 import org.sakaiproject.cheftool.Context;
 import org.sakaiproject.cheftool.JetspeedRunData;
 import org.sakaiproject.cheftool.RunData;
@@ -46,13 +59,24 @@ import org.sakaiproject.cheftool.menu.Menu;
 import org.sakaiproject.cheftool.menu.MenuEntry;
 import org.sakaiproject.cheftool.menu.MenuItem;
 import org.sakaiproject.exception.IdUnusedException;
+import org.sakaiproject.exception.PermissionException;
 import org.sakaiproject.service.framework.portal.cover.PortalService;
+import org.sakaiproject.service.framework.session.cover.UsageSessionService;
 import org.sakaiproject.service.framework.session.SessionState;
+import org.sakaiproject.service.legacy.content.ContentResource;
+import org.sakaiproject.service.legacy.content.ContentResourceEdit;
+import org.sakaiproject.service.legacy.content.cover.ContentHostingService;
+import org.sakaiproject.service.legacy.resource.ResourceProperties;
+import org.sakaiproject.service.legacy.resource.ResourcePropertiesEdit;
 import org.sakaiproject.service.legacy.site.Site;
 import org.sakaiproject.service.legacy.site.cover.SiteService;
+import org.sakaiproject.service.legacy.time.Time;
+import org.sakaiproject.service.legacy.user.User;
+import org.sakaiproject.service.legacy.user.cover.UserDirectoryService;
 import org.sakaiproject.util.FileItem;
 import org.sakaiproject.util.ParameterParser;
 import org.sakaiproject.util.SortedIterator;
+import org.sakaiproject.util.java.StringUtil;
 
 /**
 * <p>DissertationUploadAction is the U-M Rackham Graduate School OARD/MP data loader.</p>
@@ -76,6 +100,8 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	private final static String  STATE_FIELD_TO_EDIT = "field_to_edit";
 	private final static String  STATE_FIELDS_TO_REMOVE = "fields_to_remove";
 	private final static String  STATE_CODES_LIST = "codes_list";
+	private final static String  STATE_STUDENT_REMOVAL_MESSAGES = "student_removal_messages";
+	private final static String  STATE_STUDENTS_TO_REMOVE = "students_to_remove";
 	
 	/** New or edit code form values */
 	private final static String  STATE_FOS_CODE = "fos_code";
@@ -97,12 +123,14 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	private final static String  MODE_EDIT_NAMES = "edit_names";
 	private final static String  MODE_REVISE_CODE = "revise_code";
 	private final static String  MODE_REMOVE_CODES = "remove_codes";
-	private final static String  MODE_REMOVE_CODES_CONFIRMED = "remove_codes_confirmed";
+	private final static String  MODE_CONFIRM_REMOVE_STUDENTS = "confirm_remove_students";
 	private final static String  MODE_CONFIRM_REMOVE_CODES = "confirm_remove_codes";
+	private final static String  MODE_REMOVE_STUDENTS = "remove_students";
 	
 	/** The templates */
 	private final static String  TEMPLATE_UPLOAD = "_upload";
 	private final static String  TEMPLATE_CONFIRM_UPLOAD = "_confirm_upload";
+	private final static String  TEMPLATE_CONFIRM_REMOVE_STUDENTS = "_confirm_remove_students";
 	private final static String  TEMPLATE_LOAD_ERRORS = "_load_errors";
 	private final static String  TEMPLATE_SITEID_NOT_RACKHAM = "_siteid_not_rackham";
 	private final static String  TEMPLATE_NO_UPLOAD_PERMISSION = "_no_upload_permission";
@@ -113,6 +141,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	private final static String  TEMPLATE_PREVIEW_CODE = "_preview_code";
 	private final static String  TEMPLATE_EDIT_NAMES = "_edit_names";
 	private final static String  TEMPLATE_REMOVE_CODES = "_remove_codes";
+	private final static String  TEMPLATE_REMOVE_STUDENTS = "_remove_students";
 	
 	private static final String SORTED_BY_FIELD_CODE = "field_code";
 	private static final String SORTED_BY_FIELD_NAME = "field_name";
@@ -231,6 +260,14 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		else if (mode.equals(MODE_CONFIRM_REMOVE_CODES))
 		{
 			template = buildConfirmRemoveCodesContext(state, context);
+		}
+		else if (mode.equals(MODE_REMOVE_STUDENTS))
+		{
+			template = buildRemoveStudentsContext(state, context);
+		}
+		else if (mode.equals(MODE_CONFIRM_REMOVE_STUDENTS))
+		{
+			template = buildConfirmRemoveStudentsContext(state, context);
 		}
 		else
 		{
@@ -461,6 +498,15 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	}//getFieldName
 	
 	/**
+	* Build the context for the form to enter student(s) to remove.
+	*/
+	private String buildRemoveStudentsContext(SessionState state, Context context)
+	{
+		return TEMPLATE_REMOVE_STUDENTS;
+		
+	}//buildRemoveStudentsContext
+	
+	/**
 	* Build the context for the form to edit new matching FOS and BGG codes.
 	*/
 	private String buildReviseCodeContext(SessionState state, Context context, RunData rundata)
@@ -555,6 +601,24 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	}//buildConfirmRemoveCodesContext
 	
 	/**
+	* Build the context for the confirm student(s) removal form.
+	*/
+	private String buildConfirmRemoveStudentsContext(SessionState state, Context context)
+	{
+		//get list of uniqnames with paths from state
+		List namesToRemove = (Vector)state.getAttribute(STATE_STUDENTS_TO_REMOVE);
+		
+		//put number of students to remove in context
+		context.put("n", new Integer(namesToRemove.size()));
+		
+		//put names to remove in context
+		context.put("uniqnames", namesToRemove);
+		
+		return TEMPLATE_CONFIRM_REMOVE_STUDENTS;
+		
+	}//buildConfirmRemoveStudentsContext
+	
+	/**
 	* Build the context for the file upload form.
 	*/
 	private String buildUploadContext(VelocityPortlet portlet, RunData rundata, SessionState state, Context context)
@@ -563,6 +627,12 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		Menu bar = new Menu(portlet, rundata, (String) state.getAttribute(STATE_ACTION));
 		bar.add( new MenuEntry("Show...", "doShow_setting"));
 		bar.add( new MenuEntry("Edit Codes", "doList_codes"));
+		bar.add(new MenuEntry("Remove Students", "doRemove_students"));
+		
+		/** a utility **
+		bar.add(new MenuEntry("Check for duplicate steps", "doCheck_for_dups"));
+		*/
+		
 		context.put("menu", bar);
 		return TEMPLATE_UPLOAD;
 
@@ -574,30 +644,21 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	*/
 	private String buildConfirmUploadContext(SessionState state, Context context)
 	{
-		FileItem OARDFileItem = null;
-		FileItem MPFileItem = null;
+		//get both FileItems from state
+		FileItem oard = (FileItem)state.getAttribute(STATE_OARDFILE);
+		FileItem mp = (FileItem)state.getAttribute(STATE_MPFILE);
 		
-		//get the FileItems from state
-		if(state.getAttribute(STATE_OARDFILE)!=null)
+		//this should have been caught earlier
+		if(oard.getFileName().equals("") && mp.getFileName().equals(""))
 		{
-			OARDFileItem = (FileItem)state.getAttribute(STATE_OARDFILE);
-		}
-		if(state.getAttribute(STATE_MPFILE)!=null)
-		{
-			MPFileItem = (FileItem)state.getAttribute(STATE_MPFILE);
-		}
-		
-		//check that FileItems aren't null
-		if(OARDFileItem == null && MPFileItem == null)
-		{
-			addAlert(state, "OARD and MP extract files are null. Please contact GradTools Support if you have questions.");
+			addAlert(state, "Both extract files are missing names. Please contact GradTools Support if you have questions.");
 			return TEMPLATE_UPLOAD;
 		}
-		else if(OARDFileItem == null)
+		else if(oard.getFileName().equals(""))
 		{
 			addAlert(state, "Did you mean to omit the OARD extract file?");
 		}
-		else if (MPFileItem == null)
+		else if (mp.getFileName().equals(""))
 		{
 			addAlert(state, "Did you mean to omit the MP extract file?");
 		}
@@ -605,31 +666,36 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		//display properties of the data files for confirmation
 		try
 		{
-			if(OARDFileItem != null)
+			if(!oard.getFileName().equals(""))
 			{
-				String OARDContentString = OARDFileItem.getString();
+				String OARDContentString = oard.getString();
 				state.setAttribute(STATE_OARD_CONTENT_STRING, OARDContentString);
 				
 				Hashtable OARDProps = DissertationService.getDataFileProperties(OARDContentString.getBytes());
 				context.put("OARDLines", ((Integer)OARDProps.get(DissertationService.DATAFILE_LINES)).toString());
-				context.put("OARDFileName", (String)OARDFileItem.getFileName());
-				context.put("OARDContentType", (String)OARDFileItem.getContentType());
+				context.put("OARDFileName", (String)oard.getFileName());
+				context.put("OARDContentType", (String)oard.getContentType());
 			}
-			if(MPFileItem != null)
+			if(!mp.getFileName().equals(""))
 			{
-				String MPContentString = MPFileItem.getString();
+				String MPContentString = mp.getString();
 				state.setAttribute(STATE_MP_CONTENT_STRING, MPContentString);
 				
 				Hashtable MPProps = DissertationService.getDataFileProperties(MPContentString.getBytes());
 				context.put("MPLines", ((Integer)MPProps.get(DissertationService.DATAFILE_LINES)).toString());
-				context.put("MPFileName", (String)MPFileItem.getFileName());
-				context.put("MPContentType", (String)MPFileItem.getContentType());
+				context.put("MPFileName", (String)mp.getFileName());
+				context.put("MPContentType", (String)mp.getContentType());
 			}
 		}
 		catch (Exception e)
 		{
 			Log.warn("chef", this + ".buildConfirmUpLoadContext Exception caught displaying properties of the data files: " + e);
 		}
+		
+		//remove FileItems from state
+		state.removeAttribute(STATE_OARDFILE);
+		state.removeAttribute(STATE_MPFILE);
+		
 		return TEMPLATE_CONFIRM_UPLOAD;
 
 	}	// buildConfirmUpLoadContext
@@ -714,6 +780,465 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		return TEMPLATE_CUSTOMIZE;
 		
 	}//buildCustomizeContext
+	
+	/**
+	* Make substitutions in template
+	*/
+	public String getStaticChecklist(SessionState state, CandidatePath path, String template)
+	{
+		int last = 0;
+		int indexOfHead = 0;
+		String order = null;
+		String line = null;
+		String fname = null;
+		String lname = null;
+		StringBuffer buf = null;
+		Date date = new Date();
+		List sections = getSectionHeads();
+		String uniqname = path.getCandidate();
+		try
+		{
+			User candidate = UserDirectoryService.getUser(uniqname);
+			if(candidate != null)
+			{
+				fname = candidate.getFirstName();
+				lname = candidate.getLastName();
+			}
+		}
+		catch(Exception e)
+		{
+			if(Log.isWarnEnabled())
+				Log.warn("chef", this + ".getStaticChecklist getUser " + e);
+		}
+		
+		//TODO import class TemplateStep with method to getTemplateSteps
+		TemplateStep step = null;
+		TemplateStep[] steps = getTemplateSteps(path, state, true);
+		List lines = new Vector();
+		
+		//TODO bufSize get from config
+		int bufSize = 32000;
+		buf = new StringBuffer(bufSize);
+		try
+		{
+			//TODO get HTML by merging objects into template
+			buf.append("<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>\n");
+			buf.append("<html xmlns='http://www.w3.org/1999/xhtml' lang='en' xml:lang='en'>\n");
+			buf.append("<head>\n");
+			buf.append("<meta http-equiv='Content-Type' content='text/html; charset=UTF-8' />\n");
+			buf.append("<meta http-equiv='Content-Style-Type' content='text/css' />\n");
+			buf.append("<title>Dissertation Checklist</title>\n");
+			buf.append("<link href='/ctlib/skin/tool_base.css' type='text/css' rel='stylesheet' media='all' />\n");
+			buf.append("<link href='/ctlib/skin/ctools/tool.css' type='text/css' rel='stylesheet' media='all' />\n");
+			buf.append("</head>\n");
+			buf.append("<body>\n");
+			buf.append("<br/><br/>\n");
+			buf.append(fname + " " + lname + " Dissertation Checklist, as of " + date.toLocaleString() + "\n");
+			buf.append("<br/><br/>\n");
+			
+			//legend
+			buf.append("<table border='0' cellspacing='0' cellpadding='5' width='70%'>\n");
+			buf.append("<tr>\n");
+			buf.append("<td align='center'>LEGEND&nbsp;:&nbsp;</td>\n");
+			buf.append("<td><center><img alt='Student' src='/library/image/sakai/diss_validate1.gif' BORDER='0' /></center></td>\n");
+			buf.append("<td><center><img alt='Committee Chair' src='/library/image/sakai/diss_validate2.gif' BORDER='0' /></center></td>\n");
+			buf.append("<td><center><img alt='Committee' src='/library/image/sakai/diss_validate3.gif' BORDER='0' /></center></td>\n");
+			buf.append("<td><center><img alt='Department' src='/library/image/sakai/diss_validate4.gif' BORDER='0' /></center></td>\n");
+			buf.append("<td><center><img alt='Rackham' src='/library/image/sakai/diss_validate5.gif' BORDER='0' /></center></td>\n");
+			buf.append("</tr>\n");
+			buf.append("<tr>\n");
+			buf.append("<td></td>\n");
+			buf.append("<td><center>Student</center></td>\n");
+			buf.append("<td><center>Committee Chair</center></td>\n");
+			buf.append("<td><center>Committee</center></td>\n");
+			buf.append("<td><center>Department</center></td>\n");
+			buf.append("<td><center>Rackham</center></td>\n");
+			buf.append("</tr>\n");
+			buf.append("</table>\n");
+			
+			//steps
+			buf.append("<table class='listHier' summary='All Steps in the Candidates Path' border='0' cellspacing='0' cellpadding='5' width='100%'>\n");
+			buf.append("<tr>");
+			buf.append("<th id='empty1'>&nbsp;&nbsp;</th>");
+			buf.append("<th id='actors' align='left' valign='bottom' nowrap='nowrap'>Actor(s)</th>");
+			buf.append("<th id='empty2'>&nbsp;&nbsp;</th>");
+			buf.append("<th id='step' align='left' valign='bottom'>Step</th>");
+			buf.append("<th id='prerequisites' width='10%' align='left' valign='bottom' nowrap='nowrap'>Prerequisites</th>");
+			buf.append("<th id='approved' align='left' valign='bottom' nowrap='nowrap'>Approved On</th>");
+			buf.append("</tr>");
+			if(steps.length > 0)
+			{
+				//first section header
+				last = 1;
+				buf.append("<tr>\n");
+				buf.append("<td colspan='5' style='font-weight:bold;color:#616161; padding-bottom:15px; padding-top:15px'>\n");
+				buf.append(sections.get(last));
+				buf.append("</td>\n");
+				buf.append("</tr>\n");
+				for(int i = 0; i < steps.length; i++)
+				{
+					try
+					{
+						step = steps[i];
+						order = (new Integer(i+1)).toString();
+						indexOfHead = step.getSection();
+						if(indexOfHead != 0)
+						{
+							if(indexOfHead != last)
+							{
+								//others section headers
+								buf.append("<tr>\n");
+								buf.append("<td colspan='5' style='font-weight:bold;color:#616161; padding-bottom:15px; padding-top:15px'>\n");
+								buf.append(sections.get(indexOfHead));
+								buf.append("</td>\n");
+								buf.append("</tr>\n");
+							}
+						}
+						
+						//prerequisites not completed
+						buf.append("<tr ");
+						if(step.getStatus().equals("Prerequisites not completed."))
+							buf.append("text='#CCCCCC'");
+						buf.append(">\n");
+						
+						//col 1 checkmark or checkbox
+						if(step.getStatus().equals("Step completed."))
+						{
+							//TimeCompleted
+							buf.append("<td headers='empty1' width='3%'><img alt='Completed' title='Completed : ");
+							buf.append(step.getTimeCompleted());
+							buf.append("' src = '/library/image/sakai/checkon.gif' BORDER='0' /></td>\n");
+						}
+						else if(step.showCheckbox())
+						{
+							//StatusReference
+							buf.append("<td headers='empty1' width='3%'><input type='checkbox' name='selectedstatus' ");
+							buf.append("id='selectedstatus' value='");
+							buf.append(step.getStatusReference());
+							buf.append("' ></input></td>\n");
+						}
+						else
+						{
+							buf.append("<td headers='empty1' width='3%'></td>\n");
+						}
+						
+						//col 2 actor(s)
+						buf.append("<td headers='empty2' width='3%'>\n");
+						buf.append("<center><img  src='/library/image/" + step.getValidationImage() + "'"); 
+						buf.append("alt='ValidationType'");
+						buf.append("' BORDER='0'");
+						buf.append("/></center></td>\n");
+						if(step.getStatus().equals("Prerequisites not completed."))
+						{
+							//cols 3-5 order, instructions, prerequisites
+							buf.append("<td headers='step' width='3%'><span style='color:#777777'>\n");
+							buf.append(order);
+							buf.append(".</span></td>\n");
+							buf.append("<td headers='empty3' width='61%' ><span style='color:#777777'>\n");
+							buf.append(step.getInstructions());
+							buf.append("</span></td>\n");
+							buf.append("<td headers='prerequisites' width='10%'><span style='color:#777777'>\n");
+							buf.append(step.getPrereqs());
+							buf.append("</span></td>\n");
+						}
+						else
+						{
+							//cols 3-5 order, instructions, prerequisites
+							buf.append("<td headers='step' width='3%'>\n");
+							buf.append(order);
+							buf.append(".</td>\n");
+							buf.append("<td headers='empty3' width='71%'>\n");
+							buf.append(step.getInstructions());
+							
+							//committee members
+							lines = step.getAuxiliaryText();
+							if(lines != null && lines.size() > 0)
+							{
+								buf.append("<br/><i>Evaluations required from:</i><br/>\n");
+								for(int j = 0; j < lines.size(); j++)
+								{
+									line = (String)lines.get(j);
+									buf.append(line);
+									buf.append("<br/>\n");
+								}
+							}
+							buf.append("</td>\n");
+							buf.append("<td headers='prerequisites' width='10%'>\n");
+							buf.append(step.getPrereqs() + "</td>\n");
+						}
+						buf.append("<td headers='approved' width='20%'>" + step.getTimeCompleted() + "</td>");
+						buf.append("</tr>\n");
+						
+						//if a department or personal step this will be 0
+						if(indexOfHead != 0)
+							last = indexOfHead;
+					}
+					catch(Exception e)
+					{
+						if(Log.isWarnEnabled())
+							Log.warn("chef", this + ".getStaticChecklist " + e);
+						continue;
+					}
+				}
+			}
+			else
+			{
+				buf.append("No steps are defined for this checklist.");
+			}
+			buf.append("</table></body></html>\n");
+		}
+		catch(Exception e)
+		{
+			if(Log.isWarnEnabled())
+				Log.warn("chef", this + ".getStaticChecklist " +e);
+		}
+		
+		//this should trim the underlying char[]
+		return new String(buf.toString());
+		
+	}//getStaticChecklist
+
+	/**
+	* Get the template for creating a static copy of a checklist
+	*/
+	public String getStaticTemplate()
+	{
+		//TODO implement creation of HTML by merging template and objects
+		String body = "";
+		String home = null;
+		
+		//get the static checklist template
+		try
+		{
+			home = ContentHostingService.getSiteCollection(ToolManager.getCurrentPlacement().getContext());
+			try
+			{
+				ContentHostingService.checkCollection(home);
+			}
+			catch(Exception e)
+			{
+				if(Log.isWarnEnabled())
+					Log.warn("chef", this + ".getStaticTemplate checkCollection " + e);
+				return body;
+			}
+			ContentResource checklist = ContentHostingService.getResource(home + DissertationService.STATIC_CHECKLIST_TEMPLATE);
+			
+			// read the body
+			if (checklist.getContent () != null)
+			{
+				body = new String (checklist.getContent ());
+			}
+		}
+		catch(Exception e)
+		{
+			if(Log.isWarnEnabled())
+				Log.warn("chef", this + ".getStaticTemplate getSiteCollection " + e);
+		}
+		return body;
+		
+	}//getStaticTemplate
+	
+	/**
+	* Get the candidates to be removed
+	*/
+	public List getCandidatesToRemove(List paths)
+	{
+		CandidatePath path = null;
+		String candidate = null;
+		List candidates = new Vector();
+		for (ListIterator i = paths.listIterator(); i.hasNext(); )
+		{
+			path = (CandidatePath)i.next();
+			if(path != null)
+			{
+				candidate = path.getCandidate();
+				if(candidate != null && !candidate.equals(""))
+					candidates.add(candidate);
+			}
+		}
+		return candidates;
+		
+	}//getCandidatesToRemove
+	
+	/**
+	* Get the student paths that can be removed
+	*/
+	public List getPathsToRemove(SessionState state, String template)
+	{
+		//get the student(s) selected for removal
+		List uniqnames = (Vector)state.getAttribute(STATE_STUDENTS_TO_REMOVE);
+		List paths = new Vector();
+		String uniqname = null;
+		String siteId = null;
+		CandidatePath path = null;
+		for (ListIterator i = uniqnames.listIterator(); i.hasNext(); )
+		{
+			uniqname = (String)i.next();
+			try
+			{
+				path = DissertationService.getCandidatePathForCandidate(uniqname);
+			}
+			catch(Exception e)
+			{
+				if(Log.isWarnEnabled())
+					Log.warn("chef", this + ".getPathsToRemove " + e);
+			}
+			if(path != null)
+			{
+				siteId = path.getSite();
+				if(siteId != null && !siteId.equalsIgnoreCase(uniqname))
+				{
+					//if we have a GradToolsStudent site id
+					try
+					{
+						//if a copy was saved, remove path
+						if(takeSnapshot(state, path, template))
+							paths.add(path);
+					}
+					catch(Exception e)
+					{
+						continue;
+					}
+				}
+				else
+				{
+					//if there is no GradToolsStudent site (or tool never used on it), remove path
+					paths.add(path);
+				}
+			}
+		}
+		return paths;
+		
+	}//getPathsToRemove
+	
+	/**
+	* Create a static copy of the student's checklist under Resources
+	*/
+	public boolean takeSnapshot(SessionState state, CandidatePath path, String template)
+	{
+		boolean retVal = false;
+		
+		//TODO develop a template into which dynamic data is inserted
+		//get the a static copy of the checklist
+		String checklist = getStaticChecklist(state, path, template);
+		
+		//take a snapshot of the path
+		try
+		{
+			Snapshot s = new Snapshot(path.getSite(), checklist);
+			Thread t = new Thread(s);
+			t.start();
+			retVal = true;
+		}
+		catch(Exception e)
+		{
+			retVal = false;
+		}
+		
+		return retVal;
+		
+	}//takeSnapshot
+	
+	/**
+	* Remove student(s)' path, step status, and info from db
+	*/
+	public void removeStudents(SessionState state, List paths, List candidates)
+	{
+		//remove path, status and candidate info
+		CandidatePath path = null;
+		CandidatePathEdit pathEdit= null;
+		CandidateInfo info = null;
+		CandidateInfoEdit infoEdit = null;
+		StepStatus status = null;
+		StepStatusEdit statusEdit = null;
+		Hashtable statuses = new Hashtable();
+		String candidate = null;
+		String statusRef = null;
+		String key = null;
+		String msg = "";
+		
+		//remove path and status
+		for (ListIterator i = paths.listIterator(); i.hasNext(); )
+		{
+			path = (CandidatePath)i.next();
+			if(path != null)
+			{
+				statuses = path.getOrderedStatus();
+				try
+				{
+					pathEdit = DissertationService.editCandidatePath(path.getReference());
+				}
+				catch(Exception e)
+				{
+					if(pathEdit != null && pathEdit.isActiveEdit())
+					{
+						DissertationService.cancelEdit(pathEdit);
+						msg = msg + " " + path.getCandidate();
+					}
+				}
+				try
+				{
+					if(pathEdit != null)
+						DissertationService.removeCandidatePath(pathEdit);
+				}
+				catch(Exception e)
+				{
+					msg = msg + " " + path.getCandidate();
+					
+					//if unable to remove path, leave step statuses
+					continue;
+				}
+				
+				//remove status
+				if(statuses != null)
+				{
+					for (int j = 1; j < statuses.size(); j++)
+					{
+						try
+						{
+							key = "" + j;
+							statusRef = (String)statuses.get(key);
+							statusEdit = DissertationService.editStepStatus(statusRef);
+							if(statusEdit != null)
+								DissertationService.removeStepStatus(statusEdit);
+						}
+						catch(Exception e)
+						{
+							if(statusEdit != null && statusEdit.isActiveEdit())
+								DissertationService.cancelEdit(statusEdit);
+						}
+					}
+				}
+			}
+		}
+
+		//remove candidate info
+		for (ListIterator i = candidates.listIterator(); i.hasNext(); )
+		{
+			try
+			{
+				candidate = (String)i.next();
+				info = DissertationService.getInfoForCandidate(candidate);
+				if(info != null)
+					infoEdit = DissertationService.editCandidateInfo(info.getReference());
+				if(infoEdit != null)
+					DissertationService.removeCandidateInfo(infoEdit);
+			}
+			catch(Exception e)
+			{
+				if(infoEdit != null && infoEdit.isActiveEdit())
+				{
+					DissertationService.cancelEdit(infoEdit);
+					msg = msg + " " + candidate;
+				}
+				continue;
+			}
+		}
+		if(!msg.equals(""))
+			state.setAttribute(STATE_STUDENT_REMOVAL_MESSAGES, msg);
+
+
+	}//removeStudents
 	
 	/**
 	* Handle a menu request to customize Messages displayed setting.
@@ -805,6 +1330,155 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	} //doOptions
 	
 	/**
+	* Utility to check for steps with identical instructions text.
+	*/
+	public void doCheck_for_dups (RunData data)
+	{
+		SessionState state = ((JetspeedRunData)data).getPortletSessionState (((JetspeedRunData)data).getJs_peid ());
+		/*
+		String[] letters = {"A","B","C","D","E","F","G","H","I","J","K",
+				"L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
+		*/
+		String[] letters = {"A"};
+		String type = null;
+		String msg = null;
+		CandidatePath path = null;
+		User u = null;
+		List students = new Vector();
+		List bad = new Vector();
+		int count = 0;
+		
+		//check each path for each dissertation type and sort letter
+		for(int i = 0; i < letters.length; i++)
+		{
+			try
+			{
+				/*keep track of progress */
+				System.out.println(letters[i]);
+				
+				//check Dissertation Steps
+				type = DissertationService.DISSERTATION_TYPE_DISSERTATION_STEPS;
+				
+				/*keep track of progress */
+				System.out.println(type);
+				students = DissertationService.getSortedUsersOfTypeForLetter(type, letters[i]);
+				
+				/*keep track of progress */
+				System.out.println("number of students to check is " + students.size());
+				for(int j = 0; j < students.size(); j++)
+				{
+					try
+					{
+						u = (User)students.get(j);
+						path = DissertationService.getCandidatePathForCandidate(u.getId());
+						
+						//check for path with duplicate steps and personal steps
+						msg = checkForDups(path);
+						if(msg != null && !msg.equals(""))
+						{
+							bad.add(msg);
+							count = count + 1;
+						}
+					}
+					catch(Exception e)
+					{
+						System.out.println(u.getId() + " " + u.getDisplayName() + " path " + path.getId() + " " + e);
+					}
+					continue;
+				}
+			}
+			catch(Exception e)
+			{
+				System.out.println(".doCheck_dups() " + type + " " + e);
+			}
+			try
+			{
+				//check Dissertation Steps: Music Performance
+				type = DissertationService.DISSERTATION_TYPE_MUSIC_PERFORMANCE;
+				
+				/* keep track of progress */
+				System.out.println(type);
+				students = DissertationService.getSortedUsersOfTypeForLetter(type, letters[i]);
+				
+				/*keep track of progress */
+				System.out.println("number of students to check is " + students.size());
+				for(int j = 0; j < students.size(); j++)
+				{
+					try
+					{
+						u = (User)students.get(j);
+						path = DissertationService.getCandidatePathForCandidate(u.getId());
+						
+						//check for path with duplicate steps and personal steps
+						msg = checkForDups(path);
+						if(msg != null && !msg.equals(""))
+						{
+							bad.add(msg);
+							count = count + 1;
+						}
+					}
+					catch(Exception e)
+					{
+						System.out.println(u.getId() + " " + u.getDisplayName() + " path " + path.getId() + " " + e);
+					}
+					continue;
+				}
+			}
+			catch(Exception e)
+			{
+				System.out.println("doCheck_dups " + type + " " + e);
+			}
+			continue;
+		}
+		
+		//sort by uniqname
+		if(bad != null && !bad.isEmpty())
+			Collections.sort(bad);
+		
+		//save as a ContentResource
+		ContentResourceEdit edit = null;
+		StringBuffer buf = new StringBuffer();
+		for(int i = 0; i < bad.size(); i++)
+			buf.append(bad.get(i));
+		byte[] results = buf.toString().getBytes();
+		try
+		{
+			edit = ContentHostingService.addResource("/rackham/duplicates.txt");
+			edit.setContent(results);
+			edit.setContentType("text/plain");
+			edit.setContentLength(results.length);
+			ResourcePropertiesEdit props = edit.getPropertiesEdit();
+			props.addProperty(ResourceProperties.PROP_DISPLAY_NAME,"Duplicate Steps");
+			props.addProperty(ResourceProperties.PROP_DESCRIPTION, "Duplicate Steps");
+			ContentHostingService.commitResource(edit);
+		}
+		catch(Exception e)
+		{
+			if(edit != null && edit.isActiveEdit())
+			{
+				try
+				{
+					ContentHostingService.removeResource(edit);
+				}
+				catch(Exception ee)
+				{
+					if(Log.isWarnEnabled())
+						Log.warn("chef", this + ".doCheck_dups() removeResource(edit) " + e);
+				}
+			}
+			if(Log.isWarnEnabled())
+				Log.warn("chef", this + ".doCheck_dups() commitResource(edit) " + e);
+		}
+		//saved
+		
+		System.out.println();
+		System.out.println("count of paths with duplicate steps " + count);
+		state.setAttribute(STATE_MODE, MODE_UPLOAD);
+		
+	} //doCheck_dups
+
+	
+	/**
 	* Handle a request to Cancel tool Options setting change.
 	*/
 	public void doCancel_setting (RunData data)
@@ -855,29 +1529,17 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		
 		FileItem OARDFileItem = null;
 		FileItem MPFileItem = null;
-
-		//check for file items
 		try
 		{
+			//get OARD FileItem
 			OARDFileItem = params.getFileItem ("OARD");
+			
+			//get MP FileItem
 			MPFileItem = params.getFileItem ("MP");
-		
-			//if we don't have any files
-			if(OARDFileItem == null && MPFileItem == null)
-			{
-				addAlert(state, "Both files are null.");
-			}
 			
-			//if the file(s) don't contain plain text
-			if((OARDFileItem != null) && !(OARDFileItem.getContentType().equals("text/plain")))
-			{
-				addAlert(state, OARDFileItem.getFileName() + " content type is not text/plain:  " + OARDFileItem.getContentType());	
-			}
-			if((MPFileItem != null) && !(MPFileItem.getContentType().equals("text/plain")))
-			{
-				addAlert(state, MPFileItem.getFileName() + " content type is not text/plain:  " + MPFileItem.getContentType());
-			}
-			
+			//if neither file was entered
+			if(OARDFileItem.getFileName().equals("") && MPFileItem.getFileName().equals(""))
+				addAlert(state, "No file names were entered.");
 		}
 		catch (Exception e)
 		{
@@ -885,13 +1547,13 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 			addAlert(state, "doUpload: A problem was encountered with the file(s):  " + e.getMessage());
 		}
 		
-		//if no there are no alert messages, proceed to asking for confirmation of the load
+		//if there are no alert messages, proceed to asking for confirmation of the load
 		if(((String) state.getAttribute(STATE_MESSAGE)) == null)
 		{
 			//change mode to confirm upload
 			state.setAttribute(STATE_MODE, MODE_CONFIRM_UPLOAD);
 			
-			//put files in state awaiting confirmation
+			//put FileItem(s) in state pending confirmation
 			state.setAttribute(STATE_OARDFILE, OARDFileItem);
 			state.setAttribute(STATE_MPFILE, MPFileItem);
 		}
@@ -920,6 +1582,76 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		state.setAttribute(STATE_MODE, MODE_LIST_CODES);
 		
 	}//doList_codes
+	
+	/*  
+	* Check path for steps with identical instructions (i.e., duplicates).
+	*/
+	public String checkForDups(CandidatePath path)
+	{
+		String msg = null;
+		String ref = null;
+		StepStatus status = null;
+		boolean personal = false;
+
+		//get the student's name
+		String name = "";
+		try
+		{
+			name = ((User)UserDirectoryService.getUser(path.getCandidate())).getDisplayName();
+		}
+		catch(Exception e){}
+		
+		//Set has no dups
+		Set set = new HashSet();
+
+		//Hashtable might have dups
+		Hashtable steps = path.getOrderedStatus();
+		
+		//add step description to Set
+		for (int i = 1; i <= steps.size(); i++)
+		{
+			ref = (String)steps.get(i + "");
+			try
+			{
+				status = DissertationService.getStepStatus(ref);
+				
+				//we'll call two steps with the same instructions duplicates
+				set.add((String)status.getInstructions());
+				if(((String)status.getParentStepReference()).equals("-1"))
+				{
+					//if there are any personal steps,flag this path
+					personal = true;
+				}
+			}
+			catch(Exception e)
+			{
+				System.out.println(".checkForDups() getStepStatus(" + ref + ") " + path.getCandidate() + " " + e);
+			}
+		}
+		
+		//now see if Set has fewer items than Hashtable and also personal steps
+		try
+		{
+			if((set.size() < steps.size()))
+			{
+				if(personal)
+				{
+					//flag as having personal steps
+					msg = path.getCandidate() + " " + name + " path id " + path.getId() + " *";
+				}
+				else
+				{
+					msg = path.getCandidate() + " " + name + " path id " + path.getId();
+				}
+			}
+		}
+		catch(Exception e)
+		{
+			System.out.println(".checkForDups() " + path.getCandidate() + " " + name + " path id " + path.getId() + " " + e);
+		}
+		return msg;
+		
+	}//checkForDups
 	
 	/**
 	* Handle a request to submit changes to Block Grant Group(BGG) and Field of Study(FOS) codes and names.
@@ -1035,6 +1767,104 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	}//doConfirm_remove_codes
 	
 	/**
+	* Handle a request to confirm removal of student(s)
+	*/
+	public void doConfirm_remove_students (RunData data)
+	{
+		SessionState state = ((JetspeedRunData)data).getPortletSessionState(((JetspeedRunData)data).getJs_peid());
+		ParameterParser params = data.getParameters();
+		
+		Vector studentsToRemove = new Vector();
+		Vector studentsCannotRemove = new Vector();
+		int n = 0;
+		String name = null;
+		String msg = null;
+		String uniqnames = null;
+		CandidatePath path = null;
+		
+		//get student uniqname(s) that were input
+		uniqnames = StringUtil.trimToNull((params.getString("uniqnames")).toLowerCase());
+		
+		//check that there is something with which to work
+		if (uniqnames == null)
+		{
+			addAlert(state, "Please enter student(s)' uniqnames.");
+			state.setAttribute(STATE_MODE, MODE_REMOVE_STUDENTS);
+			return;
+		}
+		
+		//parse it
+		String[] names = uniqnames.replaceAll(",","\r\n").split("\r\n");
+		
+		//check that uniqname fetches path
+		if(names != null && names.length != 0)
+		{
+			for (int i = 0; i < names.length; i++)
+			{
+				try
+				{
+					name = names[i];
+					if(name.length() > 0 && name.length() < 8)
+					{
+						path = DissertationService.getCandidatePathForCandidate(name);
+						if(path != null)
+							studentsToRemove.add(name);
+					}
+				}
+				catch(Exception e)
+				{
+					msg = msg + "," + name;
+				}
+			}
+			if(msg != null)
+				addAlert(state, "Validation error for name(s): " + msg);
+		}
+		
+		//put both lists in state
+		state.setAttribute(STATE_STUDENTS_TO_REMOVE,studentsToRemove);
+		
+		//get confirmation
+		state.setAttribute(STATE_MODE, MODE_CONFIRM_REMOVE_STUDENTS);
+		
+	}//doConfirm_remove_students
+	
+	/**
+	* Handle a confirmation to remove student(s).
+	*/
+	public void doRemove_students_confirmed (RunData data)
+	{
+		SessionState state = ((JetspeedRunData)data).getPortletSessionState(((JetspeedRunData)data).getJs_peid());
+		String msg = "";
+		List paths = new Vector();
+		List candidates = new Vector();
+		
+		//TODO the template to use for static checklist
+		//String template = getStaticTemplate();
+		String template = "";
+		
+		//paths for which a snapshot was made or no site exists
+		paths = getPathsToRemove(state, template);
+		
+		//get candidates associates with paths
+		candidates = getCandidatesToRemove(paths);
+		
+		//remove paths, step status, and candidate info for these students
+		removeStudents(state, paths, candidates);
+		
+		//get messages from state
+		if(state.getAttribute(STATE_STUDENT_REMOVAL_MESSAGES)!=null)
+			msg = (String)state.getAttribute(STATE_STUDENT_REMOVAL_MESSAGES);
+		if(!msg.equals(""))
+			addAlert(state, "There was a problem removing " + msg);
+		else
+			addAlert(state, "Selected student(s) have been removed.");
+		
+		state.removeAttribute(STATE_STUDENT_REMOVAL_MESSAGES);
+		state.setAttribute(STATE_MODE, MODE_UPLOAD);
+		
+	}//doRemove_students_confirmed
+	
+	/**
 	* Handle a request to remove FOS code(s) and associated data.
 	*/
 	public void doRemove_codes (RunData data)
@@ -1058,6 +1888,19 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		}
 	
 	}//doRemove_codes
+	
+	/**
+	* Handle a Rackham administrator's request to remove student(s)' data
+	*/
+	public void doRemove_students (RunData data)
+	{
+		SessionState state = ((JetspeedRunData)data).getPortletSessionState(((JetspeedRunData)data).getJs_peid());
+		ParameterParser params = data.getParameters();
+		
+		state.setAttribute(STATE_MODE, MODE_REMOVE_STUDENTS);
+		
+	}//doRemove_students
+	
 	
 	/**
 	* Handle a request to remove FOS code(s) and associated data.
@@ -1229,7 +2072,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	{
 		SessionState state = ((JetspeedRunData)data).getPortletSessionState(((JetspeedRunData)data).getJs_peid());
 		
-		//if an upload is in progress, don't start another until it's finished
+		//don't start an upload if another is in progress
 		if(DissertationService.isLoading())
 		{
 			addAlert(state, "Data is being loaded. Please wait until loading finishes to start loading again.");
@@ -1239,26 +2082,26 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		
 		state.setAttribute(STATE_MODE, MODE_CONFIRM_UPLOAD);
 		
-		String OARDContentString = null;
-		String MPContentString = null;
+		String oardContent = null;
+		String mpContent = null;
 		
 		//get file content from state
-		if(state.getAttribute(STATE_OARD_CONTENT_STRING)!=null)
+		if(state.getAttribute(STATE_OARD_CONTENT_STRING)!= null)
 		{
 			try
 			{
-				OARDContentString = (String)state.getAttribute(STATE_OARD_CONTENT_STRING);
+				oardContent = (String)state.getAttribute(STATE_OARD_CONTENT_STRING);
 			}
 			catch(Exception e)
 			{
 				Log.warn("chef", this + ".doContinue_load Exception caught getting OARDBytes: " + e);
 			}
 		}
-		if(state.getAttribute(STATE_MP_CONTENT_STRING)!=null)
+		if(state.getAttribute(STATE_MP_CONTENT_STRING)!= null)
 		{
 			try
 			{
-				MPContentString = (String)state.getAttribute(STATE_MP_CONTENT_STRING);
+				mpContent = (String)state.getAttribute(STATE_MP_CONTENT_STRING);
 				
 			}
 			catch(Exception e)
@@ -1266,39 +2109,40 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 				Log.warn("chef", this + ".doContinue_load Exception caught getting MPBytes: " + e);
 			}
 		}
-		if((OARDContentString == null || OARDContentString.length() == 0) && (MPContentString == null || MPContentString.length() == 0))
+		if((oardContent == null || oardContent.length() == 0) && (mpContent == null || mpContent.length() == 0))
 		{
 			
-			//put up an alert if both files are missing content
+			//both files have no content so post alert to upload form
 			addAlert(state, "Both files are missing or missing content.");
 			state.setAttribute(STATE_MODE, MODE_UPLOAD);
 		}
 		else
 		{
+			//at most one file is missing content
 			byte[] missing = new byte[1];
 			missing[0] = 1;
 			List loadMessages = new Vector();
 			
 			//load the data, returning all error messages
-			if(MPContentString == null || MPContentString.length() == 0)
+			if(mpContent == null || mpContent.length() == 0)
 			{
-				//if MPathways data are missing
+				//no MPathways extract data
 				try
 				{
-					loadMessages = DissertationService.loadData(OARDContentString.getBytes(), missing);
+					loadMessages = DissertationService.loadData(oardContent.getBytes(), missing);
 				}
 				catch(Exception e)
 				{
 					Log.warn("chef", this + ".doContinue_load Exception caught loading OARDBytes: " + e);
 				}
 			}
-			else if(OARDContentString == null || OARDContentString.length() == 0)
+			else if(oardContent == null || oardContent.length() == 0)
 			{
 				
-				//if OARD data are missing
+				//no OARD data extract data
 				try
 				{
-					loadMessages = DissertationService.loadData(missing, MPContentString.getBytes());
+					loadMessages = DissertationService.loadData(missing, mpContent.getBytes());
 				}
 				catch(Exception e)
 				{
@@ -1307,10 +2151,10 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 			}
 			else
 			{
-				//neither MPathways nor OARD data are missing
+				//both MPathways and OARD extract data
 				try
 				{
-					loadMessages = DissertationService.loadData(OARDContentString.getBytes(), MPContentString.getBytes());
+					loadMessages = DissertationService.loadData(oardContent.getBytes(), mpContent.getBytes());
 				}
 				catch(Exception e)
 				{
@@ -1318,7 +2162,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 				}
 			}
 
-			//the load was successful
+			//successful load
 			if(loadMessages == null || loadMessages.size() == 0)
 			{
 				addAlert(state, "The extract files have been loaded.");
@@ -1326,7 +2170,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 			}
 			else
 			{
-				//the load was not successful
+				//not successful
 				boolean validationErrors = false;
 				boolean loadingErrors = false;
 				for (Iterator i = loadMessages.iterator(); i.hasNext(); )
@@ -1351,6 +2195,8 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 				state.setAttribute(STATE_LOAD_ERRORS, loadMessages);
 				state.setAttribute(STATE_MODE, MODE_LOAD_ERRORS);
 			}
+			
+			//remove content from state
 			state.removeAttribute(STATE_OARD_CONTENT_STRING);
 			state.removeAttribute(STATE_MP_CONTENT_STRING);
 		}
@@ -1368,6 +2214,135 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		state.setAttribute(STATE_MODE, MODE_UPLOAD);
 		
 	}	// doCancel_load
+	
+	/**
+	* Handle a request to Cancel removing student(s). Called from Confirm Removal page.
+	*/
+	public void doCancel_remove_students (RunData data)
+	{
+		SessionState state = ((JetspeedRunData)data).getPortletSessionState(((JetspeedRunData)data).getJs_peid());
+		state.removeAttribute(STATE_STUDENTS_TO_REMOVE);
+		state.setAttribute(STATE_MODE, MODE_UPLOAD);
+		
+	}	// doCancel_remove_students
+	
+	/**
+	* Get the collection of Checklist Section Headings for display.
+	* @return Vector of ordered String objects, one for each section head.
+	*/
+	private Vector getSectionHeads()
+	{
+		//TODO move to service so both tools may use
+		Vector headers = new Vector();
+		headers.add("None");
+		headers.add(DissertationService.CHECKLIST_SECTION_HEADING1);
+		headers.add(DissertationService.CHECKLIST_SECTION_HEADING2);
+		headers.add(DissertationService.CHECKLIST_SECTION_HEADING3);
+		headers.add(DissertationService.CHECKLIST_SECTION_HEADING4);
+		return headers;
+		
+	}//getSectionHeadings
+	
+	/**
+	* Get the collection of display objects corresponding to a CandidatePath for inserting into a velocity template.
+	* @param path The CandidatePath.
+	* @param state The SessionState.
+	* @param committee Is this for a committee member's page?
+	* @return The collection of Template Steps.
+	*/
+	private TemplateStep[] getTemplateSteps(CandidatePath path, SessionState state, boolean committee)
+	{
+		Hashtable order = path.getOrderedStatus();
+		String ref = null;
+		int numberOfSteps = order.size();
+		StepStatus status = null;
+		Time timeCompleted = null;
+		String timeCompletedText;
+		String keyString = null;
+		TemplateStep[] templateSteps = new TemplateStep[numberOfSteps];
+		for(int x = 1; x < (numberOfSteps+1); x++)
+		{
+			try
+			{
+				keyString = "" + x;
+				ref = (String)order.get(keyString);
+				status = DissertationService.getStepStatus(ref);
+				DissertationStep parent = null;
+				
+				//If not a personal step, get section id of the parent DissertationStep for StepStatus TemplateStep
+				if(!((String)status.getParentStepReference()).equals("-1"))
+				{
+					try
+					{
+						parent = DissertationService.getDissertationStep(status.getParentStepReference());
+					}
+					catch(IdUnusedException e)
+					{
+						if(Log.isWarnEnabled())
+							Log.warn("chef", this + "getTemplateSteps get section id of the parent for path " + path.getId() + " " + e);
+					}
+				}
+				
+				templateSteps[x-1] = new TemplateStep();
+
+				//in DissertationAction value depends on whether student or committee
+				templateSteps[x-1].setShowCheckbox(true);
+				
+				templateSteps[x-1].setStatusReference(status.getReference());
+				templateSteps[x-1].setInstructions(status.getInstructions());
+				templateSteps[x-1].setValidationImage(status.getValidationType());
+				
+				// FIND THE STEP STATUS
+				templateSteps[x-1].setStatus(path.getStatusStatus(status));
+				templateSteps[x-1].setPrereqs(path.getPrerequisiteStepsDisplayString(status));
+				timeCompleted = status.getTimeCompleted();
+				timeCompletedText = status.getTimeCompletedText();
+				if(timeCompleted != null)
+				{
+					if((timeCompletedText==null) || (timeCompletedText.equals("")))
+					{
+						timeCompletedText = timeCompleted.toStringLocalDate();
+					}
+					else
+					{
+						//add supplemental text (e.g., term) to completion date
+						timeCompletedText = timeCompletedText + " : " + timeCompleted.toStringLocalDate();
+					}
+					templateSteps[x-1].setTimeCompleted(timeCompletedText);
+				}
+				//set additional auxiliary text if any
+				if(status.getAuxiliaryText() != null && status.getAuxiliaryText().size() != 0)
+				{
+					templateSteps[x-1].setAuxiliaryText(status.getAuxiliaryText());
+				}
+
+				//DissertationStep section is available through StepStatus parentstepreference
+				if(parent!=null)
+				{	
+					try
+					{
+						templateSteps[x-1].setSection(Integer.parseInt(parent.getSection()));
+					}
+					catch(NumberFormatException e)
+					{
+						Log.warn("chef", this + "getTemplateSteps setSection() for path " + path.getId() + " " + e);
+					}
+					catch(Exception e)
+					{
+						Log.warn("chef", this + "getTemplateSteps setSection() for path " + path.getId() + " " + e);
+					}
+					//earlier steps did not have a section, so deal with missing section
+				}
+			}
+			catch(Exception e)
+			{
+				if(Log.isWarnEnabled())
+					Log.warn("chef", this + ".getTemplateSteps " + "step " + keyString + " " + e);
+			}
+		}
+		return templateSteps;
+		
+	}//getTemplateSteps
 	
 	/**
 	* the GroupComparator class
@@ -1657,6 +2632,255 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		}
 		
 	}//Field
+	
+	/** Class that holds all the information for display in a velocity template. */
+	public class TemplateStep
+	{
+		private String stepId;
+		private String stepReference;
+		private String statusReference;
+		private String instructions;
+		private String validationImage;
+		private String status;
+		private String prereqs;
+		private String timeCompleted;
+		private boolean showCheckbox;
+		private String links;
+		private int section;
+		private List auxiliaryText;
+		
+		public TemplateStep()
+		{
+			stepId = "";
+			stepReference = "";
+			statusReference = "";
+			instructions = "";
+			validationImage = "";
+			status = "";
+			prereqs = "";
+			timeCompleted = "";
+			auxiliaryText = null;
+			links = "";
+			showCheckbox = true;
+			section = 0;
+		}
+		
+		public List getAuxiliaryText()
+		{
+			return auxiliaryText;
+		}
+		
+		public void setAuxiliaryText(List text)
+		{
+			auxiliaryText = text;
+		}
+
+		public int getSection()
+		{
+			return section;
+		}
+		
+		public void setSection(int s)
+		{
+			section = s;
+		}
+		
+		public String getStepId()
+		{
+			return stepId;
+		}
+		
+		public void setStepId(String id)
+		{
+			stepId = id;
+		}
+
+		public String getStepReference()
+		{
+			return stepReference;
+		}
+		
+		public void setStepReference(String ref)
+		{
+			stepReference = ref;
+		}
+
+		public String getStatusReference()
+		{
+			return statusReference;
+		}
+		
+		public void setStatusReference(String ref)
+		{
+			statusReference = ref;
+		}
+
+		public String getInstructions()
+		{
+			String retVal = instructions;
+			if(instructions.indexOf("%links%") != -1)
+			{
+				retVal = retVal.replaceFirst("%links%", getLinks());
+			}
+			return retVal;
+		}
+
+		public void setInstructions(String i)
+		{
+			if(i != null)
+				instructions = i;
+		}
+
+		public String getValidationImage()
+		{
+			return validationImage;
+		}
+
+		public void setValidationImage(String type)
+		{
+			if(type != null)
+				validationImage = "sakai/diss_validate" + type + ".gif";
+		}
+
+		public String getStatus()
+		{
+			return status;
+		}
+		
+		public void setStatus(String s)
+		{
+			if(s != null)
+				status = s;
+		}
+		
+		public String getPrereqs()
+		{
+			return prereqs;
+		}
+		
+		public void setPrereqs(String p)
+		{
+			if(p != null)
+				prereqs = p;
+		}
+		
+		public String getTimeCompleted()
+		{
+			return timeCompleted;
+		}
+		
+		public void setTimeCompleted(String time)
+		{
+			if(time != null)
+				timeCompleted = time;
+		}
+		
+		public boolean showCheckbox()
+		{
+			return showCheckbox;
+		}
+		
+		public void setShowCheckbox(boolean show)
+		{
+			showCheckbox = show;
+		}
+		
+		public void setLinks(String newLinks)
+		{
+			if(newLinks != null)
+				links = newLinks;
+		}
+		
+		public String getLinks()
+		{
+			return links;
+		}
+		
+	}//TemplateStep
+	
+	/** Class that starts a session to create content on another site. */
+	protected class Snapshot implements Runnable
+	{
+		String m_id = null;
+		String m_checklist = null;
+	
+		public void init(){}
+		public void start(){}
+		
+		//constructor
+		Snapshot(String id, String s)
+		{
+			//student's site
+			m_id = id;
+			
+			//student's static checklist
+			m_checklist = s;
+		}
+
+		public void run()
+		{
+		    try
+			{
+		    	//become admin temporarily
+		    	UsageSessionService.startSession("admin", null, null);
+				if(m_id != null)
+				{
+					ContentResourceEdit edit = null;
+					String collectionId = null;
+					if(m_checklist != null)
+					{
+						//check student's Resources collection is accessible
+						collectionId = ContentHostingService.getSiteCollection(m_id);
+						try
+						{
+							ContentHostingService.checkCollection(collectionId);
+							
+							//save the student's checklist in Resources
+							try
+							{
+								edit = ContentHostingService.addResource(collectionId + DissertationService.STATIC_CHECKLIST_NAME);
+								edit.setContent(m_checklist.getBytes());
+								edit.setContentType("text/html");
+								edit.setContentLength(m_checklist.length());
+								ResourcePropertiesEdit props = edit.getPropertiesEdit();
+								props.addProperty(ResourceProperties.PROP_DISPLAY_NAME,DissertationService.STATIC_CHECKLIST_DISPLAY_NAME);
+								props.addProperty(ResourceProperties.PROP_DESCRIPTION, DissertationService.STATIC_CHECKLIST_DESCRIPTION);
+								ContentHostingService.commitResource(edit);
+							}
+							catch(Exception e)
+							{
+								if(edit != null && edit.isActiveEdit())
+								{
+									try
+									{
+										ContentHostingService.removeResource(edit);
+									}
+									catch(Exception ee)
+									{
+										if(Log.isWarnEnabled())
+											Log.warn("chef", this + ".run removeResource " + e);
+									}
+								}
+								if(Log.isWarnEnabled())
+									Log.warn("chef", this + ".run addResource " + collectionId + DissertationService.STATIC_CHECKLIST_NAME + " " + e);
+							}
+						}
+						catch (Exception e)
+						{
+							if(Log.isWarnEnabled())
+								Log.warn("chef", this + ".run checkCollection " + collectionId + " " + e);
+						}
+					}
+				}
+		    }
+		    finally
+			{
+				//clear any current bindings
+				ThreadLocalManager.clear();
+			}
+		}
+		
+	}//Snapshot
 
 }	// DissertationUploadAction
 /**********************************************************************************

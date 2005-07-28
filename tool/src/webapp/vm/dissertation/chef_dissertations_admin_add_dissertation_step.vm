@@ -8,7 +8,12 @@
 	<div class="instruction">
 		Create A New Step.  The <span class="chefRequiredInline">&nbsp;</span> means this information is required.
 	</div>
-	<form name="addStep" id="addStep" action="#toolForm($action)" method="post">
+	<form name="addStep" 
+			id="addStep" 
+			action="#toolForm($action)" 
+			method="post">
+		<input type="hidden" name="option" value="add" />
+		<input type="hidden" name="eventSubmit_doAddnew_dissertation_step" value="x" />
 		<p class="longtext">
 			<span class="reqStar">*</span>
 			<label for="desc" class="block">Description</label>
@@ -79,12 +84,30 @@
 			#if ($activepaths.booleanValue())
 				<p class="checkbox">
 					<input type="checkbox" checked="checked" name="retroactive" id="retroactive" value="retroactive" />
-					<label for="reotractive">Apply this change to all current students</label>
+					<label for="retroactive">Apply this change to all current students</label>
 				</p>	
 			#end
 				<p class="act">
-					<input type="submit" class="active"  name="eventSubmit_doAddnew_dissertation_step" value="Save" />
-					<input type="submit" name="eventSubmit_doCancel_admin" value="Cancel" />
+					<input 
+						type="submit"
+						name="AddStep"
+						id="AddStep"
+						class="active"
+						value="Save"
+						onclick="showNotif('submitnotif','AddStep','addStep'); 
+							document.addStep.submit(); return false;" />
+					<input 
+						type="submit"
+						name="Cancel"
+						id="Cancel"
+						value="Cancel"
+						onclick="document.addStep.option.value='cancel'; 
+							document.addStep.submit(); return false;"
+						 />			
+					<span id="submitnotif" 
+						style="visibility:hidden">Processing......</span>	
+					</p>
+			
 				</p>
 			</div>
 		</fieldset>

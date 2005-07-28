@@ -90,7 +90,12 @@ public class DissertationService
 	public static java.lang.String DATAFILE_LINES = org.sakaiproject.api.app.dissertation.DissertationService.DATAFILE_LINES;
 	public static java.lang.String DISSERTATION_TYPE_MUSIC_PERFORMANCE = org.sakaiproject.api.app.dissertation.DissertationService.DISSERTATION_TYPE_MUSIC_PERFORMANCE;
 	public static java.lang.String DISSERTATION_TYPE_DISSERTATION_STEPS = org.sakaiproject.api.app.dissertation.DissertationService.DISSERTATION_TYPE_DISSERTATION_STEPS;
-	
+	public static java.lang.String IS_LOADING_LOCK_REFERENCE = org.sakaiproject.api.app.dissertation.DissertationService.IS_LOADING_LOCK_REFERENCE;
+	public static java.lang.String IS_LOADING_LOCK_ID = org.sakaiproject.api.app.dissertation.DissertationService.IS_LOADING_LOCK_ID;
+	public static java.lang.String STATIC_CHECKLIST_TEMPLATE = org.sakaiproject.api.app.dissertation.DissertationService.STATIC_CHECKLIST_TEMPLATE;
+	public static java.lang.String STATIC_CHECKLIST_NAME = org.sakaiproject.api.app.dissertation.DissertationService.STATIC_CHECKLIST_NAME;
+	public static java.lang.String STATIC_CHECKLIST_DISPLAY_NAME = org.sakaiproject.api.app.dissertation.DissertationService.STATIC_CHECKLIST_DISPLAY_NAME;
+	public static java.lang.String STATIC_CHECKLIST_DESCRIPTION = org.sakaiproject.api.app.dissertation.DissertationService.STATIC_CHECKLIST_DESCRIPTION;
 	
 	public static boolean allowAddBlockGrantGroup(java.lang.String param0)
 	{
