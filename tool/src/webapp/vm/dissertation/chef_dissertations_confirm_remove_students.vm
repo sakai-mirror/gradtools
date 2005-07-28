@@ -1,0 +1,31 @@
+##<!-- $Header: Exp $ -->
+## Remove Students Confirmation - Rackham administrator confirms removal of students
+<div class="portletBody">
+	<form name="confirmRemoveStudents" id="confirmRemoveStudents" 
+	   method="post" action="#toolForm($action)">
+		<h3>
+			Remove Students	
+		</h3>
+		<div class="instruction">
+		<p>
+			You have chosen to remove $n student(s). Please confirm below, then
+			choose "Remove" to process.
+		</p>
+		</div>
+		#if($uniqnames)
+			<h4>Uniqnames</h4>
+			#foreach ($uniqname in $uniqnames)
+				<p>$validator.escapeHtml($uniqname)</p>
+			#end
+		#end
+		<p class="act">
+			
+				<input type="submit" name="eventSubmit_doRemove_students_confirmed" 
+					id="eventSubmit_doRemove_students_confirmed" class="active"
+					value="Remove" />
+				<input type="submit" name="eventSubmit_doCancel_remove_students"
+					id="eventSubmit_doCancel_remove_students" value="Cancel" />			
+
+		</p>
+	</form>
+</div>

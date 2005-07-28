@@ -1,0 +1,35 @@
+## $Header:  Exp $ 
+## Remove Students - Rackham administrator form for removing students
+<div class="portletBody" id="chefPortletContainer">
+	#if($menu)#toolbar($menu)#end
+	<h3>
+		Remove Students
+	</h3>
+
+	#if ($alertMessage)<div class="chefAlertBox">Alert: $validator.escapeHtml($alertMessage)</div>#end
+	<div class="instruction">
+	<p>
+		Enter uniqnames of students to remove from the database below, one per line. To move 
+		students from one Department (Block Grant Group) to another, use this form to remove them, then
+		upload their extracts with the new Field of Study.
+	</p>
+	<form name="removeStudents" id="removeStudents action="#toolForm($action)" method="post"
+		   	enctype="multipart/form-data">
+		   
+		 	<p class="longtext">
+				<label for="uniqnames" class="block">
+					Uniqnames
+				</label>
+				<textarea id="uniqnames" name="uniqnames"
+					cols="30" rows="4" wrap="virtual"></textarea>
+			</p>
+			<div class="act">
+				<input type="submit" name="eventSubmit_doConfirm_remove_students"
+					id="eventSubmit_doConfirm_remove_students" class="active"
+					value="Continue" />
+
+				<input type="submit" name="eventSubmit_doCancel_remove_students"
+				   id="eventSubmit_doCancel_remove_students" value="Cancel" />
+			</div>
+		</form>
+</div>
