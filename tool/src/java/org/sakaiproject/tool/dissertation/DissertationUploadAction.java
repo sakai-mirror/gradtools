@@ -629,9 +629,9 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		bar.add( new MenuEntry("Edit Codes", "doList_codes"));
 		bar.add(new MenuEntry("Remove Students", "doRemove_students"));
 		
-		/** a utility **/
+		/** a utility **
 		bar.add(new MenuEntry("Check for duplicate steps", "doCheck_for_dups"));
-		
+		*/
 		context.put("menu", bar);
 		return TEMPLATE_UPLOAD;
 
