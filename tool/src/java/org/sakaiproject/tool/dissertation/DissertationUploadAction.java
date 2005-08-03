@@ -629,9 +629,8 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		bar.add( new MenuEntry("Edit Codes", "doList_codes"));
 		bar.add(new MenuEntry("Remove Students", "doRemove_students"));
 		
-		/** a utility **
+		/** a utility **/
 		bar.add(new MenuEntry("Check for duplicate steps", "doCheck_for_dups"));
-		*/
 		
 		context.put("menu", bar);
 		return TEMPLATE_UPLOAD;
@@ -1330,7 +1329,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	} //doOptions
 	
 	/**
-	* Utility to check for steps with identical instructions text.
+	* Utility to check for steps with identical instructions.
 	*/
 	public void doCheck_for_dups (RunData data)
 	{
@@ -1361,6 +1360,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 				
 				/*keep track of progress */
 				System.out.println(type);
+				students.clear();
 				students = DissertationService.getSortedUsersOfTypeForLetter(type, letters[i]);
 				
 				/*keep track of progress */
@@ -1398,6 +1398,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 				
 				/* keep track of progress */
 				System.out.println(type);
+				students.clear();
 				students = DissertationService.getSortedUsersOfTypeForLetter(type, letters[i]);
 				
 				/*keep track of progress */
@@ -1443,7 +1444,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		byte[] results = buf.toString().getBytes();
 		try
 		{
-			edit = ContentHostingService.addResource("/rackham/duplicates.txt");
+			edit = ContentHostingService.addResource("/group/rackham/duplicates.txt");
 			edit.setContent(results);
 			edit.setContentType("text/plain");
 			edit.setContentLength(results.length);
@@ -1834,6 +1835,18 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	public void doRemove_students_confirmed (RunData data)
 	{
 		SessionState state = ((JetspeedRunData)data).getPortletSessionState(((JetspeedRunData)data).getJs_peid());
+		
+		// get parameters
+		ParameterParser params = data.getParameters();
+		String option = params.getString("option");
+		
+		//if Cancel
+		if (option.equalsIgnoreCase("cancel"))
+		{
+			doCancel_remove_students(data);
+			return;
+		}
+		
 		String msg = "";
 		List paths = new Vector();
 		List candidates = new Vector();
@@ -2071,6 +2084,18 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	public void doContinue_load (RunData data)
 	{
 		SessionState state = ((JetspeedRunData)data).getPortletSessionState(((JetspeedRunData)data).getJs_peid());
+		
+		// get parameters
+		ParameterParser params = data.getParameters();
+		String option = params.getString("option");
+		
+		//if Cancel
+		if (option.equalsIgnoreCase("cancel"))
+		{
+			doCancel_load(data);
+			return;
+		}
+
 		
 		//don't start an upload if another is in progress
 		if(DissertationService.isLoading())

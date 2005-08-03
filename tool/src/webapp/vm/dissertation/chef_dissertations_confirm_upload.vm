@@ -6,7 +6,14 @@
 		Confirm extracts...
 	</h3>
 	#if ($alertMessage)<div class="chefAlertBox">Alert: $validator.escapeHtml($alertMessage)</div>#end
-	<form name="loadExtracts" id="loadExtracts" action="#toolForm($action)" method="post" enctype="multipart/form-data">
+	##<form name="loadExtracts" id="loadExtracts" action="#toolForm($action)" method="post" enctype="multipart/form-data">
+		<form name="loadExtracts" 
+			id="loadExtracts" 
+			action="#toolForm($action)" 
+			method="post"
+			enctype="multipart/form-data">
+			<input type="hidden" name="option" value="continue" />
+			<input type="hidden" name="eventSubmit_doContinue_load" value="x" />
 		<h4>
 			OARD Extract
 		</h4>	
@@ -28,9 +35,29 @@
 			loading before logging out or disconnecting.<br />
 			<br />
 		</p>
+		##<p class="act">
+			##<input type="submit" name="eventSubmit_doContinue_load" id="eventSubmit_doContinue_upload" value="Continue" />
+			##<input type="submit" name="eventSubmit_doCancel_load" id="eventSubmit_doCancel_upload" value="Cancel" />
+		##</p>
 		<p class="act">
-			<input type="submit" name="eventSubmit_doContinue_load" id="eventSubmit_doContinue_upload" value="Continue" />
-			<input type="submit" name="eventSubmit_doCancel_load" id="eventSubmit_doCancel_upload" value="Cancel" />
+			<input 
+				type="submit"
+				name="ContinueLoad"
+				id="ContinueLoad"
+				class="active"
+				value="Continue"
+				onclick="showNotif('submitnotif','ContinueLoad','loadExtracts'); 
+					document.loadExtracts.submit(); return false;" />
+			<input 
+				type="submit"
+				name="Cancel"
+				id="Cancel"
+				value="Cancel"
+				onclick="document.loadExtracts.option.value='cancel'; 
+					document.loadExtracts.submit(); return false;"
+				 />			
+			<span id="submitnotif" 
+				style="visibility:hidden">Processing......</span>	
 		</p>
 	</form>
 </div>
