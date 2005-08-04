@@ -70,6 +70,7 @@ import org.sakaiproject.service.legacy.resource.ResourceProperties;
 import org.sakaiproject.service.legacy.resource.ResourcePropertiesEdit;
 import org.sakaiproject.service.legacy.site.Site;
 import org.sakaiproject.service.legacy.site.cover.SiteService;
+import org.sakaiproject.service.legacy.time.cover.TimeService;
 import org.sakaiproject.service.legacy.time.Time;
 import org.sakaiproject.service.legacy.user.User;
 import org.sakaiproject.service.legacy.user.cover.UserDirectoryService;
@@ -630,8 +631,9 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		bar.add(new MenuEntry("Remove Students", "doRemove_students"));
 		
 		/** a utility **
-		bar.add(new MenuEntry("Check for duplicate steps", "doCheck_for_dups"));
+		bar.add(new MenuEntry("Check for duplicate steps", "doCheck_duplicate_steps"));
 		*/
+		
 		context.put("menu", bar);
 		return TEMPLATE_UPLOAD;
 
@@ -792,7 +794,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		String fname = null;
 		String lname = null;
 		StringBuffer buf = null;
-		Date date = new Date();
+		Time now = TimeService.newTime();
 		List sections = getSectionHeads();
 		String uniqname = path.getCandidate();
 		try
@@ -832,7 +834,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 			buf.append("</head>\n");
 			buf.append("<body>\n");
 			buf.append("<br/><br/>\n");
-			buf.append(fname + " " + lname + " Dissertation Checklist, as of " + date.toLocaleString() + "\n");
+			buf.append(fname + " " + lname + " Dissertation Checklist, as of " + now.toStringLocalDate() + "\n");
 			buf.append("<br/><br/>\n");
 			
 			//legend
@@ -1331,14 +1333,13 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	/**
 	* Utility to check for steps with identical instructions.
 	*/
-	public void doCheck_for_dups (RunData data)
+	public void doCheck_duplicate_steps (RunData data)
 	{
 		SessionState state = ((JetspeedRunData)data).getPortletSessionState (((JetspeedRunData)data).getJs_peid ());
-		/*
 		String[] letters = {"A","B","C","D","E","F","G","H","I","J","K",
 				"L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
-		*/
-		String[] letters = {"A"};
+		
+		//String[] letters = {"U"};
 		String type = null;
 		String msg = null;
 		CandidatePath path = null;
@@ -1373,7 +1374,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 						path = DissertationService.getCandidatePathForCandidate(u.getId());
 						
 						//check for path with duplicate steps and personal steps
-						msg = checkForDups(path);
+						msg = checkDuplicateSteps(path);
 						if(msg != null && !msg.equals(""))
 						{
 							bad.add(msg);
@@ -1411,7 +1412,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 						path = DissertationService.getCandidatePathForCandidate(u.getId());
 						
 						//check for path with duplicate steps and personal steps
-						msg = checkForDups(path);
+						msg = checkDuplicateSteps(path);
 						if(msg != null && !msg.equals(""))
 						{
 							bad.add(msg);
@@ -1476,7 +1477,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		System.out.println("count of paths with duplicate steps " + count);
 		state.setAttribute(STATE_MODE, MODE_UPLOAD);
 		
-	} //doCheck_dups
+	} //doCheck_duplicate_steps
 
 	
 	/**
@@ -1587,7 +1588,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	/*  
 	* Check path for steps with identical instructions (i.e., duplicates).
 	*/
-	public String checkForDups(CandidatePath path)
+	public String checkDuplicateSteps(CandidatePath path)
 	{
 		String msg = null;
 		String ref = null;
@@ -1626,7 +1627,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 			}
 			catch(Exception e)
 			{
-				System.out.println(".checkForDups() getStepStatus(" + ref + ") " + path.getCandidate() + " " + e);
+				System.out.println(".checkDuplicateSteps() getStepStatus(" + ref + ") " + path.getCandidate() + " " + e);
 			}
 		}
 		
@@ -1638,21 +1639,21 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 				if(personal)
 				{
 					//flag as having personal steps
-					msg = path.getCandidate() + " " + name + " path id " + path.getId() + " *";
+					msg = path.getCandidate() + " " + name + " path id " + path.getId() + " *\r";
 				}
 				else
 				{
-					msg = path.getCandidate() + " " + name + " path id " + path.getId();
+					msg = path.getCandidate() + " " + name + " path id " + path.getId() + "\r";
 				}
 			}
 		}
 		catch(Exception e)
 		{
-			System.out.println(".checkForDups() " + path.getCandidate() + " " + name + " path id " + path.getId() + " " + e);
+			System.out.println(".checkDuplicateSteps() " + path.getCandidate() + " " + name + " path id " + path.getId() + " " + e);
 		}
 		return msg;
 		
-	}//checkForDups
+	}//checkDuplicateSteps
 	
 	/**
 	* Handle a request to submit changes to Block Grant Group(BGG) and Field of Study(FOS) codes and names.
