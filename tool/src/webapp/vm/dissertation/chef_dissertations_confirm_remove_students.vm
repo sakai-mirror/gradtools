@@ -1,8 +1,6 @@
 ##<!-- $Header: Exp $ -->
 ## Remove Students Confirmation - Rackham administrator confirms removal of students
 <div class="portletBody">
-	##<form name="confirmRemoveStudents" id="confirmRemoveStudents" 
-	   ##method="post" action="#toolForm($action)">
 	   	<form name="confirmRemoveStudents" 
 			id="confirmRemoveStudents" 
 			action="#toolForm($action)" 
@@ -18,22 +16,18 @@
 			choose "Remove" to process.
 		</p>
 		</div>
-		#if($uniqnames)
+		#if($uniqnames && $uniqnames.size() > 0)
 			<h4>Uniqnames</h4>
 			#foreach ($uniqname in $uniqnames)
-				<p>$validator.escapeHtml($uniqname)</p>
+				$validator.escapeHtml($uniqname)<br/>
 			#end
 		#end
-		
-		##<p class="act">
-			
-				##<input type="submit" name="eventSubmit_doRemove_students_confirmed" 
-					##id="eventSubmit_doRemove_students_confirmed" class="active"
-					##value="Remove" />
-				##<input type="submit" name="eventSubmit_doCancel_remove_students"
-					##id="eventSubmit_doCancel_remove_students" value="Cancel" />			
-
-		##</p>
+		#if($badnames && $badnames.size() > 0)
+			<h4>Unable to remove</h4>
+			#foreach ($badname in $badnames)
+				$validator.escapeHtml($badname)<br/>
+			#end
+		#end
 		<p class="act">
 			<input 
 				type="submit"

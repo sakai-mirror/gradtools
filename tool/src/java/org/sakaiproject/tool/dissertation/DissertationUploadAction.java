@@ -103,6 +103,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	private final static String  STATE_CODES_LIST = "codes_list";
 	private final static String  STATE_STUDENT_REMOVAL_MESSAGES = "student_removal_messages";
 	private final static String  STATE_STUDENTS_TO_REMOVE = "students_to_remove";
+	private final static String  STATE_STUDENTS_CANNOT_REMOVE = "students_cannot_remove";
 	
 	/** New or edit code form values */
 	private final static String  STATE_FOS_CODE = "fos_code";
@@ -608,13 +609,14 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	{
 		//get list of uniqnames with paths from state
 		List namesToRemove = (Vector)state.getAttribute(STATE_STUDENTS_TO_REMOVE);
+		List namesCannotRemove = (Vector)state.getAttribute(STATE_STUDENTS_CANNOT_REMOVE);
 		
 		//put number of students to remove in context
 		context.put("n", new Integer(namesToRemove.size()));
 		
 		//put names to remove in context
 		context.put("uniqnames", namesToRemove);
-		
+		context.put("badnames", namesCannotRemove);
 		return TEMPLATE_CONFIRM_REMOVE_STUDENTS;
 		
 	}//buildConfirmRemoveStudentsContext
@@ -1354,18 +1356,21 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 			try
 			{
 				/*keep track of progress */
-				System.out.println(letters[i]);
+				if(Log.isInfoEnabled())
+					Log.info("chef",letters[i]);
 				
 				//check Dissertation Steps
 				type = DissertationService.DISSERTATION_TYPE_DISSERTATION_STEPS;
 				
 				/*keep track of progress */
-				System.out.println(type);
+				if(Log.isInfoEnabled())
+					Log.info("chef",type);
 				students.clear();
 				students = DissertationService.getSortedUsersOfTypeForLetter(type, letters[i]);
 				
 				/*keep track of progress */
-				System.out.println("number of students to check is " + students.size());
+				if(Log.isInfoEnabled())
+					Log.info("chef","number of students to check is " + students.size());
 				for(int j = 0; j < students.size(); j++)
 				{
 					try
@@ -1383,14 +1388,16 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 					}
 					catch(Exception e)
 					{
-						System.out.println(u.getId() + " " + u.getDisplayName() + " path " + path.getId() + " " + e);
+						if(Log.isWarnEnabled())
+							Log.warn("chef",u.getId() + " " + u.getDisplayName() + " path " + path.getId() + " " + e);
 					}
 					continue;
 				}
 			}
 			catch(Exception e)
 			{
-				System.out.println(".doCheck_dups() " + type + " " + e);
+				if(Log.isWarnEnabled())
+					Log.warn("chef",".doCheck_dups() " + type + " " + e);
 			}
 			try
 			{
@@ -1398,12 +1405,14 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 				type = DissertationService.DISSERTATION_TYPE_MUSIC_PERFORMANCE;
 				
 				/* keep track of progress */
-				System.out.println(type);
+				if(Log.isInfoEnabled())
+					Log.info("chef",type);
 				students.clear();
 				students = DissertationService.getSortedUsersOfTypeForLetter(type, letters[i]);
 				
 				/*keep track of progress */
-				System.out.println("number of students to check is " + students.size());
+				if(Log.isInfoEnabled())
+					Log.info("chef","number of students to check is " + students.size());
 				for(int j = 0; j < students.size(); j++)
 				{
 					try
@@ -1421,14 +1430,16 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 					}
 					catch(Exception e)
 					{
-						System.out.println(u.getId() + " " + u.getDisplayName() + " path " + path.getId() + " " + e);
+						if(Log.isWarnEnabled())
+							Log.warn("chef",u.getId() + " " + u.getDisplayName() + " path " + path.getId() + " " + e);
 					}
 					continue;
 				}
 			}
 			catch(Exception e)
 			{
-				System.out.println("doCheck_dups " + type + " " + e);
+				if(Log.isWarnEnabled())
+					Log.warn("chef",".doCheck_dups() " + type + " " + e);
 			}
 			continue;
 		}
@@ -1473,8 +1484,8 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		}
 		//saved
 		
-		System.out.println();
-		System.out.println("count of paths with duplicate steps " + count);
+		if(Log.isInfoEnabled())
+			Log.info("chef","count of paths with duplicate steps " + count);
 		state.setAttribute(STATE_MODE, MODE_UPLOAD);
 		
 	} //doCheck_duplicate_steps
@@ -1627,7 +1638,8 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 			}
 			catch(Exception e)
 			{
-				System.out.println(".checkDuplicateSteps() getStepStatus(" + ref + ") " + path.getCandidate() + " " + e);
+				if(Log.isWarnEnabled())
+					Log.warn("chef", ".checkDuplicateSteps() getStepStatus(" + ref + ") " + path.getCandidate() + " " + e);
 			}
 		}
 		
@@ -1649,7 +1661,8 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		}
 		catch(Exception e)
 		{
-			System.out.println(".checkDuplicateSteps() " + path.getCandidate() + " " + name + " path id " + path.getId() + " " + e);
+			if(Log.isWarnEnabled())
+				Log.warn("chef", ".checkDuplicateSteps() " + path.getCandidate() + " " + name + " path id " + path.getId() + " " + e);
 		}
 		return msg;
 		
@@ -1771,7 +1784,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	/**
 	* Handle a request to confirm removal of student(s)
 	*/
-	public void doConfirm_remove_students (RunData data)
+	public void doConfirm_remove_students(RunData data)
 	{
 		SessionState state = ((JetspeedRunData)data).getPortletSessionState(((JetspeedRunData)data).getJs_peid());
 		ParameterParser params = data.getParameters();
@@ -1806,11 +1819,19 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 				try
 				{
 					name = names[i];
-					if(name.length() > 0 && name.length() < 8)
+		
+					//good uniqnames are 3-8 characters long
+					if(name.length() > 2 && name.length() < 9)
 					{
 						path = DissertationService.getCandidatePathForCandidate(name);
 						if(path != null)
 							studentsToRemove.add(name);
+						else
+							studentsCannotRemove.add(name + ": has no or multiple path(s) ");
+					}
+					else
+					{
+						studentsCannotRemove.add(name + ": uniqname is not between 3 and 8 characters ");
 					}
 				}
 				catch(Exception e)
@@ -1824,6 +1845,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		
 		//put both lists in state
 		state.setAttribute(STATE_STUDENTS_TO_REMOVE,studentsToRemove);
+		state.setAttribute(STATE_STUDENTS_CANNOT_REMOVE,studentsCannotRemove);
 		
 		//get confirmation
 		state.setAttribute(STATE_MODE, MODE_CONFIRM_REMOVE_STUDENTS);
