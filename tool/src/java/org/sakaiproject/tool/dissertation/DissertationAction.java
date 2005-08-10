@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Vector;
 
-import org.sakaiproject.api.app.dissertation.BlockGrantGroup;
 import org.sakaiproject.api.app.dissertation.CandidateInfo;
 import org.sakaiproject.api.app.dissertation.CandidatePath;
 import org.sakaiproject.api.app.dissertation.CandidatePathEdit;
