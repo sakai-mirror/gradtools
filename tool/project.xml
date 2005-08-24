@@ -27,6 +27,12 @@
 
 		<dependency>
 			<groupId>sakaiproject</groupId>
+			<artifactId>sakai-session</artifactId>
+			<version>${pom.currentVersion}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>sakaiproject</groupId>
 			<artifactId>ctools-gradtools-api</artifactId>
 			<version>${pom.currentVersion}</version>
 		</dependency>
