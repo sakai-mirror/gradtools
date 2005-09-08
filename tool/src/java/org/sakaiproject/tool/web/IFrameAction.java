@@ -342,7 +342,7 @@ public class IFrameAction
 		Reference ref = new Reference(url);
 
 		// if it didn't recognize this, return it unchanged
-		if (ref.getType() == null) return url;
+		if (!ref.isKnownType()) return url;
 
 		// return the reference's url
 		return ref.getUrl();
