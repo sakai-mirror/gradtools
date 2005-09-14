@@ -1,42 +1,40 @@
 /**********************************************************************************
-*
-* $Header: /cvs/sakai2/legacy/tools/src/java/org/sakaiproject/tool/web/IFrameAction.java,v 1.9 2005/06/06 20:29:08 ggolden.umich.edu Exp $
-*
-***********************************************************************************
-*
-* Copyright (c) 2003, 2004 The Regents of the University of Michigan, Trustees of Indiana University,
-*                  Board of Trustees of the Leland Stanford, Jr., University, and The MIT Corporation
-* 
-* Licensed under the Educational Community License Version 1.0 (the "License");
-* By obtaining, using and/or copying this Original Work, you agree that you have read,
-* understand, and will comply with the terms and conditions of the Educational Community License.
-* You may obtain a copy of the License at:
-* 
-*      http://cvs.sakaiproject.org/licenses/license_1_0.html
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-* INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE
-* AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-* DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
-* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*
-**********************************************************************************/
+ * $URL$
+ * $Id$
+ ***********************************************************************************
+ *
+ * Copyright (c) 2003, 2004, 2005 The Regents of the University of Michigan, Trustees of Indiana University,
+ *                  Board of Trustees of the Leland Stanford, Jr., University, and The MIT Corporation
+ * 
+ * Licensed under the Educational Community License Version 1.0 (the "License");
+ * By obtaining, using and/or copying this Original Work, you agree that you have read,
+ * understand, and will comply with the terms and conditions of the Educational Community License.
+ * You may obtain a copy of the License at:
+ * 
+ *      http://cvs.sakaiproject.org/licenses/license_1_0.html
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE
+ * AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ **********************************************************************************/
 
 // package
 package org.sakaiproject.tool.web;
 
 // imports
+import java.util.Properties;
 import java.util.ResourceBundle;
 
 import org.sakaiproject.api.kernel.tool.Placement;
 import org.sakaiproject.api.kernel.tool.cover.ToolManager;
 import org.sakaiproject.cheftool.Context;
 import org.sakaiproject.cheftool.JetspeedRunData;
-import org.sakaiproject.cheftool.PortletConfig;
 import org.sakaiproject.cheftool.RunData;
 import org.sakaiproject.cheftool.VelocityPortlet;
 import org.sakaiproject.cheftool.VelocityPortletPaneledAction;
-import org.sakaiproject.cheftool.menu.Menu;
 import org.sakaiproject.service.framework.config.cover.ServerConfigurationService;
 import org.sakaiproject.service.framework.portal.cover.PortalService;
 import org.sakaiproject.service.framework.session.SessionState;
@@ -45,21 +43,31 @@ import org.sakaiproject.service.legacy.site.Site;
 import org.sakaiproject.service.legacy.site.cover.SiteService;
 import org.sakaiproject.util.java.StringUtil;
 
-
 /**
-* <p>IFrameAction is the CHEF tool to place any web content in an IFrame on the page.</p>
-* 
-* @author University of Michigan, CHEF Software Development Team
-* @version $Revision$
-*/
-public class IFrameAction
-	extends VelocityPortletPaneledAction
+ * <p>
+ * IFrameAction is the Sakai tool to place any web content in an IFrame on the page.
+ * </p>
+ * <p>
+ * Three special modes are supported - these pick the URL content from special places:
+ * </p>
+ * <ul>
+ * <li>"site" - to show the services "server.info.url" configuration URL setting</li>
+ * <li>"workspace" - to show the configured "myworkspace.info.url" URL, introducing a my workspace to users</li>
+ * <li>"worksite" - to show the current site's "getInfoUrlFull()" setting</li>
+ * </ul>
+ * 
+ * @author University of Michigan, Sakai Software Development Team
+ */
+public class IFrameAction extends VelocityPortletPaneledAction
 {
 	/** Resource bundle using current language locale */
-    protected static ResourceBundle rb = ResourceBundle.getBundle("iframe");
-	
+	protected static ResourceBundle rb = ResourceBundle.getBundle("iframe");
+
 	/** The source URL, in state, config and context. */
 	protected final static String SOURCE = "source";
+
+	/** The value in state and context for the source URL to actually used, as computed from special and URL. */
+	protected final static String URL = "url";
 
 	/** The height, in state, config and context. */
 	protected final static String HEIGHT = "height";
@@ -67,276 +75,175 @@ public class IFrameAction
 	/** The special attribute, in state, config and context. */
 	protected final static String SPECIAL = "special";
 
+	/** Special value for site. */
+	protected final static String SPECIAL_SITE = "site";
+
+	/** Special value for myworkspace. */
+	protected final static String SPECIAL_WORKSPACE = "workspace";
+
+	/** Special value for worksite. */
+	protected final static String SPECIAL_WORKSITE = "worksite";
+
 	/** The title, in state and context. */
 	protected final static String TITLE = "title";
 
-	/** The flag name and value in state to indicate an update to the portlet is needed. */
-	private final static String UPDATE = "update";
-	
-	/** The type of source: URL, Worksite Info, Workspace Info or etc. **/
-	private final static String SOURCE_TYPE = "source_type";
-	
-	/** Whether to pass through the PID to the URL displayed in the IFRAME.  This
-	 * enables integration in that the application in the IFRAME will know what
-	 * site and tool it is part of.
+	/**
+	 * Whether to pass through the PID to the URL displayed in the IFRAME. This enables integration in that the application in the IFRAME will know what site and tool it is part of.
 	 */
 	private final static String PASS_PID = "passthroughPID";
 
 	/**
-	* Populate the state object, if needed - override to do something!
-	*/
+	 * Populate the state with configuration settings
+	 */
 	protected void initState(SessionState state, VelocityPortlet portlet, JetspeedRunData rundata)
 	{
+		// TODO: we might want to keep this from running for each request - but by letting it we get fresh info each time... -ggolden
 		super.initState(state, portlet, rundata);
 
-		PortletConfig config = portlet.getPortletConfig();
-		
-		state.setAttribute(PASS_PID, config.getInitParameter(PASS_PID));
+		Placement placement = ToolManager.getCurrentPlacement();
+		Properties config = placement.getConfig();
 
-		// parameter "special" - won't change 
-		String special = StringUtil.trimToNull(config.getInitParameter(SPECIAL));
+		// set the pass_pid parameter
+		boolean passPid = false;
+		String passPidStr = config.getProperty(PASS_PID, "false");
+		state.removeAttribute(PASS_PID);
+		if ("true".equalsIgnoreCase(passPidStr))
+		{
+			state.setAttribute(PASS_PID, Boolean.TRUE);
+			passPid = true;
+		}
 
+		// set the special setting
+		String special = config.getProperty(SPECIAL);
+
+		// check for an older way the ChefWebPagePortlet took parameters, converting to our "special" values
 		if (special == null)
 		{
-			// this was how the ChefWebPagePortlet used to work.  We handle those now.
-			if ("true".equals(config.getInitParameter("site")))
+			if ("true".equals(config.getProperty("site")))
 			{
-				special = "site";
+				special = SPECIAL_SITE;
 			}
-			else if ("true".equals(config.getInitParameter("workspace")))
+			else if ("true".equals(config.getProperty("workspace")))
 			{
-				special = "workspace";
+				special = SPECIAL_WORKSPACE;
 			}
-			else if ("true".equals(config.getInitParameter("worksite")))
+			else if ("true".equals(config.getProperty("worksite")))
 			{
-				special = "worksite";
+				special = SPECIAL_WORKSITE;
 			}
 		}
 
-		if (special == null) special = "";
-
-		state.setAttribute(SPECIAL, special);
-
-		String url = StringUtil.trimToNull(config.getInitParameter(SOURCE));
-		if (url == null)
+		state.removeAttribute(SPECIAL);
+		if ((special != null) && (special.trim().length() > 0))
 		{
-			// this was how the ChefWebPagePortlet used to work.  We handle those now.
-			url = StringUtil.trimToNull(config.getInitParameter("url"));
+			state.setAttribute(SPECIAL, special);
 		}
 
-		// store the raw as-configured source
-		state.setAttribute("source-config", url);
+		// set the source url setting
+		String source = StringUtil.trimToNull(config.getProperty(SOURCE));
 
-		// compute working source
-		String source_type = (String)state.getAttribute(SOURCE_TYPE);
-		if (source_type != null)
+		// check for an older way the ChefWebPagePortlet took parameters, converting to our "source" value
+		if (source == null)
 		{
-			url = sourceUrl(source_type, url, state, rundata);
-		}
-		else
-		{
-			url = sourceUrl(special, url, state, rundata);
-		}
-		state.setAttribute(SOURCE, url);
-
-		if (state.getAttribute(HEIGHT) == null)
-		{
-			state.setAttribute(HEIGHT, config.getInitParameter(HEIGHT));
+			source = StringUtil.trimToNull(config.getProperty("url"));
 		}
 
-		if (state.getAttribute(TITLE) == null)
+		// store the raw as-configured source url
+		state.removeAttribute(SOURCE);
+		if (source != null)
 		{
-			state.setAttribute(TITLE, portlet.getPortletConfig().getTitle());
+			state.setAttribute(SOURCE, source);
 		}
 
-	}   // initState
+		// compute working URL, modified from the configuration URL if special
+		String url = sourceUrl(special, source, placement.getContext(), passPid, placement.getId());
+		state.setAttribute(URL, url);
 
-	/** 
-	* build the context
-	*/
-	public String buildMainPanelContext(VelocityPortlet portlet, 
-										Context context,
-										RunData rundata,
-										SessionState state)
+		// set the height
+		state.setAttribute(HEIGHT, config.getProperty(HEIGHT, "600px"));
+
+		// set the title
+		state.setAttribute(TITLE, placement.getTitle());
+	}
+
+	/**
+	 * Compute the actual URL we will used, based on the configuration special and source URLs
+	 */
+	protected String sourceUrl(String special, String source, String context, boolean passPid, String pid)
 	{
-		if (MODE_OPTIONS.equals(state.getAttribute(STATE_MODE)))
+		String rv = StringUtil.trimToNull(source);
+
+		// if marked for "site", use the site intro from the properties
+		if (SPECIAL_SITE.equals(special))
 		{
-			return buildOptionsPanelContext(portlet, context, rundata, state);
+			// set the url to the site config'ed url
+			rv = StringUtil.trimToNull(ServerConfigurationService.getString("server.info.url"));
 		}
 
-		// if we have a source url, use it
-		String sourceUrl = StringUtil.trimToNull((String) state.getAttribute(SOURCE));
-		if (sourceUrl != null)
+		// if marked for "workspace", use the "user" site info from the properties
+		else if (SPECIAL_WORKSPACE.equals(special))
 		{
-			context.put(SOURCE,(String) state.getAttribute(SOURCE));
-			context.put(HEIGHT, state.getAttribute(HEIGHT));
-			context.put("tlang",rb);
+			// set the url to the site config'ed url
+			rv = StringUtil.trimToNull(ServerConfigurationService.getString("myworkspace.info.url"));
 		}
 
-		// otherwise provide the site's description text
-		else
-		{		
-			//set the url to the site of this request's config'ed url
+		// if marked for "worksite", use the setting from the site's definition
+		else if (SPECIAL_WORKSITE.equals(special))
+		{
+			// set the url to the site of this request's config'ed url
 			String siteId = PortalService.getCurrentSiteId();
 			try
 			{
-				Site s = SiteService.getSite(siteId);
-			
-				String description = s.getDescription();
-				if (description != null)
+				// get the site's info URL, if defined
+				Site s = SiteService.getSite(context);
+				rv = StringUtil.trimToNull(s.getInfoUrlFull());
+
+				// compute the info url for the site if it has no specific InfoUrl
+				if (rv == null)
 				{
-					context.put("text", description);
-					context.put("tlang",rb);
+					// access will show the site description or title...
+					rv = ServerConfigurationService.getAccessUrl() + s.getReference();
 				}
 			}
-			catch (Exception any) {}
+			catch (Exception any)
+			{
+			}
 		}
 
-		// put $action into context for menus, forms and links
-		context.put(Menu.CONTEXT_ACTION, state.getAttribute(STATE_ACTION));
-		context.put("tlang",rb);
-		// add options if allowed
-		Menu bar = new Menu(portlet, rundata, "IFrameAction");
-		addOptionsMenu(bar, (JetspeedRunData) rundata);
-		// if we there's anything in the menu, use it
-		if (!bar.getItems().isEmpty())
+		// if it's not special, and we have no value yet, set it to the webcontent instruction page, as configured
+		if (rv == null)
 		{
-			context.put(Menu.CONTEXT_MENU, bar);
-			context.put("tlang",rb);
+			rv = StringUtil.trimToNull(ServerConfigurationService.getString("webcontent.instructions.url"));
 		}
-		
-		context.put(SPECIAL, state.getAttribute(SPECIAL));
-		
-		String source_type = (String)state.getAttribute(SOURCE_TYPE);
-		if (source_type == null)
+
+		if (rv != null)
 		{
-			source_type = (String)state.getAttribute(SPECIAL);
-			state.setAttribute(SOURCE_TYPE, source_type);
+			// accept a partial reference url (i.e. "/content/group/sakai/test.gif"), convert to full url
+			rv = convertReferenceUrl(rv);
+
+			// pass the PID through on the URL, IF configured to do so
+			if (passPid)
+			{
+				if (rv.indexOf("?") < 0)
+				{
+					rv = rv + "?";
+				}
+				else
+				{
+					rv = rv + "&";
+				}
+
+				rv = rv + "pid=" + pid;
+			}
 		}
-		context.put(SOURCE_TYPE, state.getAttribute(SOURCE_TYPE));
-		
-		String title = portlet.getPortletConfig().getTitle() + " " + rb.getString("gen.options");
-		context.put("title", title);
 
-		return (String)getContext(rundata).get("template");
-
-	}	// buildMainPanelContext
+		return rv;
+	}
 
 	/**
-	*  Setup for options.
-	**/
-	public String buildOptionsPanelContext( VelocityPortlet portlet,
-											Context context,
-											RunData data,
-											SessionState state) 
-	{
-		context.put(SOURCE, state.getAttribute("source-config"));
-		context.put(HEIGHT, state.getAttribute(HEIGHT));
-		context.put(TITLE, state.getAttribute(TITLE));
-		context.put(SPECIAL, state.getAttribute(SPECIAL));
-		context.put(SOURCE_TYPE, state.getAttribute(SOURCE_TYPE));
-		context.put("tlang",rb);
-		context.put(Menu.CONTEXT_ACTION, "IFrameAction");
-
-		context.put("doUpdate", BUTTON + "doConfigure_update");
-		context.put("doCancel", BUTTON + "doCancel");
-
-		// pick the "-customize" template based on the standard template name
-		String template = (String)getContext(data).get("template");
-		return template + "-customize";
-
-	}	// buildOptionsPanelContext
-
-	/**
-	* Handle the configure context's update button
-	*/
-	public void doConfigure_update(RunData data, Context context)
-	{
-		// access the portlet element id to find our state
-		String peid = ((JetspeedRunData)data).getJs_peid();
-		SessionState state = ((JetspeedRunData)data).getPortletSessionState(peid);
-
-		String source_type = data.getParameters().getString(SOURCE_TYPE);
-		if (!source_type.equals(state.getAttribute(SOURCE_TYPE)))
-		{
-			// update the source in state
-			state.setAttribute(SOURCE_TYPE, source_type);
-		}
-
-		// mark for update w/o a test against state's current value - state may be showing
-		// a special source value (worksite, site, workspace).
-		String source = data.getParameters().getString(SOURCE);
-
-		// if it's missing the transport, add http://
-		source = source.trim();
-		if ((source.length() > 0) && (!source.startsWith("/")) && (source.indexOf("://") == -1))
-		{
-			source = "http://" + source;
-		}
-
-		// update configed source
-		state.setAttribute("source-config", source);
-
-		// update the working source
-		source = sourceUrl(source_type, source, state, (JetspeedRunData) data);
-		state.setAttribute(SOURCE, source);
-
-		// height
-		String height = data.getParameters().getString(HEIGHT);
-		if (!height.equals(state.getAttribute(HEIGHT)))
-		{
-			// update the source in state
-			state.setAttribute(HEIGHT, height);
-		}
-
-		// title
-		String title = data.getParameters().getString(TITLE);
-		if (!title.equals(state.getAttribute(TITLE)))
-		{
-			// update the source in state
-			state.setAttribute(TITLE, title);
-		}
-
-		// update the tool placement config
-		Placement placement = ToolManager.getCurrentPlacement();
-		placement.getPlacementConfig().setProperty(HEIGHT, (String)state.getAttribute(HEIGHT));
-		placement.getPlacementConfig().setProperty(SOURCE, (String)state.getAttribute("source-config"));
-		placement.setTitle((String)state.getAttribute(TITLE));
-
-		// we are done with customization... back to the main mode
-		state.removeAttribute(STATE_MODE);
-
-		// deliver an update to the title panel (to show the new channel name)
-		String titleId = titlePanelUpdateId(peid);
-		schedulePeerFrameRefresh(titleId);
-
-		// commit the change
-		saveOptions();
-
-	}   // doConfigure_update
-
-	/**
-	* doCancel called for form input tags type="submit" named="eventSubmit_doCancel"
-	* cancel the options process
-	*/
-	public void doCancel(RunData data, Context context)
-	{
-		// access the portlet element id to find our state
-		String peid = ((JetspeedRunData)data).getJs_peid();
-		SessionState state = ((JetspeedRunData)data).getPortletSessionState(peid);
-
-		// cancel the options
-		cancelOptions();
-
-		// we are done with customization... back to the main mode
-		state.removeAttribute(STATE_MODE);
-
-	}   // doCancel
-
-	/**
-	* Return the url unchanged, unless it's a reference, then return the reference url
-	*/
-	private String convertReferenceUrl(String url)
+	 * If the url is a valid reference, convert it to a URL, else return it unchanged.
+	 */
+	protected String convertReferenceUrl(String url)
 	{
 		// make a reference
 		Reference ref = new Reference(url);
@@ -346,89 +253,192 @@ public class IFrameAction
 
 		// return the reference's url
 		return ref.getUrl();
-
-	}	// convertReferenceUrl
+	}
 
 	/**
-	* Make a source URL based on the special setting, the url already set to "url" or "source", ...
-	*/
-	protected String sourceUrl(String source_type, String url, SessionState state, JetspeedRunData rundata)
-	{	
-		// if marked for "site", use the site intro from the properties
-		if ("site".equals(source_type))
+	 * Setup the velocity context and choose the template for the response.
+	 */
+	public String buildMainPanelContext(VelocityPortlet portlet, Context context, RunData rundata, SessionState state)
+	{
+		// do options if we are in options mode
+		if (MODE_OPTIONS.equals(state.getAttribute(STATE_MODE)))
 		{
-			// set the url to the site config'ed url
-			url = ServerConfigurationService.getString("server.info.url","");
-		}
-			
-		// if marked for "workspace", use the "user" site intro from the properties
-		else if ("workspace".equals(source_type))
-		{
-			// set the url to the site config'ed url
-			url = ServerConfigurationService.getString("myworkspace.info.url","");
-		}
-	
-		// if marked for "worksite", use the setting from the site's definition
-		else if ("worksite".equals(source_type))
-		{
-			// set the url to the site of this request's config'ed url
-			String siteId = PortalService.getCurrentSiteId();
-			try
-			{
-				// use the site's info url, if any, else the site description will be used
-				Site s = SiteService.getSite(siteId);
-				url = StringUtil.trimToZero(s.getInfoUrlFull());
-			}
-			catch (Exception any) {}
-		}
-			
-		// otherwise, if it's not set, set it to a sample page in public
-		else if ((url == null) || (url.trim().length() == 0))
-		{
-			url = ServerConfigurationService.getString("webcontent.instructions.url", null);
+			return buildOptionsPanelContext(portlet, context, rundata, state);
 		}
 
-		// accept a partial reference url (i.e. "/content/group/sakai/test.gif"), convert to full url
-		if (url != null)
+		// if we rely on state (like all the other tools), we won't pick up any changes others make to the configuration till we are refreshed... -ggolden
+
+		// set our configuration into the context for the vm
+		context.put(URL, (String) state.getAttribute(URL));
+		context.put(HEIGHT, state.getAttribute(HEIGHT));
+
+		// set the resource bundle with our strings
+		context.put("tlang", rb);
+
+		// setup for the options menu if needed
+		if (SiteService.allowUpdateSite(ToolManager.getCurrentPlacement().getContext()))
 		{
-			url = url.trim();
-			url = convertReferenceUrl(url);
+			context.put("options_title", ToolManager.getCurrentPlacement().getTitle() + " " + rb.getString("gen.options"));
+		}
+
+		return (String) getContext(rundata).get("template");
+	}
+
+	/**
+	 * Setup the velocity context and choose the template for options.
+	 */
+	public String buildOptionsPanelContext(VelocityPortlet portlet, Context context, RunData data, SessionState state)
+	{
+		// provide the source, and let the user edit, if not special
+		String special = (String) state.getAttribute(SPECIAL);
+		if (special == null)
+		{
+			String source = (String) state.getAttribute(SOURCE);
+			if (source == null) source = "";
+			context.put(SOURCE, source);
+			context.put("heading", rb.getString("gen.custom"));
 		}
 		
-		// pass the PID through on the URL, IF configured to do so
-		if ("true".equals(state.getAttribute(PASS_PID)))
+		// set the heading based on special
+		else
 		{
-		    if (url.indexOf("?") < 0)
-		    {
-		        url = url + "?";
-		    }
-		    else
-		    {
-		        url = url + "&";
-		    }
-		    
-		    url = url + "pid=" + PortalService.getCurrentToolId();  
+			if (SPECIAL_SITE.equals(special))
+			{
+				context.put("heading", rb.getString("gen.custom.site"));				
+			}
+
+			else if (SPECIAL_WORKSPACE.equals(special))
+			{
+				context.put("heading", rb.getString("gen.custom.workspace"));
+			}
+
+			else if (SPECIAL_WORKSITE.equals(special))
+			{
+				context.put("heading", rb.getString("gen.custom.worksite"));
+
+				// for worksite, also include the Site's infourl and description
+				try
+				{
+					Site s = SiteService.getSite(ToolManager.getCurrentPlacement().getContext());
+
+					String infoUrl = StringUtil.trimToNull(s.getInfoUrl());
+					if (infoUrl != null)
+					{
+						context.put("info_url", infoUrl);
+					}
+
+					String description = StringUtil.trimToNull(s.getDescription());
+					if (description != null)
+					{
+						context.put("description", description);
+					}
+				}
+				catch (Throwable e) {}
+			}
+
+			else
+			{
+				context.put("heading", rb.getString("gen.custom"));
+			}
 		}
 
-		return url;
+		context.put(HEIGHT, state.getAttribute(HEIGHT));
+		context.put(TITLE, state.getAttribute(TITLE));
+		context.put("tlang", rb);
 
-	}	// sourceUrl
+		context.put("doUpdate", BUTTON + "doConfigure_update");
+		context.put("doCancel", BUTTON + "doCancel");
+
+		// pick the "-customize" template based on the standard template name
+		String template = (String) getContext(data).get("template");
+		
+		// pick the site customize template if we are in that mode
+		if (SPECIAL_WORKSITE.equals(special))
+		{
+			template = template + "-site-customize";
+		}
+		else
+		{
+			template = template + "-customize";
+		}
+
+		return template;
+	}
 
 	/**
-	* Say if the tool will require the "reset tool" button on the title bar.
-	* @return true to have the "reset tool" button, false if not.
-	* The default is to have it.
-	*/
-	protected boolean requireResetToolLink()
+	 * Handle the configure context's update button
+	 */
+	public void doConfigure_update(RunData data, Context context)
 	{
-		return false;
+		// TODO: if we do limit the initState() calls, we need to make sure we get a new one after this call -ggolden
 
-	}	// requireResetToolLink
+		String peid = ((JetspeedRunData) data).getJs_peid();
+		SessionState state = ((JetspeedRunData) data).getPortletSessionState(peid);
 
-}	// IFrameAction
+		Placement placement = ToolManager.getCurrentPlacement();
 
-/**********************************************************************************
-*
-* $Header: /cvs/sakai2/legacy/tools/src/java/org/sakaiproject/tool/web/IFrameAction.java,v 1.9 2005/06/06 20:29:08 ggolden.umich.edu Exp $
-*
-**********************************************************************************/
+		// read source if we are not special
+		if (state.getAttribute(SPECIAL) == null)
+		{
+			String source = StringUtil.trimToZero(data.getParameters().getString(SOURCE));
+			if ((source != null) && (source.length() > 0) && (!source.startsWith("/")) && (source.indexOf("://") == -1))
+			{
+				source = "http://" + source;
+			}
+
+			// update state
+			//state.setAttribute(SOURCE, source);
+			placement.getPlacementConfig().setProperty(SOURCE, source);
+		}
+		
+		else if (SPECIAL_WORKSITE.equals(state.getAttribute(SPECIAL)))
+		{
+			String infoUrl = StringUtil.trimToNull(data.getParameters().getString("infourl"));
+			if ((infoUrl != null) && (infoUrl.length() > 0) && (!infoUrl.startsWith("/")) && (infoUrl.indexOf("://") == -1))
+			{
+				infoUrl = "http://" + infoUrl;
+			}
+			String description = StringUtil.trimToNull(data.getParameters().getString("description"));
+			
+			// update the site info
+			try
+			{
+				SiteService.commitSiteInfo(ToolManager.getCurrentPlacement().getContext(), description, infoUrl);
+			}
+			catch (Throwable e) {}
+		}
+
+		// height
+		String height = data.getParameters().getString(HEIGHT);
+		//state.setAttribute(HEIGHT, height);
+		placement.getPlacementConfig().setProperty(HEIGHT, height);
+
+		// title
+		String title = data.getParameters().getString(TITLE);
+		//state.setAttribute(TITLE, title);
+		placement.setTitle(title);
+
+		// save
+		placement.save();
+
+		// we are done with customization... back to the main mode
+		state.removeAttribute(STATE_MODE);
+
+		// deliver an update to the title panel (to show the new title)
+		String titleId = titlePanelUpdateId(peid);
+		schedulePeerFrameRefresh(titleId);
+	}
+
+	/**
+	 * doCancel called for form input tags type="submit" named="eventSubmit_doCancel" cancel the options process
+	 */
+	public void doCancel(RunData data, Context context)
+	{
+		// access the portlet element id to find our state
+		String peid = ((JetspeedRunData) data).getJs_peid();
+		SessionState state = ((JetspeedRunData) data).getPortletSessionState(peid);
+
+		// we are done with customization... back to the main mode
+		state.removeAttribute(STATE_MODE);
+	}
+}

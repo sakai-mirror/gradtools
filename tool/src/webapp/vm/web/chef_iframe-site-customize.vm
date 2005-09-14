@@ -28,12 +28,18 @@
 				<option value = "2400px" #if ($!height == "2400px") selected="selected" #end>$tlang.getString('gen.hei8')</option>
 			</select>
 		</p>	
-#if ($source)
+
 		<p class="shorttext indnt1">
-			<label for="source">$tlang.getString("gen.url")</label>
-			<input type="text" name="source" id="source" value="$!source" />
+			<label for="description">$tlang.getString("gen.description")</label>
+			<textarea style="display:block;" id="description" name="description" rows="5" cols="40" tabindex="1" wrap="virtual">$!description</textarea>
 		</p>
-#end
+
+		<p class="shorttext indnt1">
+			<label for="infourl">$tlang.getString("gen.info.url")</label>
+			<input type="text" name="infourl" id="infourl" value="$!info_url" />
+		</p>
+		<p class="instruction" style="margin-top:0;">$tlang.getString("gen.info.url.msg")</p>
+
 		<p class="act">
 			<input type="submit" class="active" name="$doUpdate" value="$tlang.getString('gen.save')" />
 			<input type="submit" name="$doCancel" value="$tlang.getString('gen.cancel')" />

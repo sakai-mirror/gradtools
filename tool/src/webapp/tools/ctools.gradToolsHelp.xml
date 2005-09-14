@@ -7,9 +7,8 @@
 			title="Grad Tools Help"
 			description="Help guides for using Grad Tools.">
 
-		<configuration name="source" value="http://gradtools.umich.edu/help/" />
+		<configuration name="source" value="http://gradtools.umich.edu/help/" type="final" />
 		<configuration name="height" value="800px" />
-		<configuration name="special" value="" />
 
 		<category name="GradToolsStudent" />
 		<category name="GradToolsRackham" />
