@@ -28,7 +28,7 @@ package org.sakaiproject.api.app.dissertation;
 //import
 import java.util.List;
 
-import org.sakaiproject.service.legacy.resource.Resource;
+import org.sakaiproject.service.legacy.resource.Entity;
 import org.sakaiproject.service.legacy.time.Time;
 
 /**
@@ -39,7 +39,7 @@ import org.sakaiproject.service.legacy.time.Time;
 * @version $Revision$
 */
 public interface DissertationStep
-	extends Resource, Comparable
+	extends Entity, Comparable
 {
 	/** Validation type student.*/
 	public static final String STEP_VALIDATION_TYPE_STUDENT = "1";

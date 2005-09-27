@@ -29,7 +29,7 @@ package org.sakaiproject.api.app.dissertation;
 //imports
 import java.util.List;
 
-import org.sakaiproject.service.legacy.resource.Resource;
+import org.sakaiproject.service.legacy.resource.Entity;
 import org.sakaiproject.service.legacy.time.Time;
 
 /**
@@ -40,7 +40,7 @@ import org.sakaiproject.service.legacy.time.Time;
 * @version $Revision$
 */
 public interface StepStatus
-	extends Resource, Comparable
+	extends Entity, Comparable
 {
 	/**
 	* Access the reference of the parent DissertationStep.

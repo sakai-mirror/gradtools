@@ -28,7 +28,7 @@
 package org.sakaiproject.api.app.dissertation;
 
 //imports
-import org.sakaiproject.service.legacy.resource.Resource;
+import org.sakaiproject.service.legacy.resource.Entity;
 import java.util.Hashtable;
 
 
@@ -41,7 +41,7 @@ import java.util.Hashtable;
 */
 
 public interface BlockGrantGroup 
-	extends Resource 
+	extends Entity 
 {
 	/**
 	* Access the database id for the BlockGrantGroup object.

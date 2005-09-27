@@ -28,7 +28,7 @@ package org.sakaiproject.api.app.dissertation;
 //imports
 import java.util.Vector;
 
-import org.sakaiproject.service.legacy.resource.Resource;
+import org.sakaiproject.service.legacy.resource.Entity;
 import org.sakaiproject.service.legacy.time.Time;
 
 
@@ -40,7 +40,7 @@ import org.sakaiproject.service.legacy.time.Time;
 * @version $Revision$
 */
 public interface CandidateInfo
-	extends Resource
+	extends Entity
 {
 	/**
 	* Access the database id for the CandidateInfo object.

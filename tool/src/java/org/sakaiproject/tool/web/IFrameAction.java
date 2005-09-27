@@ -39,6 +39,7 @@ import org.sakaiproject.service.framework.config.cover.ServerConfigurationServic
 import org.sakaiproject.service.framework.portal.cover.PortalService;
 import org.sakaiproject.service.framework.session.SessionState;
 import org.sakaiproject.service.legacy.resource.Reference;
+import org.sakaiproject.service.legacy.resource.cover.EntityManager;
 import org.sakaiproject.service.legacy.site.Site;
 import org.sakaiproject.service.legacy.site.cover.SiteService;
 import org.sakaiproject.util.java.StringUtil;
@@ -246,7 +247,7 @@ public class IFrameAction extends VelocityPortletPaneledAction
 	protected String convertReferenceUrl(String url)
 	{
 		// make a reference
-		Reference ref = new Reference(url);
+		Reference ref = EntityManager.newReference(url);
 
 		// if it didn't recognize this, return it unchanged
 		if (!ref.isKnownType()) return url;

@@ -29,7 +29,7 @@ package org.sakaiproject.api.app.dissertation;
 import java.util.Hashtable;
 import java.util.List;
 
-import org.sakaiproject.service.legacy.resource.Resource;
+import org.sakaiproject.service.legacy.resource.Entity;
 import org.sakaiproject.service.legacy.time.Time;
 
 /**
@@ -40,7 +40,7 @@ import org.sakaiproject.service.legacy.time.Time;
 * @version $Revision$
 */
 public interface Dissertation
-	extends Resource
+	extends Entity
 {
 	/**
 	* Access the reference of the DissertationStep by display order.
