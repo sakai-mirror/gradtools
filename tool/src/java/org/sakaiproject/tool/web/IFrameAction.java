@@ -41,6 +41,7 @@ import org.sakaiproject.service.framework.session.SessionState;
 import org.sakaiproject.service.legacy.resource.Reference;
 import org.sakaiproject.service.legacy.resource.cover.EntityManager;
 import org.sakaiproject.service.legacy.site.Site;
+import org.sakaiproject.service.legacy.site.SitePage;
 import org.sakaiproject.service.legacy.site.cover.SiteService;
 import org.sakaiproject.util.java.StringUtil;
 
@@ -404,7 +405,7 @@ public class IFrameAction extends VelocityPortletPaneledAction
 			// update the site info
 			try
 			{
-				SiteService.commitSiteInfo(ToolManager.getCurrentPlacement().getContext(), description, infoUrl);
+				SiteService.saveSiteInfo(ToolManager.getCurrentPlacement().getContext(), description, infoUrl);
 			}
 			catch (Throwable e) {}
 		}
@@ -418,6 +419,28 @@ public class IFrameAction extends VelocityPortletPaneledAction
 		String title = data.getParameters().getString(TITLE);
 		//state.setAttribute(TITLE, title);
 		placement.setTitle(title);
+
+		if (state.getAttribute(SPECIAL) == null)
+		{
+			// for web content tool, if it is the only tool on the page, update the page title also.
+			SitePage p = SiteService.findPage(PortalService.getCurrentSitePageId());
+			if (p.getTools() != null && p.getTools().size() == 1)
+			{
+				// if this is the only tool on that page, update the page's title also
+				try
+				{
+					// TODO: save site page title? -ggolden
+					Site sEdit = SiteService.getSite(PortalService.getCurrentSiteId());
+					SitePage pEdit = sEdit.getPage(p.getId());
+					pEdit.setTitle(title);
+					SiteService.save(sEdit);
+				}
+				catch (Exception ignore)
+				{
+				}
+			}
+		
+		}
 
 		// save
 		placement.save();
