@@ -28,7 +28,8 @@
 package org.sakaiproject.api.app.dissertation;
 
 //imports
-import org.sakaiproject.service.legacy.resource.Entity;
+import org.sakaiproject.service.legacy.entity.Entity;
+
 import java.util.Hashtable;
 
 

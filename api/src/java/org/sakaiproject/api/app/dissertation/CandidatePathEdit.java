@@ -28,7 +28,8 @@ package org.sakaiproject.api.app.dissertation;
 //imports
 import java.util.Hashtable;
 import java.util.List;
-import org.sakaiproject.service.legacy.resource.Edit;
+
+import org.sakaiproject.service.legacy.entity.Edit;
 
 /**
 * <p>CandidatePathEdit is the interface for BaseCandidatePathEdit, defined in BaseDissertationService.</p>

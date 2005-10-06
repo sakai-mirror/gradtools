@@ -29,7 +29,7 @@ package org.sakaiproject.api.app.dissertation;
 //imports
 import java.util.List;
 
-import org.sakaiproject.service.legacy.resource.Edit;
+import org.sakaiproject.service.legacy.entity.Edit;
 import org.sakaiproject.service.legacy.time.Time;
 
 /**

@@ -27,7 +27,8 @@ package org.sakaiproject.api.app.dissertation;
 
 //imports
 import java.util.Collection;
-import org.sakaiproject.service.legacy.resource.Edit;
+
+import org.sakaiproject.service.legacy.entity.Edit;
 import org.sakaiproject.service.legacy.time.Time;
 
 /**
