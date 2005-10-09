@@ -47,6 +47,8 @@ import org.sakaiproject.api.app.dissertation.DissertationStep;
 import org.sakaiproject.api.app.dissertation.StepStatus;
 import org.sakaiproject.api.app.dissertation.StepStatusEdit;
 import org.sakaiproject.api.app.dissertation.cover.DissertationService;
+import org.sakaiproject.api.kernel.session.Session;
+import org.sakaiproject.api.kernel.session.cover.SessionManager;
 import org.sakaiproject.api.kernel.thread_local.cover.ThreadLocalManager;
 import org.sakaiproject.api.kernel.tool.cover.ToolManager;
 import org.sakaiproject.cheftool.Context;
@@ -60,7 +62,6 @@ import org.sakaiproject.cheftool.menu.MenuItem;
 import org.sakaiproject.exception.IdUnusedException;
 import org.sakaiproject.service.framework.portal.cover.PortalService;
 import org.sakaiproject.service.framework.session.SessionState;
-import org.sakaiproject.service.framework.session.cover.UsageSessionService;
 import org.sakaiproject.service.legacy.content.ContentResource;
 import org.sakaiproject.service.legacy.content.ContentResourceEdit;
 import org.sakaiproject.service.legacy.content.cover.ContentHostingService;
@@ -2867,8 +2868,17 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		{
 		    try
 			{
-		    	//become admin temporarily
-		    	UsageSessionService.startSession("admin", null, null);
+				// set the current user to admin
+				Session s = SessionManager.getCurrentSession();
+				if (s != null)
+				{
+					s.setUserId("admin");
+				}
+				else
+				{
+					Log.warn("chef", this + ".run - no SessionManager.getCurrentSession, cannot set to admin user");
+				}
+
 				if(m_id != null)
 				{
 					ContentResourceEdit edit = null;

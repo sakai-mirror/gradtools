@@ -57,6 +57,7 @@ import org.sakaiproject.api.app.dissertation.DissertationStep;
 import org.sakaiproject.api.app.dissertation.DissertationStepEdit;
 import org.sakaiproject.api.app.dissertation.StepStatus;
 import org.sakaiproject.api.app.dissertation.StepStatusEdit;
+import org.sakaiproject.api.kernel.session.cover.SessionManager;
 import org.sakaiproject.exception.IdInvalidException;
 import org.sakaiproject.exception.IdUnusedException;
 import org.sakaiproject.exception.IdUsedException;
@@ -69,7 +70,6 @@ import org.sakaiproject.service.framework.memory.CacheRefresher;
 import org.sakaiproject.service.framework.memory.MemoryService;
 import org.sakaiproject.service.framework.session.SessionStateBindingListener;
 import org.sakaiproject.service.framework.session.UsageSession;
-import org.sakaiproject.service.framework.session.cover.UsageSessionService;
 import org.sakaiproject.service.legacy.entity.Edit;
 import org.sakaiproject.service.legacy.entity.Entity;
 import org.sakaiproject.service.legacy.entity.EntityManager;
@@ -457,7 +457,7 @@ public abstract class BaseDissertationService
 	{
 		if (!unlockCheck(lock, resource))
 		{
-			throw new PermissionException(UsageSessionService.getSessionUserId(), lock, resource);
+			throw new PermissionException(lock, resource);
 		}
 
 	}	// unlock
@@ -6377,7 +6377,7 @@ public abstract class BaseDissertationService
 	protected void addLiveUpdateProperties(ResourcePropertiesEdit props)
 	{
 		props.addProperty(ResourceProperties.PROP_MODIFIED_BY,
-				UsageSessionService.getSessionUserId());
+				SessionManager.getCurrentSessionUserId());
 
 		props.addProperty(ResourceProperties.PROP_MODIFIED_DATE,
 			TimeService.newTime().toString());
@@ -6389,7 +6389,7 @@ public abstract class BaseDissertationService
 	*/
 	protected void addLiveProperties(ResourcePropertiesEdit props)
 	{
-		String current = UsageSessionService.getSessionUserId();
+		String current = SessionManager.getCurrentSessionUserId();
 		props.addProperty(ResourceProperties.PROP_CREATOR, current);
 		props.addProperty(ResourceProperties.PROP_MODIFIED_BY, current);
 		
@@ -9248,7 +9248,7 @@ public abstract class BaseDissertationService
 			m_properties = new BaseResourcePropertiesEdit();
 			m_orderedStatus = new Hashtable();
 			m_schoolPrereqs = new Hashtable();
-			String currentUser = UsageSessionService.getSessionUserId();
+			String currentUser = SessionManager.getCurrentSessionUserId();
 			if(currentUser != null)
 			{
 				m_candidate = currentUser;
