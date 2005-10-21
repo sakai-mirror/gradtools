@@ -57,6 +57,7 @@ import org.sakaiproject.api.app.dissertation.DissertationStep;
 import org.sakaiproject.api.app.dissertation.DissertationStepEdit;
 import org.sakaiproject.api.app.dissertation.StepStatus;
 import org.sakaiproject.api.app.dissertation.StepStatusEdit;
+import org.sakaiproject.api.kernel.function.cover.FunctionManager;
 import org.sakaiproject.api.kernel.session.cover.SessionManager;
 import org.sakaiproject.exception.IdInvalidException;
 import org.sakaiproject.exception.IdUnusedException;
@@ -627,6 +628,32 @@ public abstract class BaseDissertationService
 			// register as an entity producer
 			m_entityManager.registerEntityProducer(this);
 
+			// register functions
+			FunctionManager.registerFunction(SECURE_ADD_DISSERTATION);
+			FunctionManager.registerFunction(SECURE_ACCESS_DISSERTATION);
+			FunctionManager.registerFunction(SECURE_UPDATE_DISSERTATION);
+			FunctionManager.registerFunction(SECURE_REMOVE_DISSERTATION);
+			FunctionManager.registerFunction(SECURE_ADD_DISSERTATION_CANDIDATEPATH);
+			FunctionManager.registerFunction(SECURE_ACCESS_DISSERTATION_CANDIDATEPATH);
+			FunctionManager.registerFunction(SECURE_UPDATE_DISSERTATION_CANDIDATEPATH);
+			FunctionManager.registerFunction(SECURE_UPDATE_DISSERTATION_CANDIDATEPATH_COMM);
+			FunctionManager.registerFunction(SECURE_REMOVE_DISSERTATION_CANDIDATEPATH);
+			FunctionManager.registerFunction(SECURE_ADD_DISSERTATION_STEP);
+			FunctionManager.registerFunction(SECURE_ACCESS_DISSERTATION_STEP);
+			FunctionManager.registerFunction(SECURE_UPDATE_DISSERTATION_STEP);
+			FunctionManager.registerFunction(SECURE_REMOVE_DISSERTATION_STEP);
+			FunctionManager.registerFunction(SECURE_ADD_DISSERTATION_STEPSTATUS);
+			FunctionManager.registerFunction(SECURE_ACCESS_DISSERTATION_STEPSTATUS);
+			FunctionManager.registerFunction(SECURE_UPDATE_DISSERTATION_STEPSTATUS);
+			FunctionManager.registerFunction(SECURE_REMOVE_DISSERTATION_STEPSTATUS);
+			FunctionManager.registerFunction(SECURE_ADD_DISSERTATION_CANDIDATEINFO);
+			FunctionManager.registerFunction(SECURE_ACCESS_DISSERTATION_CANDIDATEINFO);
+			FunctionManager.registerFunction(SECURE_UPDATE_DISSERTATION_CANDIDATEINFO);
+			FunctionManager.registerFunction(SECURE_REMOVE_DISSERTATION_CANDIDATEINFO);
+			FunctionManager.registerFunction(SECURE_ACCESS_DISSERTATION_GROUP);
+			FunctionManager.registerFunction(SECURE_ADD_DISSERTATION_GROUP);
+			FunctionManager.registerFunction(SECURE_REMOVE_DISSERTATION_GROUP);
+			FunctionManager.registerFunction(SECURE_UPDATE_DISSERTATION_GROUP);
 		}
 		catch (Throwable t)
 		{
