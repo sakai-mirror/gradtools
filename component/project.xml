@@ -55,6 +55,12 @@
 			<artifactId>sakai-util-java</artifactId>
 			<version>${sakai.version}</version>
 		</dependency>
+		
+		<dependency>
+			<groupId>sakaiproject</groupId>
+			<artifactId>sakai-session</artifactId>
+			<version>${sakai.version}</version>
+		</dependency>
 
 		<dependency>
 			<groupId>servletapi</groupId>
