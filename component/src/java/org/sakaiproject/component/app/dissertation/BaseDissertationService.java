@@ -75,6 +75,7 @@ import org.sakaiproject.service.legacy.entity.Edit;
 import org.sakaiproject.service.legacy.entity.Entity;
 import org.sakaiproject.service.legacy.entity.EntityManager;
 import org.sakaiproject.service.legacy.entity.EntityProducer;
+import org.sakaiproject.service.legacy.entity.HttpAccess;
 import org.sakaiproject.service.legacy.entity.Reference;
 import org.sakaiproject.service.legacy.entity.ResourceProperties;
 import org.sakaiproject.service.legacy.entity.ResourcePropertiesEdit;
@@ -6715,6 +6716,14 @@ public abstract class BaseDissertationService
 	/**
 	 * {@inheritDoc}
 	 */
+	public HttpAccess getHttpAccess()
+	{
+		return null;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
 	public boolean parseEntityReference(String reference, Reference ref)
 	{
 		// for dissertations
@@ -7091,7 +7100,7 @@ public abstract class BaseDissertationService
 			return blockGrantGroupReference(m_site, m_id);
 
 		}   // getReference
-		
+
 		/**
 		* Access the internal reference which can be used to access the resource from within the system.
 		* @return The internal reference which can be used to access the resource from within the system.
@@ -7585,8 +7594,7 @@ public abstract class BaseDissertationService
 			return m_properties;
 
 		}   // getProperties
-		
-		
+
 		/**
 		* Access the reference of the DissertationStep by display order.
 		* @param order The order number as a String.
