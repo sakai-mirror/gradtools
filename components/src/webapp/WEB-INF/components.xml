@@ -12,7 +12,7 @@
 		<property name="memoryService"><ref bean="org.sakaiproject.service.framework.memory.MemoryService"/></property>
 		<property name="sqlService"><ref bean="org.sakaiproject.service.framework.sql.SqlService"/></property>
 		<property name="serverConfigurationService"><ref bean="org.sakaiproject.service.framework.config.ServerConfigurationService"/></property>
-		<property name="entityManager"><ref bean="org.sakaiproject.service.legacy.resource.EntityManager"/></property>
+		<property name="entityManager"><ref bean="org.sakaiproject.service.legacy.entity.EntityManager"/></property>
  		<property name="dissertationTableName"><value>DISSERTATION_DISSERTATION</value></property>
  		<property name="stepTableName"><value>DISSERTATION_STEP</value></property>
  		<property name="pathTableName"><value>DISSERTATION_PATH</value></property>
