@@ -6,7 +6,7 @@
 		Removing FOS code
 	</h3>
 
-	#if ($alertMessage)<div class="chefAlertBox">Alert: $validator.escapeHtml($alertMessage)</div>#end
+	#if ($alertMessage)<div class="alertMessage">Alert: $validator.escapeHtml($alertMessage)</div>#end
 	<div class="chefPageviewTitle">
 		Are you sure you want to remove the FOS code(s) below? This will only remove
 		the FOS from the table, not delete any Grad Tools sites that may have used
@@ -17,7 +17,7 @@
 				#foreach($field in $fields)
 				<tr>
 					<td>
-						FOS:
+						FOS
 					</td>
 					<td>
 						$field.getFieldCode()
@@ -26,7 +26,7 @@
 						&nbsp;&nbsp;
 					</td>
 					<td>
-						BGG:
+						BGG
 					</td>
 					<td>
 						$field.getGroupCode()
@@ -38,7 +38,7 @@
 				#end
 			</table>
 			<div class="act">
-				<input type="submit" name="eventSubmit_doRemove_codes_confirmed" id="eventSubmit_doRemove_code_confirmed" value="Remove" />
+				<input class="active" type="submit" name="eventSubmit_doRemove_codes_confirmed" id="eventSubmit_doRemove_code_confirmed" value="Remove" />
 				<input type="submit" name="eventSubmit_doCancel_code" id="eventSubmit_doCancel_code" value="Cancel" />
 			</div>
 		</form>

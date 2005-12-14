@@ -25,15 +25,7 @@
 	## do nothing if no menu or empty menu
 	#if (($mnu) && (!$mnu.isEmpty()))
 
-		## if there are any form fields in the menu, use a different css wrap
-		#set ($toolbarClass ="chefToolBarWrap")
-		#foreach ($item in $mnu.Items)
-			#if($item.isField)
-				#set ($toolbarClass ="chefToolBarWrapForm")
-			#end	
-		#end
-
-		<div class="$toolbarClass">
+		<div class="navIntraTool">
 		#foreach ($item in $mnu.Items)
 			## figure the link
 			#set ($base=$sakai_ActionURL.reset().setParameter("sakai_action", $item.Action).toString())
@@ -71,7 +63,7 @@
 
 					## here's a text field in a form for the toolbar
 					#else
-					<form name="$item.Form" action="$base" class="toolbarForm" method="post">
+					<form name="$item.Form" action="$base" class="inlineForm" method="post">
 						<input size="15" value="$item.Value" name="$item.Title" id="$item.Title" type="text" class="searchField" />
 					</form>
 					#end
@@ -103,7 +95,7 @@
 # The standard way to deal with the ToolPortlet Alert
 *# ------------------------------------------------------------------
 #macro (chef_alert)
-	#if(!$sakai_alert.isEmpty())<div class="chefAlertBox">#chef_html($sakai_alert.Alert)</div>#end
+	#if(!$sakai_alert.isEmpty())<div class="alertMessage">#chef_html($sakai_alert.Alert)</div>#end
 #end
 
 #* ------------------------------------------------------------------

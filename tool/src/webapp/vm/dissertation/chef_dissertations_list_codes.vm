@@ -5,7 +5,7 @@
 	<h3>
 		Edit Codes
 	</h3>
-	#if ($alertMessage)<div class="chefAlertBox">Alert: $validator.escapeHtml($alertMessage)</div>#end
+	#if ($alertMessage)<div class="alertMessage">Alert: $validator.escapeHtml($alertMessage)</div>#end
 	<p class="instruction">
 	The list below shows corresponding codes for
 	Field of Study and Block Grant Group. Click the

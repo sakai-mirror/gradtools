@@ -22,7 +22,7 @@
 			</tr>
 		</table>
 		<br /><br />
-		#if($alertMessage)<div class="chefAlertBox">Alert: $alertMessage </div>#end
+		#if($alertMessage)<div class="alertMessage">Alert: $alertMessage </div>#end
 		<table class="listHier" border="0" cellspacing="0" cellpadding="5" width="100%">
 			#if ($hassteps.booleanValue())
 				<tr>
@@ -78,9 +78,9 @@
 								<center><img alt="$step.ValidationTypeString" src="#imageLink($step.ValidationImage)" BORDER="0" /></center>
 							</td>
 							#if ($step.Status == "Prerequisites not completed.")
-								<td headers="step" width="3%"><span style="color:#777777">${velocityCount}.</span></td>
-								<td headers="empty3" width="41%"><span style="color:#777777">$step.Instructions</span></td>
-								<td headers="prerequisites" width="50%"><span style="color:#777777">$step.Prereqs</span></td>					
+								<td headers="step" width="3%"><span style="color:#777">${velocityCount}.</span></td>
+								<td headers="empty3" width="41%"><span style="color:#777">$step.Instructions</span></td>
+								<td headers="prerequisites" width="50%"><span style="color:#777">$step.Prereqs</span></td>					
 							#else
 								<td headers="step" width="3%">${velocityCount}.</td>
 								<td headers="empty3" width="81%">$step.Instructions

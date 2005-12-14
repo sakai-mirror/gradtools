@@ -13,7 +13,7 @@
 			$stepdesc <br /><br />
 		</p>
 		
-		#if ($alertMessage)<div class="chefAlertBox">Alert: $validator.escapeHtml($alertMessage)</div>#end
+		#if ($alertMessage)<div class="alertMessage">Alert: $validator.escapeHtml($alertMessage)</div>#end
 			Marking 
 			#if ($multivalid.booleanValue())
 				these steps

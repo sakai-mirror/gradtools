@@ -15,7 +15,7 @@
 			#end
 		</h3>
 		#if ($alertMessage.length()>0)
-			<div class="chefAlertBox"> $validator.escapeHtml($alertMessage)
+			<div class="alertMessage"> $validator.escapeHtml($alertMessage)
 			Are you sure you still want to delete
 			#if ($multidelete.booleanValue())
 				these dissertation steps?
@@ -24,7 +24,7 @@
 			#end
 			</div>
 		#else
-			<div class="chefAlertBox">Are you sure you want to delete
+			<div class="alertMessage">Are you sure you want to delete
 			#if ($multidelete.booleanValue())
 				these dissertation steps?
 			#else

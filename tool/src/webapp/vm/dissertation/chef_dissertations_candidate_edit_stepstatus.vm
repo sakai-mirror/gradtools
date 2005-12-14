@@ -36,7 +36,7 @@
 			</select>
 		</p>	
 		<p class="act">
-			<input type="submit" name="eventSubmit_doUpdate_stepstatus" value="Save" />
+			<input class="active" type="submit" name="eventSubmit_doUpdate_stepstatus" value="Save" />
 			<input type="submit" name="eventSubmit_doCancel_candidate" value="Cancel" />
 		</p>
 	</form>

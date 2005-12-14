@@ -6,7 +6,7 @@
 		Edit Codes
 	</h3>
 
-	#if ($alertMessage)<div class="chefAlertBox">Alert: $validator.escapeHtml($alertMessage)</div>#end
+	#if ($alertMessage)<div class="alertMessage">Alert: $validator.escapeHtml($alertMessage)</div>#end
 	<p class="instruction">
 		Complete the form below to change the name associated with a Field of Study or 
 		Block Grant Group code. Please contact Grad Tools Support to have a change 

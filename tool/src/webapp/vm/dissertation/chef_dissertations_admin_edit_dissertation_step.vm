@@ -1,7 +1,7 @@
 ##<!-- $Header: /cvs/ctools/gradtools/tool/src/webapp/vm/dissertation/chef_dissertations_admin_edit_dissertation_step.vm,v 1.2 2005/06/01 22:23:39 gsilver.umich.edu Exp $ -->
 ## Dissertations - Administrator's edit Dissertation Step view
 <div class="portletBody">
-	#if ($alertMessage)<div class="chefAlertBox">Alert: $validator.escapeHtml($alertMessage)</div>#end
+	#if ($alertMessage)<div class="alertMessage">Alert: $validator.escapeHtml($alertMessage)</div>#end
 	<h3>
 		Revise A Step
 	</h3>

@@ -6,7 +6,7 @@
 		Previewing matching codes
 	</h3>
 
-	#if ($alertMessage)<div class="chefAlertBox">Alert: $validator.escapeHtml($alertMessage)</div>#end
+	#if ($alertMessage)<div class="alertMessage">Alert: $validator.escapeHtml($alertMessage)</div>#end
 	<div class="instruction">
 		Please check the codes below to make sure they are entered correctly. You can not add a new BGG
 		code if a department site for that code has not yet been created.  To change the codes or the
@@ -16,7 +16,7 @@
 			<table class="listHier" cellspacing="0" summary="Preview of Field of Study and Block Grant Group code to add.">
 				<tr>
 					<td>
-						<label for="FOS">FOS:</label>
+						<label for="FOS">FOS</label>
 					</td>
 					<td>
 							$!field.getFieldCode()
@@ -28,7 +28,7 @@
 						&nbsp;&nbsp;
 					</td>
 					<td>
-						BGG:
+						BGG
 					</td>
 					<td>
 						$!field.getGroupCode()
@@ -39,7 +39,7 @@
 				</tr>
 			</table>
 			<div class="act">
-				<input type="submit" name="eventSubmit_doAdd_code" id="eventSubmit_doAdd_code" value="Submit" />
+				<input class="active" type="submit" name="eventSubmit_doAdd_code" id="eventSubmit_doAdd_code" value="Submit" />
 				<input type="submit" name="eventSubmit_doRevise_code" id="eventSubmit_doRevise_code" value="Revise" />
 				<input type="submit" name="eventSubmit_doCancel_code" id="eventSubmit_doCancel_code" value="Cancel" />
 			</div>

@@ -6,7 +6,7 @@
 		Remove Students
 	</h3>
 
-	#if ($alertMessage)<div class="chefAlertBox">Alert: $validator.escapeHtml($alertMessage)</div>#end
+	#if ($alertMessage)<div class="alertMessage">Alert: $validator.escapeHtml($alertMessage)</div>#end
 	<div class="instruction">
 	<p>
 		Enter uniqnames of students to remove from the database below, one per line. To move 

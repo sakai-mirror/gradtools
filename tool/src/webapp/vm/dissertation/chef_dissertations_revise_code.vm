@@ -5,7 +5,7 @@
 	<h3>
 		Edit Codes
 	</h3>
-	#if ($alertMessage)<div class="chefAlertBox">Alert: $validator.escapeHtml($alertMessage)</div>#end
+	#if ($alertMessage)<div class="alertMessage">Alert: $validator.escapeHtml($alertMessage)</div>#end
 	<p class="instruction">
 		Enter a code, or choose one from the menu below, to add a Field of Study or a Block Grant Group. Please note that you can only add a new Block Grant Group Code if a Grad Tools site has already been created for that department.
 	</p>
@@ -16,13 +16,13 @@
 			<table  class="itemSummary" summary="extract file upload form" >
 				<tr>
 					<td>
-						<label for="FOS_code">FOS Code:</label>
+						<label for="FOS_code">FOS Code</label>
 					</td>
 					<td>
 						<input type="text" size="4" maxlength="4" name="FOS_code" id="FOS_code" value="$!field.getFieldCode()"  />
 					</td>
 					<td>
-						<label for="BGG_code">BGG Code:</label>
+						<label for="BGG_code">BGG Codes</label>
 					</td>
 					<td>
 						<input type="text" size="3" maxlength="3" name="BGG_code" id="BGG_code" value="$!field.getGroupCode()" />
@@ -30,13 +30,13 @@
 				</tr>
 				<tr>
 					<td>
-						<label for="FOS_name">FOS Name:</label>
+						<label for="FOS_name">FOS Name</label>
 					</td>
 					<td>
 						<input type="text" size="20" name="FOS_name" id="FOS_name" value="$!field.getFieldName()" />
 					</td>
 					<td>
-						<label for="BGG_name">BGG Name:</label>
+						<label for="BGG_name">BGG Name</label>
 					</td>
 					<td>
 						<input type="text"  size="34" name="BGG_name" id="BGG_name" value="$!field.getGroupName()" />
@@ -52,7 +52,7 @@
 						&nbsp;&nbsp;
 					</td>
 					<td>
-						<label for="BGG_group">Existing BGG:</label>
+						<label for="BGG_group">Existing BGG</label>
 					</td>
 					<td>
 							<select name="BGG_group" 

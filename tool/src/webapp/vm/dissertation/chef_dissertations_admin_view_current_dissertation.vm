@@ -31,7 +31,7 @@
 			</table>
 			<p>$department Checklist.</p>
 			<br /><br />
-			#if($alertMessage)<div class="chefAlertBox">Alert: $alertMessage 
+			#if($alertMessage)<div class="alertMessage">Alert: $alertMessage 
 			</div>#end
 			<table class="listHier" border="0" cellspacing="0" cellpadding="5" width="100%">
 				#if ($hassteps.booleanValue())

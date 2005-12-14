@@ -2,7 +2,7 @@
 ## chef_dissertations_load-errors.vm, use with org.chefproject.DissertationUploadAction.java
 <div class="portletBody">
 	#if($menu)#toolbar($menu)#end
-	#if ($alertMessage)<div class="chefAlertBox">Alert: $validator.escapeHtml($alertMessage)</div>#end
+	#if ($alertMessage)<div class="alertMessage">Alert: $validator.escapeHtml($alertMessage)</div>#end
 	<form name="loadExtracts" id="loadExtracts" action="#toolForm($action)" method="post" enctype="multipart/form-data">
 			<p class ="instruction">
 				Please correct the errors below and then upload the files again. You might wish to print the messages below

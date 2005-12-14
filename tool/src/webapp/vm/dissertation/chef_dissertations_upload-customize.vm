@@ -5,7 +5,7 @@
 		Customizing upload
 	</h3>
 
-	#if ($alertMessage)<div class="chefAlertBox">Alert: $validator.escapeHtml($alertMessage)</div><div style="display:block;clear:both" />#end
+	#if ($alertMessage)<div class="alertMessage">Alert: $validator.escapeHtml($alertMessage)</div><div style="display:block;clear:both" />#end
 	<form name="customize" id="customize" action="#toolForm("$action")" method="post">
 		<h4>
 			Message Display
@@ -23,7 +23,7 @@
 				value="$!messages" />
 			</p>	
 		<div class="act">
-			<input type="submit" name="eventSubmit_doSave_setting" value="Save" />
+			<input class="active"  type="submit" name="eventSubmit_doSave_setting" value="Save" />
 			<input type="submit" name="eventSubmit_doCancel_setting" value="Cancel" />
 		</div>
 	</form>

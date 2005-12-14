@@ -6,7 +6,7 @@
 		Load extracts
 	</h3>
 
-	#if ($alertMessage)<div class="chefAlertBox">Alert: $validator.escapeHtml($alertMessage)</div>#end
+	#if ($alertMessage)<div class="alertMessage">Alert: $validator.escapeHtml($alertMessage)</div>#end
 	<p class="instruction">
 		Complete the form fields and then choose 'Upload' at the bottom.
 	</p>

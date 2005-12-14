@@ -22,7 +22,7 @@
 			</tr>
 		</table>
 		<br /><br />
-		#if($alertMessage)<div class="chefAlertBox">Alert: $alertMessage </div>#end
+		#if($alertMessage)<div class="alertMessage">Alert: $alertMessage </div>#end
 		<table class="listHier" summary="All Steps in the Candidate's Path" border="0" cellspacing="0" cellpadding="5" width="100%">
 		#if ($hassteps.booleanValue())
 			<tr>

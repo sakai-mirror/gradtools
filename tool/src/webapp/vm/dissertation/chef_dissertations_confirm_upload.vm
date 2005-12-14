@@ -5,7 +5,7 @@
 	<h3>
 		Confirm extracts...
 	</h3>
-	#if ($alertMessage)<div class="chefAlertBox">Alert: $validator.escapeHtml($alertMessage)</div>#end
+	#if ($alertMessage)<div class="alertMessage">Alert: $validator.escapeHtml($alertMessage)</div>#end
 	##<form name="loadExtracts" id="loadExtracts" action="#toolForm($action)" method="post" enctype="multipart/form-data">
 		<form name="loadExtracts" 
 			id="loadExtracts" 
