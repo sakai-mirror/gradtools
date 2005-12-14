@@ -5,7 +5,7 @@
 		Create A New Step
 	</h3>
 	<form name="editForm" id="editForm" action="#toolForm($action)" method="post" >
-		<p class="instruction">The <span class="reqStarInline"> *</span> means this information is required.</p>
+		<p class="instruction">The <span class="reqStarInline"> * </span> means this information is required.</p>
 		<p class="longtext">
 			<span class="reqStar">*</span>
 			<label for="desc" class="block">Description</label>

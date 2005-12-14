@@ -5,10 +5,10 @@
 		Select a letter.
 	</p>
 	<form name="alphabetForm" id="alphabetForm" action="#toolForm($action)" method="post" >
-		<div class="leftNav">
+		<p class="act">
 			<input type="submit" name="eventSubmit_doAdministration" value="Back To Checklist" />
-		</div>
-		<div style="margin:2em auto">
+		</p>
+		<div style="margin:2em auto;clear:both;display:block">
 			<span class="abc">
 				#foreach ($letter in $letters)
 					#if ($letter.hasMembers())
