@@ -6561,6 +6561,9 @@ public class DissertationAction
 	public CandidatePath updateCandidatePathSiteId(SessionState state, CandidatePath path)
 	{
 		CandidatePath updatedPath = null;
+		String alertMessage = "There was a problem creating your Dissertation Checklist from our data. " +
+		"For assistance, please e-mail the text of the message below to gradtools@umich.edu. " +
+		" updateCandidatePathSiteId(): ";
 		
 		//Unless current site id is same as user's uniqname, set site id to current site id
 		if(!(((String)state.getAttribute(STATE_CURRENT_SITE)).equals((String)state.getAttribute(STATE_USER_ID))))
@@ -6608,15 +6611,17 @@ public class DissertationAction
 							}
 							catch(Exception e)
 							{
+								addAlert(state, alertMessage + "getDissertationForSite() " + e.toString());
 								if(Log.isWarnEnabled())
-									Log.warn("chef", this + ".initState() DissertationService.getDissertationForSite(" + schoolSite + ") " + e);
+									Log.warn("chef", this + ".updateCandidatePathSiteId() DissertationService.getDissertationForSite(" + schoolSite + ") " + e);
 							}
 							if(parentDissertation == null)
 							{
+								addAlert(state, alertMessage + "parentDissertation is null.");
+								
 								//no dissertation on which to base path, so bail out
 								return null;
 							}
-							
 						}
 						pathEdit = DissertationService.addCandidatePath(parentDissertation, (String)state.getAttribute(STATE_CURRENT_SITE));
 									
@@ -6655,8 +6660,9 @@ public class DissertationAction
 							}
 							catch(PermissionException p)
 							{
+								addAlert(state, alertMessage + "removeStepStatus() " + i + " " + p.toString());
 								if(Log.isWarnEnabled())
-									Log.warn("chef", this + ".initState() DissertationService.removeStepStatus(" + statusEdit.getReference() + ") " + p);
+									Log.warn("chef", this + ".updateCandidatePathSiteId() DissertationService.removeStepStatus(" + statusEdit.getReference() + ") " + p);
 							}
 						}
 										
@@ -6728,8 +6734,9 @@ public class DissertationAction
 									}
 									catch(NumberFormatException e) 
 									{
+										addAlert(state, alertMessage + "newStatusRef for prereq " + j + " " + e.toString());
 										if(Log.isWarnEnabled())
-											Log.warn("chef", this + ".initState() newOrderedStatus.get(Integer.parseInt(prereqs.get(" + j + ") " + e);
+											Log.warn("chef", this + ".updateCandidatePathSiteId newOrderedStatus.get(Integer.parseInt(prereqs.get(" + j + ") " + e);
 									}
 													
 									//and add it to the List of prereqs for the new step
@@ -6799,26 +6806,29 @@ public class DissertationAction
 						}
 						catch(Exception e)
 						{
+							addAlert(state, alertMessage + "removeStepStatus()/removeCandidatePath() " + e.toString());
 							if(Log.isWarnEnabled())
-								Log.warn("chef", this + ".initState DissertationService.edit/removeCandidatePath(" + oldPathRef + ") " + e);
+								Log.warn("chef", this + ".updateCandidatePathSiteId() DissertationService.edit/removeCandidatePath(" + oldPathRef + ") " + e);
 						}
 					}
 					catch (Exception e)
 					{
+						addAlert(state, alertMessage + "getDissertationForSite(" + parentSite + ") " + e.toString());
 						if(Log.isWarnEnabled())
-							Log.warn("chef", this + ".initState() DissertationService.getDissertationForSite(" + parentSite + ") " + e);
+							Log.warn("chef", this + ".updateCandidatePathSiteId() DissertationService.getDissertationForSite(" + parentSite + ") " + e);
 					}
 				}
 				catch(Exception e)
 				{
+					addAlert(state, alertMessage + "getParentSiteForUser(" + ((User)state.getAttribute(STATE_USER)).getId() + ") " + e.toString());
 					if(Log.isWarnEnabled())
-						Log.warn("chef", this + ".initState DissertationService.getParentSiteForUser(" + ((User)state.getAttribute(STATE_USER)).getId() + ") " + e);
+						Log.warn("chef", this + ".updateCandidatePathSiteId() DissertationService.getParentSiteForUser(" + ((User)state.getAttribute(STATE_USER)).getId() + ") " + e);
 				}
 			}
 			else
 			{
 				//no permission to update path site id
-				addAlert(state, "You do not have permission to set the site id of the candidate path.");
+				addAlert(state, alertMessage + "You do not have permission to set the site id of the candidate path.");
 				state.setAttribute(STATE_MODE, MODE_NO_CANDIDATE_PATH);
 				return path;
 			}
@@ -6829,8 +6839,9 @@ public class DissertationAction
 			}
 			catch (Exception e)
 			{
+				addAlert(state, alertMessage + "getCandidatePathForCandidate(" + ((User)state.getAttribute(STATE_USER)).getId() + ") " + e.toString());
 				if(Log.isWarnEnabled())
-					Log.warn("chef", this + ".initState() DissertationService.getCandidatePathForCandidate(" + ((User)state.getAttribute(STATE_USER)).getId() + ") " + e);
+					Log.warn("chef", this + ".updateCandidatePathSiteId() DissertationService.getCandidatePathForCandidate(" + ((User)state.getAttribute(STATE_USER)).getId() + ") " + e);
 			}
 		}
 		return updatedPath;
