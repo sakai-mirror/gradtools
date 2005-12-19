@@ -96,6 +96,7 @@
 				class="active"
 				id="updatestep"
 				onclick="showNotif('submitnotif','UpdateStep','editForm');
+					showNotif('submitnotif','Cancel','editForm');
 					document.editForm.submit(); return false;"
 				value="Save" 
 			/>

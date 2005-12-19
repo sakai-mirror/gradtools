@@ -65,6 +65,7 @@
 					class="active"
 					value="Move"
 					onclick="showNotif('submitnotif','MoveAdmin','moveForm');
+						showNotif('submitnotif','CancelAdmin','moveForm');
 						document.moveForm.option.value='move_admin';
 						document.moveForm.submit(); return false;" 
 					/>

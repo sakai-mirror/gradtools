@@ -51,6 +51,7 @@
 					class="active"
 					value="Delete"
 					onclick="showNotif('submitnotif','DeleteAdmin','confirmDelete');
+						showNotif('submitnotif','CancelAdmin','confirmDelete');
 						document.confirmDelete.option.value='delete_admin';
 						document.confirmDelete.submit(); return false;" 
 					/>

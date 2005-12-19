@@ -46,7 +46,8 @@
 				id="ContinueLoad"
 				class="active"
 				value="Continue"
-				onclick="showNotif('submitnotif','ContinueLoad','loadExtracts'); 
+				onclick="showNotif('submitnotif','ContinueLoad','loadExtracts');
+					showNotif('submitnotif','Cancel','loadExtracts'); 
 					document.loadExtracts.submit(); return false;" />
 			<input 
 				type="submit"

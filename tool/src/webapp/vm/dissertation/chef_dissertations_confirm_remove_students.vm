@@ -35,7 +35,8 @@
 				id="RemoveStudents"
 				class="active"
 				value="Remove"
-				onclick="showNotif('submitnotif','RemoveStudents','confirmRemoveStudents'); 
+				onclick="showNotif('submitnotif','RemoveStudents','confirmRemoveStudents');
+					showNotif('submitnotif','Cancel','confirmRemoveStudents');
 					document.confirmRemoveStudents.submit(); return false;" />
 			<input 
 				type="submit"

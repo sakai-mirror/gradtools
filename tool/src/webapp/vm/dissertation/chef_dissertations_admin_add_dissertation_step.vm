@@ -94,7 +94,8 @@
 						id="AddStep"
 						class="active"
 						value="Save"
-						onclick="showNotif('submitnotif','AddStep','addStep'); 
+						onclick="showNotif('submitnotif','AddStep','addStep');
+							showNotif('submitnotif','Cancel','addStep');
 							document.addStep.submit(); return false;" />
 					<input 
 						type="submit"
