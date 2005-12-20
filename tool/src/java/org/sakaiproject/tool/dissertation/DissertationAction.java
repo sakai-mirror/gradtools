@@ -370,6 +370,10 @@ public class DissertationAction
 	
 	/****************************** set/diff for execution time ****************************/
 	
+	private static final String alertMessage = "There was a problem creating your Dissertation Checklist from our data. " +
+	"For assistance, please e-mail the text of the message below to gradtools@umich.edu. " +
+	" updateCandidatePathSiteId(): ";
+	
 	/**
 	* Central place for dispatching the build routines based on the state name.
 	*/
@@ -4860,10 +4864,11 @@ public class DissertationAction
 		{
 			path = DissertationService.getCandidatePathForCandidate((String)state.getAttribute(STATE_USER_ID));
 		}
-		catch(PermissionException p)
+		catch(Exception e)
 		{
+			addAlert(state, alertMessage + "initCandidateState() getCandidatePathForCandidate() " + e.toString());
 			if(Log.isWarnEnabled())
-				Log.warn("chef", this + ".initCandidate DissertationService.getCandidatePathForCandidate() " + p);
+				Log.warn("chef", this + ".initCandidate DissertationService.getCandidatePathForCandidate() " + e);
 			state.setAttribute(STATE_MODE, MODE_NO_CANDIDATE_PATH);
 			return;
 		}
@@ -4874,7 +4879,12 @@ public class DissertationAction
 			if(isSaved())
 				state.setAttribute(STATE_MODE, MODE_CANDIDATE_PATH_SAVED);
 			else
+			{
+				addAlert(state, alertMessage + "initCandidateState() getCandidatePathForCandidate() path == null");
+				if(Log.isWarnEnabled())
+					Log.warn("chef", this + ".initCandidate DissertationService.getCandidatePathForCandidate() path == null");
 				state.setAttribute(STATE_MODE, MODE_NO_CANDIDATE_PATH);
+			}
 			return;
 		}
 		
@@ -6561,9 +6571,6 @@ public class DissertationAction
 	public CandidatePath updateCandidatePathSiteId(SessionState state, CandidatePath path)
 	{
 		CandidatePath updatedPath = null;
-		String alertMessage = "There was a problem creating your Dissertation Checklist from our data. " +
-		"For assistance, please e-mail the text of the message below to gradtools@umich.edu. " +
-		" updateCandidatePathSiteId(): ";
 		
 		//Unless current site id is same as user's uniqname, set site id to current site id
 		if(!(((String)state.getAttribute(STATE_CURRENT_SITE)).equals((String)state.getAttribute(STATE_USER_ID))))
