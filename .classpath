@@ -10,5 +10,6 @@
 	<classpathentry kind="var" path="MAVEN_REPO/servletapi/jars/servletapi-2.4-20040521.jar"/>
 	<classpathentry kind="src" path="/legacy-service"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/kernel"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/high-util"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
