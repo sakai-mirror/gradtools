@@ -2594,6 +2594,13 @@ public class DissertationAction
 		SessionState state = ((JetspeedRunData)data).getPortletSessionState (((JetspeedRunData)data).getJs_peid ());
 		ParameterParser params = data.getParameters();
 
+		if(Log.isInfoEnabled())
+			Log.info("chef", this + ".doAddnew_dissertation_step BEGIN");
+		if(Log.isInfoEnabled())
+			Log.info("chef", "STATE_MODE = " + (String)state.getAttribute(STATE_MODE));
+		if(Log.isInfoEnabled())
+			Log.info("chef", "THREAD = " + Thread.currentThread());
+		
 		//get parameters
 		String option = params.getString("option");
 		if (option.equalsIgnoreCase("cancel"))
@@ -2762,6 +2769,9 @@ public class DissertationAction
 				}  
 				if(retro.booleanValue())
 				{
+					if(Log.isInfoEnabled())
+						Log.info("chef", this + ".doAddnew_dissertation_step RETRO");
+					
 					//retroactive change - add to all candidate paths of this type
 					List allPaths = DissertationService.getCandidatePathsOfType(dissertation.getType());
 					if(Log.isInfoEnabled())
@@ -2783,12 +2793,19 @@ public class DissertationAction
 							{
 								Session session = SessionManager.getCurrentSession();
 								session.setActive();
+								if(Log.isInfoEnabled())
+									Log.info("chef", "(count % 100) session.setActive() THREAD = " + Thread.currentThread());
 							}
 							
 							//log progress periodically
 							if((count % 500) == 0)
+							{
 								if(Log.isInfoEnabled())
 									Log.info("chef", this + ".doAddnew_dissertation_step " + count + " paths retroactively updated");
+								if(Log.isInfoEnabled())
+									Log.info("chef", "(count % 500) log progress THREAD = " + Thread.currentThread());
+							}
+								
 						}
 						catch (Exception e)
 						{	
