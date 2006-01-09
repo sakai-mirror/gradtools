@@ -6,7 +6,7 @@
 		New Step
 	</h3>
 	<div class="instruction">
-		Create A New Step.  The <span class="reqStarInline">&nbsp;</span> means this information is required.
+		Create A New Step.  The <span class="reqStarInline">*</span> means this information is required.
 	</div>
 	<form name="addStep" 
 			id="addStep" 
