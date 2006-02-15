@@ -629,7 +629,7 @@ public abstract class BaseDissertationService
 			}
 
 			// register as an entity producer
-			m_entityManager.registerEntityProducer(this);
+			m_entityManager.registerEntityProducer(this, REFERENCE_ROOT);
 
 			// register functions
 			FunctionManager.registerFunction(SECURE_ADD_DISSERTATION);
@@ -7102,6 +7102,22 @@ public abstract class BaseDissertationService
 		}   // getReference
 
 		/**
+		 * @inheritDoc
+		 */
+		public String getReference(String rootProperty)
+		{
+			return getReference();
+		}
+
+		/**
+		 * @inheritDoc
+		 */
+		public String getUrl(String rootProperty)
+		{
+			return getUrl();
+		}
+
+		/**
 		* Access the internal reference which can be used to access the resource from within the system.
 		* @return The internal reference which can be used to access the resource from within the system.
 		*/
@@ -7594,6 +7610,22 @@ public abstract class BaseDissertationService
 			return m_properties;
 
 		}   // getProperties
+
+		/**
+		 * @inheritDoc
+		 */
+		public String getReference(String rootProperty)
+		{
+			return getReference();
+		}
+
+		/**
+		 * @inheritDoc
+		 */
+		public String getUrl(String rootProperty)
+		{
+			return getUrl();
+		}
 
 		/**
 		* Access the reference of the DissertationStep by display order.
@@ -8637,6 +8669,22 @@ public abstract class BaseDissertationService
 		}
 
 		/**
+		 * @inheritDoc
+		 */
+		public String getReference(String rootProperty)
+		{
+			return getReference();
+		}
+
+		/**
+		 * @inheritDoc
+		 */
+		public String getUrl(String rootProperty)
+		{
+			return getUrl();
+		}
+
+		/**
 		* Access the resource's properties.
 		* @return The resource's properties.
 		*/
@@ -9545,6 +9593,22 @@ public abstract class BaseDissertationService
 		public String getReference()
 		{
 			return pathReference(m_site, m_id);
+		}
+
+		/**
+		 * @inheritDoc
+		 */
+		public String getReference(String rootProperty)
+		{
+			return getReference();
+		}
+
+		/**
+		 * @inheritDoc
+		 */
+		public String getUrl(String rootProperty)
+		{
+			return getUrl();
 		}
 
 		/**
@@ -11167,6 +11231,22 @@ public abstract class BaseDissertationService
 		}
 
 		/**
+		 * @inheritDoc
+		 */
+		public String getReference(String rootProperty)
+		{
+			return getReference();
+		}
+
+		/**
+		 * @inheritDoc
+		 */
+		public String getUrl(String rootProperty)
+		{
+			return getUrl();
+		}
+
+		/**
 		* Access the resource's properties.
 		* @return The resource's properties.
 		*/
@@ -12282,6 +12362,22 @@ public abstract class BaseDissertationService
 			return infoReference(m_site, m_id);
 
 		}   // getReference
+
+		/**
+		 * @inheritDoc
+		 */
+		public String getReference(String rootProperty)
+		{
+			return getReference();
+		}
+
+		/**
+		 * @inheritDoc
+		 */
+		public String getUrl(String rootProperty)
+		{
+			return getUrl();
+		}
 
 		/**
 		* Access the resources's properties.
