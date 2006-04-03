@@ -28,6 +28,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Vector;
 
+import org.quartz.JobExecutionException;
 import org.sakaiproject.exception.IdInvalidException;
 import org.sakaiproject.exception.IdUnusedException;
 import org.sakaiproject.exception.IdUsedException;
@@ -159,16 +160,25 @@ public interface DissertationService
 	public static final String DISSERTATION_TYPE_DISSERTATION_STEPS = "Dissertation Steps";
 	
 	/** The reference of the object that is locked in the db during upload */
-	public static final String IS_LOADING_LOCK_REFERENCE = "/dissertation/i/rackham/rackham/dissertation.isloading.lock";
+	public static final String IS_LOADING_LOCK_REFERENCE = "/dissertation/i/rackham/rackham/dissertation.is.loading.lock";
 	
 	/** The id of the object that is locked in the db during upload */
-	public static final String IS_LOADING_LOCK_ID = "dissertation.isloading.lock";
+	public static final String IS_LOADING_LOCK_ID = "dissertation.is.loading.lock";
+	
+	/** The reference of the object that is locked in the db during admin step changes */
+	public static final String IS_CHANGING_STEP_LOCK_REFERENCE = "/dissertation/i/rackham/rackham/dissertation.is.changing.step.lock";
+	
+	/** The id of the object that is locked in the db during admin step changes */
+	public static final String IS_CHANGING_STEP_LOCK_ID = "dissertation.is.changing.step.lock";
 	
 	/** The template and properties for creating a static checklist */
 	public static final String STATIC_CHECKLIST_TEMPLATE = "static_checklist_template.txt";
 	public static final String STATIC_CHECKLIST_NAME = "checklist.html";
 	public static final String STATIC_CHECKLIST_DISPLAY_NAME = "Dissertation Checklist";
 	public static final String STATIC_CHECKLIST_DESCRIPTION = "Saved copy of the Dissertation Checklist";
+	
+	/** The SimpleDateFormat for Quartz job execution reports */
+	public static final String STEP_JOB_DATE_FORMAT = "MM/dd/yyyy hh:mm:ss";
 	
 	/**
 	* Check permissions for adding a Block Grant Group.
@@ -705,8 +715,9 @@ public interface DissertationService
 	* Adds an CandidateInfo to the service.
 	* @param site - There is no current site - request comes from DissertationDataListenerService.
 	* @return The new CandidateInfo.
-	*/
+	*
 	public CandidateInfoEdit addCandidateInfoFromListener(String site);
+	*/
 	
 	/**
 	* Add a new CandidateInfo to the directory, from a definition in XML.
@@ -964,8 +975,9 @@ public interface DissertationService
 	/** 
 	* Send in a load of data from the Rackham database.
 	* @param data Vector of CandidateInfo objects.
-	*/
+	*
 	public List dumpData(Vector v);
+	*/
 	
 	/** 
 	* Access whether the db-integration system is initialized.
@@ -990,16 +1002,58 @@ public interface DissertationService
 	* Load the Rackham database extract files.
 	* @param oard - The content of the OARD extract file.
 	* @param mp - The content of the MPathways extract file.
-	* @return Vector of String messages contaning validation or loading errors.
+	* @return String referring user to job execution report.
+	*
+	public String loadData(byte[] oard, byte[] mp)
+		throws JobExecutionException;
 	*/
-	public List loadData(byte[] oard, byte[] mp);
 	
 	/**
 	* See if Rackham extract data loading is in progress.
 	* @return boolean - true if in progress, false otherwise.
 	*/
 	public boolean isLoading();
-
+	
+	/**
+	* See if an admin step change is in progress.
+	* @return boolean - true if in progress, false otherwise.
+	*/
+	public boolean isChangingStep();
+	
+	/**
+	* Get the collection of Checklist Section Headings for display.
+	* @return Vector of ordered String objects, one for each section head.
+	*/
+	public Vector getSectionHeads();
+	
+	/**
+	* Get the section head identifier for the checklist section heading.
+	* @param String head The text of the section heading.
+	* @return String containing the section identifier.
+	*/
+	public String getSectionId(String head);
+	
+	/**
+	* Execute a long-running admin step change in a separate thread.
+	* @param String jobType The type of step change:
+	* "New", "Revise", "Move", or "Delete"
+	* @param Object[] Job execution parameters. See exec... methods in
+	* BaseDissertationService.
+	* @return String containing alert messages.
+	*/
+	public String executeStepChangeJob(
+			String jobType,
+			Object[] jobParams)
+		throws JobExecutionException;
+	
+	/**
+	* Execute a long-running admin data upload in a separate thread.
+	* @param byte[] o OARD data extract upload.
+	* @param byte[] m OARD data extract upload.
+	* @return String containing message re job execution report.
+	*/
+	public String executeUploadExtractsJob(String site, byte[] o, byte[] m)
+		throws JobExecutionException;
 
 }	// DissertationService
 

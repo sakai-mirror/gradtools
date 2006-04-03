@@ -31,12 +31,10 @@ import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 import java.util.Vector;
-
 import org.sakaiproject.api.app.dissertation.BlockGrantGroup;
 import org.sakaiproject.api.app.dissertation.BlockGrantGroupEdit;
 import org.sakaiproject.api.app.dissertation.CandidateInfo;
@@ -123,7 +121,6 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	private final static String  MODE_PREVIEW_CODE = "preview_code";
 	private final static String  MODE_EDIT_NAMES = "edit_names";
 	private final static String  MODE_REVISE_CODE = "revise_code";
-	private final static String  MODE_REMOVE_CODES = "remove_codes";
 	private final static String  MODE_CONFIRM_REMOVE_STUDENTS = "confirm_remove_students";
 	private final static String  MODE_CONFIRM_REMOVE_CODES = "confirm_remove_codes";
 	private final static String  MODE_REMOVE_STUDENTS = "remove_students";
@@ -1151,7 +1148,6 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		CandidatePathEdit pathEdit= null;
 		CandidateInfo info = null;
 		CandidateInfoEdit infoEdit = null;
-		StepStatus status = null;
 		StepStatusEdit statusEdit = null;
 		Hashtable statuses = new Hashtable();
 		String candidate = null;
@@ -1238,7 +1234,6 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		}
 		if(!msg.equals(""))
 			state.setAttribute(STATE_STUDENT_REMOVAL_MESSAGES, msg);
-
 
 	}//removeStudents
 	
@@ -1529,10 +1524,16 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	{
 		SessionState state = ((JetspeedRunData)data).getPortletSessionState(((JetspeedRunData)data).getJs_peid());
 		
-		//if an upload is in progress, don't start another until it's finished
+		//if an upload or step change is in progress, don't start another until finished
 		if(DissertationService.isLoading())
 		{
 			addAlert(state, "Data loading is already in progress. Please wait until loading finishes to start loading again.");
+			state.setAttribute(STATE_MODE, MODE_UPLOAD);
+			return;
+		}
+		if(DissertationService.isChangingStep())
+		{
+			addAlert(state, "Checklist steps are being changed. Please try uploading later.");
 			state.setAttribute(STATE_MODE, MODE_UPLOAD);
 			return;
 		}
@@ -1673,7 +1674,6 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	public void doAdd_code (RunData data)
 	{
 		SessionState state = ((JetspeedRunData)data).getPortletSessionState(((JetspeedRunData)data).getJs_peid());
-		ParameterParser params = data.getParameters();
 		Field field = (Field)state.getAttribute(STATE_FIELD_TO_ADD);
 		
 		 //check that there is a department site matching the BGG code
@@ -1790,7 +1790,6 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		
 		Vector studentsToRemove = new Vector();
 		Vector studentsCannotRemove = new Vector();
-		int n = 0;
 		String name = null;
 		String msg = null;
 		String uniqnames = null;
@@ -1930,8 +1929,6 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	public void doRemove_students (RunData data)
 	{
 		SessionState state = ((JetspeedRunData)data).getPortletSessionState(((JetspeedRunData)data).getJs_peid());
-		ParameterParser params = data.getParameters();
-		
 		state.setAttribute(STATE_MODE, MODE_REMOVE_STUDENTS);
 		
 	}//doRemove_students
@@ -2118,136 +2115,76 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 			return;
 		}
 
-		
-		//don't start an upload if another is in progress
+		//don't start an upload if upload or step change one is in progress
 		if(DissertationService.isLoading())
 		{
 			addAlert(state, "Data is being loaded. Please wait until loading finishes to start loading again.");
 			state.setAttribute(STATE_MODE, MODE_UPLOAD);
 			return;
 		}
-		
+		if(DissertationService.isChangingStep())
+		{
+			addAlert(state, "Checklist steps are being changed. Please try uploading later.");
+			state.setAttribute(STATE_MODE, MODE_UPLOAD);
+			return;
+		}
 		state.setAttribute(STATE_MODE, MODE_CONFIRM_UPLOAD);
 		
+		//a dummy byte[] to stand in for a missing file
+		byte[] missing = new byte[1];
+		missing[0] = 1;
+		
+		boolean MP = false;
+		boolean OARD = false;
 		String oardContent = null;
 		String mpContent = null;
+		String msg = null;
+		String currentSite = PortalService.getCurrentSiteId();
 		
-		//get file content from state
+		//get the content of the files uploaded
 		if(state.getAttribute(STATE_OARD_CONTENT_STRING)!= null)
-		{
-			try
-			{
-				oardContent = (String)state.getAttribute(STATE_OARD_CONTENT_STRING);
-			}
-			catch(Exception e)
-			{
-				Log.warn("chef", this + ".doContinue_load Exception caught getting OARDBytes: " + e);
-			}
-		}
+			oardContent = (String)state.getAttribute(STATE_OARD_CONTENT_STRING);
 		if(state.getAttribute(STATE_MP_CONTENT_STRING)!= null)
+			mpContent = (String)state.getAttribute(STATE_MP_CONTENT_STRING);
+		
+		//set flags based on content in files
+		MP = (mpContent != null && mpContent.length()!=0) ? true:false;
+		OARD = (oardContent != null && oardContent.length()!=0) ? true:false;
+		
+		//upload the data
+		try
 		{
-			try
-			{
-				mpContent = (String)state.getAttribute(STATE_MP_CONTENT_STRING);
-				
-			}
-			catch(Exception e)
-			{
-				Log.warn("chef", this + ".doContinue_load Exception caught getting MPBytes: " + e);
-			}
-		}
-		if((oardContent == null || oardContent.length() == 0) && (mpContent == null || mpContent.length() == 0))
-		{
-			
-			//both files have no content so post alert to upload form
-			addAlert(state, "Both files are missing or missing content.");
-			state.setAttribute(STATE_MODE, MODE_UPLOAD);
-		}
-		else
-		{
-			//at most one file is missing content
-			byte[] missing = new byte[1];
-			missing[0] = 1;
-			List loadMessages = new Vector();
-			
-			//load the data, returning all error messages
-			if(mpContent == null || mpContent.length() == 0)
-			{
-				//no MPathways extract data
-				try
-				{
-					loadMessages = DissertationService.loadData(oardContent.getBytes(), missing);
-				}
-				catch(Exception e)
-				{
-					Log.warn("chef", this + ".doContinue_load Exception caught loading OARDBytes: " + e);
-				}
-			}
-			else if(oardContent == null || oardContent.length() == 0)
-			{
-				
-				//no OARD data extract data
-				try
-				{
-					loadMessages = DissertationService.loadData(missing, mpContent.getBytes());
-				}
-				catch(Exception e)
-				{
-					Log.warn("chef", this + ".doContinue_load Exception caught loading MPBytes: " + e);
-				}
-			}
+			if(MP && OARD)
+				msg = DissertationService.executeUploadExtractsJob(currentSite, oardContent.getBytes(), mpContent.getBytes());
+			else if (MP)
+				msg = DissertationService.executeUploadExtractsJob(currentSite, missing, mpContent.getBytes());
+			else if (OARD)
+				msg = DissertationService.executeUploadExtractsJob(currentSite, oardContent.getBytes(), missing);
 			else
 			{
-				//both MPathways and OARD extract data
-				try
-				{
-					loadMessages = DissertationService.loadData(oardContent.getBytes(), mpContent.getBytes());
-				}
-				catch(Exception e)
-				{
-					Log.warn("chef", this + ".doContinue_load Exception caught loading OARDContentString.getBytes(), MPContentString.getBytes(): " + e);
-				}
-			}
-
-			//successful load
-			if(loadMessages == null || loadMessages.size() == 0)
-			{
-				addAlert(state, "The extract files have been loaded.");
+				//neither file had content
+				addAlert(state, "Both files are missing or missing content.");
 				state.setAttribute(STATE_MODE, MODE_UPLOAD);
 			}
-			else
-			{
-				//not successful
-				boolean validationErrors = false;
-				boolean loadingErrors = false;
-				for (Iterator i = loadMessages.iterator(); i.hasNext(); )
-				{
-					//get the phase in which the error occurred
-					String msg = (String) i.next();
-					if(msg.equals("During validation of data:")) validationErrors = true;
-					if(msg.equals("During loading of data:")) loadingErrors = true;
-				}
-				if(validationErrors)
-				{
-					addAlert(state, "Because of errors, no data were loaded.");
-				}
-				else if (loadingErrors) 
-				{
-					addAlert(state, "There were errors during loading of data. Please correct the data and load again.");
-				}
-				else
-				{
-					addAlert(state, "There were problems during validation and loading of data.");
-				}
-				state.setAttribute(STATE_LOAD_ERRORS, loadMessages);
-				state.setAttribute(STATE_MODE, MODE_LOAD_ERRORS);
-			}
+		}
+		catch(Exception e)
+		{
+			//advertise exception kicking off job
+			addAlert(state, "Problem starting upload job " + e.toString());
+			state.setAttribute(STATE_MODE, MODE_UPLOAD);
+		}
+		finally
+		{
+			//instruct user where to look for job execution report
+			if(msg != null)
+				addAlert(state, msg);
+			state.setAttribute(STATE_MODE, MODE_UPLOAD);
 			
 			//remove content from state
 			state.removeAttribute(STATE_OARD_CONTENT_STRING);
 			state.removeAttribute(STATE_MP_CONTENT_STRING);
 		}
-		
+	
 	} // doContinue_load
 
 	/**
@@ -2435,21 +2372,13 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 				String f2 = ((BlockGrantGroup) o2).getDescription();
 				
 				if (f1==null && f2==null)
-				{
 					result = 0;
-				}
 				else if (f2==null)
-				{
 					result = 1;
-				}
 				else if (f1==null)
-				{
 					result = -1;
-				}
 				else
-				{
 					result =  f1.compareToIgnoreCase (f2);
-				}
 			}
 			else if (m_criterion.equals (SORTED_BY_GROUP_CODE))
 			{
@@ -2457,29 +2386,19 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 				String f1 = ((BlockGrantGroup) o1).getCode();
 				String f2 = ((BlockGrantGroup) o2).getCode();
 				if (f1==null && f2==null)
-				{
 					result = 0;
-				}
 				else if (f2==null)
-				{
 					result = 1;
-				}
 				else if (f1==null)
-				{
 					result = -1;
-				}
 				else
-				{
 					result = f1.compareToIgnoreCase (f2);
-				}
 			}
 			if(m_asc == null) m_asc = Boolean.TRUE.toString ();
 			
 			// sort ascending or descending
 			if (m_asc.equals (Boolean.FALSE.toString ()))
-			{
 				result = -result;
-			}
 			return result;
 			
 		}	// compare
@@ -2529,21 +2448,13 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 				String f1 = ((Field) o1).getFieldCode();
 				String f2 = ((Field) o2).getFieldCode();
 				if (f1==null && f2==null)
-				{
 					result = 0;
-				}
 				else if (f2==null)
-				{
 					result = 1;
-				}
 				else if (f1==null)
-				{
 					result = -1;
-				}
 				else
-				{
 					result =  f1.compareToIgnoreCase (f2);
-				}
 			}
 			else if (m_criterion.equals (SORTED_BY_GROUP_CODE))
 			{
@@ -2551,21 +2462,13 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 				String f1 = ((Field) o1).getGroupCode();
 				String f2 = ((Field) o2).getGroupCode();
 				if (f1==null && f2==null)
-				{
 					result = 0;
-				}
 				else if (f2==null)
-				{
 					result = 1;
-				}
 				else if (f1==null)
-				{
 					result = -1;
-				}
 				else
-				{
 					result = f1.compareToIgnoreCase (f2);
-				}
 			}
 			else if (m_criterion.equals (SORTED_BY_FIELD_NAME))
 			{
@@ -2573,21 +2476,13 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 				String f1 = ((Field) o1).getFieldName();
 				String f2 = ((Field) o2).getFieldName();
 				if (f1==null && f2==null)
-				{
 					result = 0;
-				}
 				else if (f2==null)
-				{
 					result = 1;
-				}
 				else if (f1==null)
-				{
 					result = -1;
-				}
 				else
-				{
 					result = f1.compareToIgnoreCase (f2);
-				}
 			}
 			else if (m_criterion.equals (SORTED_BY_GROUP_NAME))
 			{
@@ -2595,30 +2490,20 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 				String f1 = ((Field) o1).getGroupName();
 				String f2 = ((Field) o2).getGroupName();
 				if (f1==null && f2==null)
-				{
 					result = 0;
-				}
 				else if (f2==null)
-				{
 					result = 1;
-				}
 				else if (f1==null)
-				{
 					result = -1;
-				}
 				else
-				{
 					result = f1.compareToIgnoreCase (f2);
-				}
 			}
 			
 			if(m_asc == null) m_asc = Boolean.TRUE.toString ();
 			
 			// sort ascending or descending
 			if (m_asc.equals (Boolean.FALSE.toString ()))
-			{
 				result = -result;
-			}
 			return result;
 			
 		}	// compare

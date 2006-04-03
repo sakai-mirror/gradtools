@@ -181,68 +181,79 @@ public interface CandidateInfoEdit
 	/**
 	* Set the Rackham Milestone.
 	* @param String - final format recorder
-	*/
+	*
 	public void setFinalFormatRecorder(String recorder);
+	*/
 	
 	/**
 	* Set the time of completion of the Rackham Milestone.
 	* @param Time - binder receipt
-	*/
+	*
 	public void setTimeBinderReceipt(Time receipt);
+	*/
 	
 	/**
 	* Set the time of completion of the Rackham Milestone.
 	* @param Time - fee requirement met
-	*/
+	*
 	public void setFeeRequirementMet(boolean met);
+	*/
 	
 	/**
 	* Set the time of completion of the Rackham Milestone.
 	* @param Time - receipt seen
-	*/
+	*
 	public void setTimeReceiptSeen(Time seen);
+	*/
 	
 	/**
 	* Set the time of completion of the Rackham Milestone.
 	* @param Time - publication fee
-	*/
+	*
 	public void setTimePubFee(Time fee);
+	*/
 	
 	/**
 	* Set the time of completion of the Rackham Milestone.
 	* @param Time - unbound
-	*/
+	*
 	public void setTimeUnbound(Time unbound);
+	*/
 	
 	/**
 	* Set the time of completion of the Rackham Milestone.
 	* @param Time - abstract
-	*/
+	*
 	public void setTimeAbstract(Time abs);
+	*/
 	
 	/**
 	* Set the time of completion of the Rackham Milestone.
 	* @param Time - bound
-	*/
+	*
 	public void setTimeBound(Time bound);
+	*/
 	
 	/**
 	* Set the time of completion of the Rackham Milestone.
 	* @param Time - diploma application
-	*/
+	*
 	public void setTimeDiplomaApp(Time app);
+	*/
 	
 	/**
 	* Set the time of completion of the Rackham Milestone.
 	* @param Time - contract
-	*/
+	*
 	public void setTimeContract(Time contract);
+	*/
 
 	/**
 	* Set the time of completion of the Rackham Milestone.
 	* @param Time - survey
-	*/
+	*
 	public void setTimeSurvey(Time survey);
+	*/
 
 	/**
 	* Set the time of completion of the Rackham Milestone.

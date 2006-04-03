@@ -24,6 +24,7 @@
 
 package org.sakaiproject.api.app.dissertation.cover;
 
+import org.quartz.JobExecutionException;
 import org.sakaiproject.service.framework.component.cover.ComponentManager;
 
 /**
@@ -92,10 +93,13 @@ public class DissertationService
 	public static java.lang.String DISSERTATION_TYPE_DISSERTATION_STEPS = org.sakaiproject.api.app.dissertation.DissertationService.DISSERTATION_TYPE_DISSERTATION_STEPS;
 	public static java.lang.String IS_LOADING_LOCK_REFERENCE = org.sakaiproject.api.app.dissertation.DissertationService.IS_LOADING_LOCK_REFERENCE;
 	public static java.lang.String IS_LOADING_LOCK_ID = org.sakaiproject.api.app.dissertation.DissertationService.IS_LOADING_LOCK_ID;
+	public static java.lang.String IS_CHANGING_STEP_LOCK_REFERENCE = org.sakaiproject.api.app.dissertation.DissertationService.IS_CHANGING_STEP_LOCK_REFERENCE;;
+	public static java.lang.String IS_CHANGING_STEP_LOCK_ID = org.sakaiproject.api.app.dissertation.DissertationService.IS_CHANGING_STEP_LOCK_ID;;
 	public static java.lang.String STATIC_CHECKLIST_TEMPLATE = org.sakaiproject.api.app.dissertation.DissertationService.STATIC_CHECKLIST_TEMPLATE;
 	public static java.lang.String STATIC_CHECKLIST_NAME = org.sakaiproject.api.app.dissertation.DissertationService.STATIC_CHECKLIST_NAME;
 	public static java.lang.String STATIC_CHECKLIST_DISPLAY_NAME = org.sakaiproject.api.app.dissertation.DissertationService.STATIC_CHECKLIST_DISPLAY_NAME;
 	public static java.lang.String STATIC_CHECKLIST_DESCRIPTION = org.sakaiproject.api.app.dissertation.DissertationService.STATIC_CHECKLIST_DESCRIPTION;
+	public static java.lang.String STEP_JOB_DATE_FORMAT = org.sakaiproject.api.app.dissertation.DissertationService.STEP_JOB_DATE_FORMAT;
 	
 	public static boolean allowAddBlockGrantGroup(java.lang.String param0)
 	{
@@ -744,6 +748,7 @@ public class DissertationService
 		return service.addCandidateInfo(param0);
 	}
 
+	/*
 	public static org.sakaiproject.api.app.dissertation.CandidateInfoEdit addCandidateInfoFromListener(java.lang.String param0)
 	{
 		org.sakaiproject.api.app.dissertation.DissertationService service = getInstance();
@@ -752,7 +757,8 @@ public class DissertationService
 
 		return service.addCandidateInfoFromListener(param0);
 	}
-
+	*/
+	
 	public static org.sakaiproject.api.app.dissertation.CandidateInfoEdit mergeCandidateInfo(org.w3c.dom.Element param0) throws org.sakaiproject.exception.IdInvalidException, org.sakaiproject.exception.IdUsedException, org.sakaiproject.exception.PermissionException
 	{
 		org.sakaiproject.api.app.dissertation.DissertationService service = getInstance();
@@ -951,6 +957,7 @@ public class DissertationService
 		return service.isCandidate(param0);
 	}
 
+	/*
 	public static java.util.List dumpData(java.util.Vector param0)
 	{
 		org.sakaiproject.api.app.dissertation.DissertationService service = getInstance();
@@ -959,7 +966,8 @@ public class DissertationService
 
 		return service.dumpData(param0);
 	}
-
+	*/
+	
 	public static boolean isInitialized()
 	{
 		org.sakaiproject.api.app.dissertation.DissertationService service = getInstance();
@@ -986,14 +994,15 @@ public class DissertationService
 
 		return service.getDataFileProperties(param0);
 	}
-
-	public static java.util.List loadData(byte[] param0, byte[] param1)
+	
+	public static java.lang.String executeUploadExtractsJob(java.lang.String param0, byte[] param1, byte[] param2)
+		throws JobExecutionException
 	{
 		org.sakaiproject.api.app.dissertation.DissertationService service = getInstance();
 		if (service == null)
 			return null;
 
-		return service.loadData(param0, param1);
+		return service.executeUploadExtractsJob(param0, param1, param2);
 	}
 
 	public static boolean isLoading()
@@ -1005,6 +1014,15 @@ public class DissertationService
 		return service.isLoading();
 	}
 	
+	public static boolean isChangingStep()
+	{
+		org.sakaiproject.api.app.dissertation.DissertationService service = getInstance();
+		if (service == null)
+			return false;
+
+		return service.isChangingStep();
+	}
+	
 	public static boolean isCandidatePathOfType(java.lang.String param0)
 	{
 		org.sakaiproject.api.app.dissertation.DissertationService service = getInstance();
@@ -1013,6 +1031,39 @@ public class DissertationService
 
 		return service.isCandidatePathOfType(param0);
 	}
+	
+	public static java.util.Vector getSectionHeads()
+	{
+		org.sakaiproject.api.app.dissertation.DissertationService service = getInstance();
+		if (service == null)
+			return null;
+		
+		return service.getSectionHeads();
+	}
+	
+	public static java.lang.String getSectionId(java.lang.String param0)
+	{
+		org.sakaiproject.api.app.dissertation.DissertationService service = getInstance();
+		if (service == null)
+			return null;
+		
+		return service.getSectionId(param0);
+	}
+	
+	public static java.lang.String executeStepChangeJob(
+			java.lang.String param0,
+			java.lang.Object[] param1)
+		throws JobExecutionException
+	{
+		org.sakaiproject.api.app.dissertation.DissertationService service = getInstance();
+		if (service == null)
+			return null;
+		
+		return service.executeStepChangeJob(
+				param0,
+				param1);
+	}
+	
 }
 
 /**********************************************************************************

@@ -33,7 +33,13 @@
 			<artifactId>sakai-legacy-service</artifactId>
 			<version>${sakai.version}</version>
 		</dependency>
-
+		
+		<dependency>
+			<groupId>quartz</groupId>
+			<artifactId>quartz</artifactId>
+			<version>1.4.0</version>		
+		</dependency>
+		
 	</dependencies>
 
 	<build>

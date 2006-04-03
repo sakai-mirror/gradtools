@@ -50,7 +50,7 @@ import org.sakaiproject.util.storage.BaseDbSingleStorage;
 * <p>DbCachedDissertationService is the database-storing service class for Dissertations.</p>
 *
 * @author University of Michigan, CHEF Software Development Team
-* @version $Revision$
+* @version $Revision: 44 $
 * @see org.chefproject.core.Dissertation
 * @see org.chefproject.core.DissertationStep
 * @see org.chefproject.core.CandidatePath

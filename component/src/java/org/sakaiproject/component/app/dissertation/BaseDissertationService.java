@@ -25,7 +25,6 @@
 // package
 package org.sakaiproject.component.app.dissertation;
 
-// import
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,15 +34,18 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
-import java.util.TreeMap;
 import java.util.Vector;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import org.quartz.Job;
+import org.quartz.JobDataMap;
+import org.quartz.JobDetail;
+import org.quartz.JobExecutionException;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.SimpleTrigger;
+import org.quartz.impl.StdSchedulerFactory;
 import org.sakaiproject.api.app.dissertation.BlockGrantGroup;
 import org.sakaiproject.api.app.dissertation.BlockGrantGroupEdit;
 import org.sakaiproject.api.app.dissertation.CandidateInfo;
@@ -70,7 +72,6 @@ import org.sakaiproject.service.framework.memory.Cache;
 import org.sakaiproject.service.framework.memory.CacheRefresher;
 import org.sakaiproject.service.framework.memory.MemoryService;
 import org.sakaiproject.service.framework.session.SessionStateBindingListener;
-import org.sakaiproject.service.framework.session.UsageSession;
 import org.sakaiproject.service.legacy.entity.Edit;
 import org.sakaiproject.service.legacy.entity.Entity;
 import org.sakaiproject.service.legacy.entity.EntityManager;
@@ -85,7 +86,6 @@ import org.sakaiproject.service.legacy.id.cover.IdService;
 import org.sakaiproject.service.legacy.security.cover.SecurityService;
 import org.sakaiproject.service.legacy.site.Site;
 import org.sakaiproject.service.legacy.time.Time;
-import org.sakaiproject.service.legacy.time.TimeBreakdown;
 import org.sakaiproject.service.legacy.time.cover.TimeService;
 import org.sakaiproject.service.legacy.user.User;
 import org.sakaiproject.service.legacy.user.cover.UserDirectoryService;
@@ -110,38 +110,6 @@ import org.w3c.dom.NodeList;
 public abstract class BaseDissertationService
 	implements DissertationService
 {	
-	private UsageSession session = null;
-	
-	Matcher matcher = null;
-	
-	/** regular expressions in data validation **/
-	
-		//general patterns
-	private static Pattern  m_patternDate = Pattern.compile("(^([0-9]|[0-9][0-9])/([0-9]|[0-9][0-9])/[0-9]{4}$|)");
-	private static Pattern  m_patternName = Pattern.compile("(^\"[[A-Za-z][-][.][ ][,][']]*\"$|^\"\"$)");
-	 
-		//required (not null) data common to both database extracts
-	private static Pattern m_patternUMId = Pattern.compile("^\"[0-9]{8}\"$");
-	private static Pattern m_patternCampusId = Pattern.compile("(^\"[A-Za-z0-9]{1,8}\"\r?$)|(^\".+@.+\"\r?$)");
-	 
-		//MPathways fields
-	private static Pattern m_patternAcadProg = Pattern.compile("(^\"[0-9]{5}\"$|^\"\"$)");
-	private static Pattern m_patternAnticipate = Pattern.compile("(^\"[A-Z]{2}[- ][0-9]{4}\"$|^\"[A-Za-z]*( |,)[0-9]{4}\"$|^\"\"$)");
-	private static Pattern m_patternDateCompl = Pattern.compile("(^([0-9]|[0-9][0-9])/([0-9]|[0-9][0-9])/[0-9]{4}$|)");
-	private static Pattern m_patternMilestone = Pattern.compile("(^\"[A-Za-z]*\"$|^\"\"$)");
-	private static Pattern m_patternAcademicPlan = Pattern.compile("(^\"[0-9]{4}[A-Z0-9]*\"|^\"[0-9]{4}[A-Z0-9]*\"\r?$|^\"\"$|^\"\"\r?$)");
-		
-		//Rackham OARD database fields
-	private static Pattern 	m_patternFOS = Pattern.compile("(^\"[0-9]{4}\"$|^\"\"$)");
-	private static Pattern 	m_patternDegreeTermTrans = Pattern.compile("(^\"[A-Za-z]{2}( |-)[0-9]{4}\"$|^\"\"$)");
-	private static Pattern 	m_patternOralExamTime = Pattern.compile("(^\".*\"$|^\"\"$)"); //not restrictive
-	private static Pattern	m_patternOralExamPlace = Pattern.compile("(^\".*\"$|^\"\"$)"); //not restrictive
-	private static Pattern 	m_patternFeeRequirementMet = Pattern.compile("(^\"[A-Za-z]\"$|^\"\"$)");
-	private static Pattern 	m_patternFinalFormatDate = Pattern.compile("(^\"([A-Za-z]{3}|[A-Za-z]{2})\"$|^\"\"$)");
-	private static Pattern 	m_patternRole = Pattern.compile("(^\"([A-Za-z]|[A-Za-z]{2})\"$|^\"\"$)");
-	private static Pattern  m_patternMember = Pattern.compile("(^\".*\"$|^\"\"$)"); //not restrictive
-	private static Pattern 	m_patternEvalDate = Pattern.compile("(^([0-9]|[0-9][0-9])/([0-9]|[0-9][0-9])/[0-9]{4}$|^([0-9]|[0-9][0-9])/([0-9]|[0-9][0-9])/[0-9]{4}\r$|\r$|)");
-
 	/** A Storage object for persistent storage of Dissertations. */
 	protected DissertationStorage m_dissertationStorage = null;
 
@@ -184,8 +152,11 @@ public abstract class BaseDissertationService
 	/** Is the system ready for student use ? */
 	protected boolean m_initialized = false;
 	
-	/** Is is a Rackham OARD/MP data load in progress? */
+	/** Is a Rackham OARD/MP data load in progress? */
 	protected boolean m_loading = false;
+	
+	/** Is an admin step change in progress? */
+	protected boolean m_changing_step = false;
 	
 	/** The group id for the parent graduate school. */
 	protected String m_schoolSite = null;
@@ -249,7 +220,7 @@ public abstract class BaseDissertationService
 	{
 		return (relative ? "" : m_serverConfigurationService.getAccessUrl()) + m_relativeAccessPoint;
 
-	}	// getAccessPoint
+	}
 
 	/**
 	* Access the internal reference which can be used to access the resource from within the system.
@@ -265,7 +236,7 @@ public abstract class BaseDissertationService
 			retVal = getAccessPoint(true) + Entity.SEPARATOR + "d" + Entity.SEPARATOR + getSchoolSite() + Entity.SEPARATOR + site + Entity.SEPARATOR + id;
 		return retVal;
 
-	}   // dissertationReference
+	}
 	
 	/**
 	* Access the internal reference which can be used to access the resource from within the system.
@@ -281,7 +252,7 @@ public abstract class BaseDissertationService
 			retVal = getAccessPoint(true) + Entity.SEPARATOR + "s" + Entity.SEPARATOR + getSchoolSite() + Entity.SEPARATOR + site + Entity.SEPARATOR + id;
 		return retVal;
 
-	}   // stepReference
+	}
 
 	/**
 	* Access the internal reference which can be used to access the resource from within the system.
@@ -297,7 +268,7 @@ public abstract class BaseDissertationService
 			retVal = getAccessPoint(true) + Entity.SEPARATOR + "ss" + Entity.SEPARATOR + getSchoolSite() + Entity.SEPARATOR + site + Entity.SEPARATOR + id;
 		return retVal;
 
-	}   // statusReference
+	}
 
 	/**
 	* Access the internal reference which can be used to access the resource from within the system.
@@ -313,7 +284,7 @@ public abstract class BaseDissertationService
 			retVal = getAccessPoint(true) + Entity.SEPARATOR + "p" + Entity.SEPARATOR + getSchoolSite() + Entity.SEPARATOR + site + Entity.SEPARATOR + id;
 		return retVal;
 
-	}   // pathReference
+	}
 
 	/**
 	* Access the internal reference which can be used to access the resource from within the system.
@@ -329,7 +300,7 @@ public abstract class BaseDissertationService
 			retVal = getAccessPoint(true) + Entity.SEPARATOR + "i" + Entity.SEPARATOR + getSchoolSite() + Entity.SEPARATOR + site + Entity.SEPARATOR + id;
 		return retVal;
 
-	}   // infoReference
+	}
 	
 	/**
 	* Access the internal reference which can be used to access the resource from within the system.
@@ -346,7 +317,7 @@ public abstract class BaseDissertationService
 		
 		return retVal;
 
-	}   // blockGrantGroupReference
+	}
 	
 	/**
 	* Access the dissertation id extracted from an dissertation reference.
@@ -360,7 +331,7 @@ public abstract class BaseDissertationService
 		String id = ref.substring(i + 1);
 		return id;
 
-	}   // dissertationId
+	}
 	
 	/**
 	* Access the BlockGrantGroup id extracted from a BlockGrantGroup reference.
@@ -374,7 +345,7 @@ public abstract class BaseDissertationService
 		String id = ref.substring(i + 1);
 		return id;
 
-	}   // blockGrantGroupId
+	}
 
 	/**
 	* Access the step id extracted from an step reference.
@@ -388,7 +359,7 @@ public abstract class BaseDissertationService
 		String id = ref.substring(i + 1);
 		return id;
 
-	}   // stepId
+	}
 
 	/**
 	* Access the path id extracted from an path reference.
@@ -402,7 +373,7 @@ public abstract class BaseDissertationService
 		String id = ref.substring(i + 1);
 		return id;
 
-	}   // pathId
+	}
 
 	/**
 	* Access the status id extracted from an status reference.
@@ -416,7 +387,7 @@ public abstract class BaseDissertationService
 		String id = ref.substring(i + 1);
 		return id;
 
-	}   // statusId
+	}
 
 	/**
 	* Access the info id extracted from an info reference.
@@ -430,7 +401,7 @@ public abstract class BaseDissertationService
 		String id = ref.substring(i + 1);
 		return id;
 
-	}   // infoId	
+	}
 
 
 	/**
@@ -448,7 +419,7 @@ public abstract class BaseDissertationService
 
 		return true;
 
-	}// unlockCheck
+	}
 
 	/**
 	* Check security permission.
@@ -464,7 +435,7 @@ public abstract class BaseDissertationService
 			throw new PermissionException(lock, resource);
 		}
 
-	}	// unlock
+	}
 
 
 
@@ -539,7 +510,35 @@ public abstract class BaseDissertationService
 	{
 		m_serverConfigurationService = service;
 	}
-
+	
+	/** Dependency: Quartz Job. */
+	protected Job m_uploadExtractsJob = null;
+	
+	/**
+	 * Dependency: Quartz Job.
+	 * 
+	 * @param job
+	 *        The Job.
+	 */
+	public void setUploadExtractsJob(Job job)
+	{
+		m_uploadExtractsJob = job;
+	}
+	
+	/** Dependency: Quartz Job. */
+	protected Job m_stepChangeJob = null;
+	
+	/**
+	 * Dependency: Quartz Job.
+	 * 
+	 * @param job
+	 *        The Job.
+	 */
+	public void setStepChangeJob(Job job)
+	{
+		m_stepChangeJob = job;
+	}
+	
 	/** Dependency: EntityManager. */
 	protected EntityManager m_entityManager = null;
 
@@ -561,6 +560,7 @@ public abstract class BaseDissertationService
 	{
 		try
 		{
+			
 			//TODO is this set?
 			m_relativeAccessPoint = REFERENCE_ROOT;
 			
@@ -603,6 +603,9 @@ public abstract class BaseDissertationService
 			
 			// test identities
 			
+			//TODO check that application has data in key tables
+			m_initialized = true;
+			
 			//check that group code storage has been initialized
 			List storedCodes = m_groupStorage.getAll();
 			boolean initialized = storedCodes.isEmpty() ? false : true;
@@ -625,9 +628,9 @@ public abstract class BaseDissertationService
 			{
 				//initialize the group code storage
 				//TODO permission exception during init
-				m_schoolGroups = initCodes();
+				//m_schoolGroups = initCodes();
 			}
-
+			
 			// register as an entity producer
 			m_entityManager.registerEntityProducer(this, REFERENCE_ROOT);
 
@@ -668,1350 +671,6 @@ public abstract class BaseDissertationService
 	/**
 	* Returns to uninitialized state.
 	*/
-	protected Hashtable initCodes()
-	{
-		//%%% groups with only program codes are skipped in creating groups
-		Hashtable m_schoolGroups = new Hashtable();
-		Hashtable m_FOSD = new Hashtable();
-		Hashtable m_BGGD = new Hashtable();
-		BlockGrantGroupEdit edit = null;
-		String fosString = null;
-		String programString = null;
-		String bggString = null;
-		try
-		{	
-			fosString = "0030";
-			programString = "00043";
-			bggString = "001";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"AEROSPACE ENGINEERING");
-			m_FOSD.put(fosString, "Aerospace Engineering");
-
-			fosString = "0100";
-			programString = "00045";
-			bggString = "001";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"AEROSPACE ENGINEERING");
-			m_FOSD.put(fosString, "Aerospace Science");
-		
-			fosString = "0130";
-			programString = "00047";
-			bggString = "002";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"AMERICAN CULTURE");
-			m_FOSD.put(fosString, "American Culture");
-		
-			fosString = "0190";
-			programString = "00049";
-			bggString = "022";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"CELL & DEVELOPMENTAL BIOLOGY");
-			m_FOSD.put(fosString, "Anatomy & Cell Biology");
-		
-			fosString = "0300";
-			programString = "00051";
-			bggString = "003";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ANTHROPOLOGY");
-			m_FOSD.put(fosString, "Anthropology");
-		
-			fosString = "0310";
-			programString = "00054";
-			bggString = "004";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ANTHROPOLOGY & HISTORY");
-			m_FOSD.put(fosString, "Anthropology and History");
-		
-			fosString = "0400";
-			programString = "01733";
-			bggString = "009";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ASIAN LANGUAGES & CULTURES");
-			m_FOSD.put(fosString, "Asian Languages & Cultures");
-		
-			fosString = "0420";
-			programString = "01568";
-			bggString = "154";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"APPL & INTERDISCIPL MATHEMATICS");
-			m_FOSD.put(fosString, "Applied and Interdisciplinary Mathematics");
-		
-			fosString = "0460";
-			programString = "01573";
-			bggString = "014";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ASTRONOMY");
-			m_FOSD.put(fosString, "Astronomy and Astrophysics");
-		
-			fosString = "0480";
-			programString = "00060";
-			bggString = "006";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"APPLIED PHYSICS");
-			m_FOSD.put(fosString, "Applied Physics");
-		
-			fosString = "0570";
-			programString = "00066";
-			bggString = "081";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"MECHANICAL ENG. & APPLIED MECH.");
-			m_FOSD.put(fosString, "Applied Mechanics");
-		
-			fosString = "0590";
-			programString = "00069";
-			bggString = "007";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ARCHITECTURE");
-			m_FOSD.put(fosString, "Architecture");
-		
-			fosString = "0670";
-			programString = "00075";
-			bggString = "009";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ASIAN LANGUAGES & CULTURES");
-			m_FOSD.put(fosString, "Asian Languages and Cultures:  Buddhist Studies");
-		
-			fosString = "0680";
-			programString = "00077";
-			bggString = "009";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ASIAN LANGUAGES & CULTURES");
-			m_FOSD.put(fosString, "Asian Languages and Cultures:  Chinese");
-		
-			fosString = "0690";
-			programString = "00079";
-			bggString = "009";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ASIAN LANGUAGES & CULTURES");
-			m_FOSD.put(fosString, "Asian Languages and Cultures:  Japanese");
-		
-			fosString = "0700";
-			programString = "00081";
-			bggString = "014";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ASTRONOMY");
-			m_FOSD.put(fosString, "Astronomy");
-		
-			fosString = "0710";
-			programString = "00084";
-			bggString = "015";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ATMOS., OCEAN., & SPACE SCI.");
-			m_FOSD.put(fosString, "Atmospheric and Space Sciences");
-		
-			fosString = "0790";
-			programString = "00086";
-			bggString = "018";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"BIOMEDICAL ENGINEERING");
-			m_FOSD.put(fosString, "Bioengineering");
-		
-			fosString = "0820";
-			programString = "00088";
-			bggString = "016";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"BIOLOGICAL CHEMISTRY");
-			m_FOSD.put(fosString, "Biological Chemistry");
-		
-			fosString = "0840";
-			programString = "00090";
-			bggString = "017";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"BIOLOGY");
-			m_FOSD.put(fosString, "Biological Sciences");
-		
-			fosString = "0870";
-			programString = "00092";
-			bggString = "017";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"BIOLOGY");
-			m_FOSD.put(fosString, "Biology");
-		
-			fosString = "0880";
-			programString = "00094";
-			bggString = "018";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"BIOMEDICAL ENGINEERING");
-			m_FOSD.put(fosString, "Biomedical Engineering");
-		
-			fosString = "0920";
-			programString = "00097";
-			bggString = "041";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"DENTISTRY");
-			m_FOSD.put(fosString, "Biomaterials");
-		
-			fosString = "0930";
-			programString = "00100";
-			bggString = "019";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"BIOPHYSICS");
-			m_FOSD.put(fosString, "Biophysics");
-		
-			fosString = "0960";
-			programString = "00104";
-			bggString = "020";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"BIOSTATISTICS");
-			m_FOSD.put(fosString, "Biostatistics");
-		
-			fosString = "0990";
-			programString = "00107";
-			bggString = "017";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"BIOLOGY");
-			m_FOSD.put(fosString, "Botany");
-					
-			fosString = "1160";
-			programString = "00109";
-			bggString = "021";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"BUSINESS ADMINISTRATION");
-			m_FOSD.put(fosString, "Business Administration");
-		
-			fosString = "1220";
-			programString = "00111";
-			bggString = "023";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"CELLULAR & MOLECULAR BIOLOGY");
-			m_FOSD.put(fosString, "Cellular & Molecular Biology");
-
-			//Medical Science Training Program (MSTP) %%% no FOS
-			programString = "00732";
-			bggString = "023";
-			m_schoolGroups.put(programString, bggString);
-			
-			fosString = "1250";
-			programString = "00114";
-			bggString = "024";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"CHEMICAL ENGINEERING");
-			m_FOSD.put(fosString, "Chemical Engineering");
-		
-			fosString = "1260";
-			programString = "00117";
-			bggString = "022";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"CELL & DEVELOPMENTAL BIOLOGY");
-			m_FOSD.put(fosString, "Cell, Developmental and Neural Biology");
-		
-			fosString = "1290";
-			programString = "01611";
-			bggString = "022";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"CELL & DEVELOPMENTAL BIOLOGY");
-			m_FOSD.put(fosString, "Cell and Developmental Biology");
-		
-			fosString = "1380";
-			programString = "00118";
-			bggString = "025";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"CHEMISTRY");
-			m_FOSD.put(fosString, "Chemistry");
-		
-			fosString = "1550";
-			programString = "00121";
-			bggString = "026";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"CIVIL & ENVIRON. ENGINEERING");
-			m_FOSD.put(fosString, "Civil Engineering");
-		
-			fosString = "1580";
-			programString = "00124";
-			bggString = "028";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"CLASSICAL STUDIES");
-			m_FOSD.put(fosString, "Classical Studies");
-		
-			fosString = "1600";
-			programString = "00126";
-			bggString = "027";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"CLASSICAL ART & ARCHAEOLOGY");
-			m_FOSD.put(fosString, "Classical Art & Archaeology");
-		
-			fosString = "1720";
-			programString = "00136";
-			bggString = "031";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"COMMUNICATION STUDIES (Ph.D.)");
-			m_FOSD.put(fosString, "Communication");
-		
-			fosString = "1840";
-			programString = "00140";
-			bggString = "033";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"COMPARATIVE LITERATURE");
-			m_FOSD.put(fosString, "Comparative Literature");
-		
-			fosString = "1890";
-			programString = "00147";
-			bggString = "036";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"COMPUTER SCIENCE & ENGINEERING");
-			m_FOSD.put(fosString, "Computer Science & Engineering");
-		
-			fosString = "1900";
-			programString = "00150";
-			bggString = "036";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"COMPUTER SCIENCE & ENGINEERING");
-			m_FOSD.put(fosString, "Computer & Communication Sciences");
-		
-			fosString = "2570";
-			programString = "01723";
-			bggString = "171";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ECOLOGY & EVOLUTIONARY BIOLOGY");
-			m_FOSD.put(fosString, "Ecology and Evolutionary Biology");
-		
-			fosString = "2580";
-			programString = "00165";
-			bggString = "043";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ECONOMICS");
-			m_FOSD.put(fosString, "Economics");
-		
-			fosString = "2630";
-			programString = "00167";
-			bggString = "044";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"EDUCATION");
-			m_FOSD.put(fosString, "Education");
-		
-			programString = "00168";
-			bggString = "044";
-			m_schoolGroups.put(programString, bggString);
-			
-			programString = "01624";
-			bggString = "044";
-			m_schoolGroups.put(programString, bggString);
-			
-			programString = "01631";
-			bggString = "044";
-			m_schoolGroups.put(programString, bggString);
-					
-			fosString = "2750";
-			programString = "00173";
-			bggString = "045";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"EDUCATION & PSYCHOLOGY");
-			m_FOSD.put(fosString, "Education & Psychology");
-		
-			fosString = "2780";
-			programString = "00175";
-			bggString = "046";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ELEC. ENG. & AOS SCIENCES");
-			m_FOSD.put(fosString, "Electrical Engineering & Atmospheric, Oceanic & Space Sci");
-		
-			fosString = "2800";
-			programString = "00177";
-			bggString = "047";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ELECTRICAL ENG. & COMP. SCI.");
-			m_FOSD.put(fosString, "Electrical Engineering");
-		
-			fosString = "2810";
-			programString = "00181";
-			bggString = "048";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ELECTRICAL ENG.: SYSTEMS");
-			m_FOSD.put(fosString, "Electrical Engineering:  Systems");
-		
-			fosString = "3090";
-			programString = "00189";
-			bggString = "049";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ENGLISH & EDUCATION");
-			m_FOSD.put(fosString, "English & Education");
-		
-			fosString = "3140";
-			programString = "00190";
-			bggString = "051";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ENGLISH LANGUAGE & LITERATURE");
-			m_FOSD.put(fosString, "English Language & Literature");
-		
-			fosString = "3150";
-			programString = "00193";
-			bggString = "050";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ENGLISH & WOMEN'S STUDIES");
-			m_FOSD.put(fosString, "English and Women's Studies");
-		
-			fosString = "3170";
-			programString = "00194";
-			bggString = "026";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"CIVIL & ENVIRON. ENGINEERING");
-			m_FOSD.put(fosString, "Environmental Engineering");
-		
-			fosString = "3200";
-			programString = "00196";
-			bggString = "052";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ENVIRON. & INDUS. HEALTH");
-			m_FOSD.put(fosString, "Environmental Health Sciences");
-		
-			fosString = "3260";
-			programString = "00198";
-			bggString = "053";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"EPIDEMIOLOGY");
-			m_FOSD.put(fosString, "Epidemiologic Science");
-		
-			fosString = "3310";
-			programString = "00200";
-			bggString = "009";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ASIAN LANGUAGES & CULTURES");
-			m_FOSD.put(fosString, "Far Eastern Languages & Literatures:  Buddhist Studies");
-					
-			fosString = "3330";
-			programString = "00202";
-			bggString = "009";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ASIAN LANGUAGES & CULTURES");
-			m_FOSD.put(fosString, "Far Eastern Languages & Literatures:  Chinese");
-		
-			fosString = "3350";
-			programString = "00204";
-			bggString = "009";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ASIAN LANGUAGES & CULTURES");
-			m_FOSD.put(fosString, "Far Eastern Languages & Literatures:  Japanese");
-		
-			fosString = "3830";
-			programString = "00216";
-			bggString = "060";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"GEOLOGICAL SCIENCES");
-			m_FOSD.put(fosString, "Geology");
-		
-			fosString = "3940";
-			programString = "00220";
-			bggString = "061";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"GERMANIC LANG. & LITERATURES");
-			m_FOSD.put(fosString, "Germanic Languages & Literatures");
-		
-			fosString = "4030";
-			programString = "00222";
-			bggString = "063";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"HEALTH BEHAVIOR & HEALTH EDUC.");
-			m_FOSD.put(fosString, "Health Behavior & Health Education");
-		
-			fosString = "4050";
-			programString = "00224";
-			bggString = "066";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"HISTORY");
-			m_FOSD.put(fosString, "History");
-		
-			fosString = "4110";
-			programString = "00228";
-			bggString = "067";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"HISTORY OF ART");
-			m_FOSD.put(fosString, "History of Art");
-							
-			fosString = "4190";
-			programString = "00230";
-			bggString = "065";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"HEALTH SERVICES ORG. & POLICY");
-			m_FOSD.put(fosString, "Health Services Organization & Policy");
-		
-			fosString = "4240";
-			programString = "01571";
-			bggString = "066";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"HISTORY");
-			m_FOSD.put(fosString, "History & Women's Studies");
-		
-			fosString = "4340";
-			programString = "00236";
-			bggString = "069";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"HUMAN GENETICS");
-			m_FOSD.put(fosString, "Human Genetics");
-					
-			fosString = "4390";
-			programString = "00239";
-			bggString = "072";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"INDUS. & OPERATIONS ENG.");
-			m_FOSD.put(fosString, "Industrial & Operations Engineering");
-		
-			fosString = "4420";
-			programString = "00245";
-			bggString = "052";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ENVIRON. & INDUS. HEALTH");
-			m_FOSD.put(fosString, "Industrial Health");
-	
-			fosString = "4440";
-			programString = "00247";
-			bggString = "074";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"INFORMATION");
-			m_FOSD.put(fosString,"Information and Library Studies");
-		
-			fosString = "4470";
-			programString = "01100";
-			bggString = "074";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"INFORMATION");
-			m_FOSD.put(fosString, "Information");
-		
-			fosString = "4490";
-			programString = "01563";
-			bggString = "085";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"MICROBIOLOGY & IMMUNOLOGY");
-			m_FOSD.put(fosString, "Immunology");
-		
-			fosString = "4510";
-			programString = "00251";
-			bggString = "105";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"POPULATION PLN. & INTL. HEALTH");
-			m_FOSD.put(fosString, "International Health");
-		
-			fosString = "4670";
-			programString = "00255";
-			bggString = "076";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"KINESIOLOGY");
-			m_FOSD.put(fosString, "Kinesiology");
-		
-			fosString = "4680";
-			programString = "00258";
-			bggString = "090";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"NATURAL RESOURCES & ENVIRON.");
-			m_FOSD.put(fosString, "Landscape Architecture");
-		
-			programString = "00260";
-			bggString = "090";
-			m_schoolGroups.put(programString, bggString);
-					
-			fosString = "4740";
-			programString = "01637";
-			bggString = "150";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"BIOINFORMATICS");
-			m_FOSD.put(fosString, "Bioinformatics");
-		
-			fosString = "4870";
-			programString = "01596";
-			bggString = "077";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"LINGUISTICS");
-			m_FOSD.put(fosString, "Linguistics & Germanic Languages & Literatures");
-		
-			fosString = "4880";
-			programString = "01597";
-			bggString = "077";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"LINGUISTICS");
-			m_FOSD.put(fosString, "Linguistics & Romanic Languages & Literatures");
-		
-			fosString = "4890";
-			programString = "01598";
-			bggString = "077";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"LINGUISTICS");
-			m_FOSD.put(fosString, "Linguistics & Slavic Languages & Literatures");
-		
-			fosString = "4900";
-			programString = "00271";
-			bggString = "077";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"LINGUISTICS");
-			m_FOSD.put(fosString, "Linguistics");
-		
-			fosString = "4940";
-			programString = "00273";
-			bggString = "078";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"MACROMOLECULAR SCI. & ENG.");
-			m_FOSD.put(fosString, "Macromolecular Science & Engineering");
-		
-			fosString = "5000";
-			programString = "00275";
-			bggString = "032";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"COMMUNICATION STUDIES (MA)");
-			m_FOSD.put(fosString, "Mass Communications");
-		
-			fosString = "5040";
-			programString = "00276";
-			bggString = "079";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"MATERIALS SCI. & ENGINEERING");
-			m_FOSD.put(fosString, "Materials Science and Engineering");
-		
-			//Molecular and Integrative Physiology
-			fosString = "5070";
-			bggString = "103";
-			m_schoolGroups.put(fosString, bggString);
-			m_BGGD.put(bggString,"");
-			m_FOSD.put(fosString, "Molecular and Integrative Physiology");
-		
-			fosString = "5080";
-			programString = "00278";
-			bggString = "080";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"MATHEMATICS");
-			m_FOSD.put(fosString, "Mathematics");
-		
-			fosString = "5130";
-			programString = "00281";
-			bggString = "081";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"MECHANICAL ENG. & APPLIED MECH.");
-			m_FOSD.put(fosString, "Mechanical Engineering");
-		
-			fosString = "5140";
-			programString = "00285";
-			bggString = "065";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"HEALTH SERVICES ORG. & POLICY");
-			m_FOSD.put(fosString, "Medical Care Organization");
-		
-			fosString = "5200";
-			programString = "00290";
-			bggString = "084";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"MEDICINAL CHEMISTRY");
-			m_FOSD.put(fosString, "Medicinal Chemistry");
-		
-			fosString = "5230";
-			programString = "00293";
-			bggString = "079";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"MATERIALS SCI. & ENGINEERING");
-			m_FOSD.put(fosString, "Metallurgical Engineering");
-		
-			fosString = "5270";
-			programString = "01726";
-			bggString = "175";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"MOLECULAR, CELL & DEV BIOLOGY");
-			m_FOSD.put(fosString, "Molecular, Cellular, and Developmental Biology");
-		
-			fosString = "5330";
-			programString = "00297";
-			bggString = "085";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"MICROBIOLOGY & IMMUNOLOGY");
-			m_FOSD.put(fosString, "Microbiology");
-		
-			fosString = "5340";
-			programString = "00299";
-			bggString = "085";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"MICROBIOLOGY & IMMUNOLOGY");
-			m_FOSD.put(fosString, "Microbiology & Immunology");
-		
-			fosString = "5350";
-			programString = "00300";
-			bggString = "060";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"GEOLOGICAL SCIENCES");
-			m_FOSD.put(fosString, "Mineralogy");
-		
-			fosString = "5400";
-			programString = "01067";
-			bggString = "089";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"MUSIC: PERFORMANCE");
-			m_FOSD.put(fosString, "Music: Conducting");
-		
-			programString = "01068";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			fosString = "5430";
-			programString = "00309";
-			bggString = "088";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"MUSIC: ACADEMIC");
-			m_FOSD.put(fosString, "Music: Music Education");
-		
-			fosString = "5440";
-			programString = "01065";
-			bggString = "088";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"MUSIC: ACADEMIC");
-			m_FOSD.put(fosString, "Music: Musicology");
-
-			programString = "01066";
-			bggString = "088";
-			m_schoolGroups.put(programString, bggString);
-					
-			fosString = "5460";
-			programString = "00312";
-			bggString = "088";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"MUSIC: ACADEMIC");
-			m_FOSD.put(fosString, "Music: Theory");
-		
-			fosString = "5470";
-			programString = "00313";
-			bggString = "088";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"MUSIC: ACADEMIC");
-			m_FOSD.put(fosString, "Music: Composition");
-		
-			fosString = "5640";
-			programString = "01070";
-			bggString = "089";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"MUSIC: PERFORMANCE");
-			m_FOSD.put(fosString, "Music: Performance");
-		
-			programString = "01071";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01072";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01073";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01074";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01075";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01076";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01077";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01078";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01079";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-			
-			programString = "01080";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01081";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01082";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01083";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01084";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01085";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01086";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01087";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01088";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01089";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01090";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01091";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01092";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			programString = "01595";
-			bggString = "089";
-			m_schoolGroups.put(programString, bggString);
-					
-			fosString = "5670";
-			programString = "00317";
-			bggString = "088";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"MUSIC: ACADEMIC");
-			m_FOSD.put(fosString, "Composition and Music Theory");
-		
-			fosString = "5730";
-			programString = "00318";
-			bggString = "090";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"NATURAL RESOURCES & ENVIRON.");
-			m_FOSD.put(fosString, "Natural Resources");
-		
-			fosString = "5740";
-			programString = "00320";
-			bggString = "090";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"NATURAL RESOURCES & ENVIRON.");
-			m_FOSD.put(fosString, "Natural Resources and Environment");
-		
-			fosString = "5790";
-			programString = "00323";
-			bggString = "090";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"NATURAL RESOURCES & ENVIRON.");
-			m_FOSD.put(fosString, "Natural Resources Economics");
-		
-			fosString = "5810";
-			programString = "00324";
-			bggString = "091";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"NAVAL ARCH. & MARINE ENG.");
-			m_FOSD.put(fosString, "Naval Architecture & Marine Engineering");
-		
-			fosString = "5820";
-			programString = "00329";
-			bggString = "092";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"NEAR EASTERN STUDIES");
-			m_FOSD.put(fosString, "Near Eastern Studies");
-		
-			fosString = "5830";
-			programString = "00331";
-			bggString = "092";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"NEAR EASTERN STUDIES");
-			m_FOSD.put(fosString, "Near Eastern Studies: Languages & Literatures");
-		
-			fosString = "5950";
-			programString = "00336";
-			bggString = "093";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"NEUROSCIENCE");
-			m_FOSD.put(fosString, "Neuroscience");
-		
-			fosString = "5980";
-			programString = "00338";
-			bggString = "094";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"NUCLEAR ENG. & RADIOL. SCI.");
-			m_FOSD.put(fosString, "Nuclear Engineering");
-		
-			fosString = "6000";
-			programString = "01565";
-			bggString = "094";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"NUCLEAR ENG. & RADIOL. SCI.");
-			m_FOSD.put(fosString, "Nuclear Engineering & Radiological Sciences");
-		
-			fosString = "6100";
-			programString = "00344";
-			bggString = "094";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"NUCLEAR ENG. & RADIOL. SCI.");
-			m_FOSD.put(fosString, "Nuclear Science");
-		
-			fosString = "6130";
-			programString = "00347";
-			bggString = "095";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"NURSING");
-			m_FOSD.put(fosString, "Nursing");
-		
-			fosString = "6160";
-			programString = "00351";
-			bggString = "015";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ATMOS., OCEAN., & SPACE SCI.");
-			m_FOSD.put(fosString, "Oceanic Science (no new students)");
-		
-			fosString = "6170";
-			programString = "00353";
-			bggString = "060";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"GEOLOGICAL SCIENCES");
-			m_FOSD.put(fosString, "Oceanography:  Marine Geology and Geochemistry");
-		
-			fosString = "6180";
-			programString = "00355";
-			bggString = "015";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ATMOS., OCEAN., & SPACE SCI.");
-			m_FOSD.put(fosString, "Oceanography: Physical");
-		
-			fosString = "6300";
-			programString = "00358";
-			bggString = "041";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"DENTISTRY");
-			m_FOSD.put(fosString, "Oral Biology");
-		
-			fosString = "6340";
-			programString = "00360";
-			bggString = "041";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"DENTISTRY");
-			m_FOSD.put(fosString, "Oral Health Sciences");
-		
-			fosString = "6680";
-			programString = "00367";
-			bggString = "097";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"PATHOLOGY");
-			m_FOSD.put(fosString, "Pathology");
-		
-			fosString = "6810";
-			programString = "00372";
-			bggString = "099";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"PHARMACY");
-			m_FOSD.put(fosString, "Pharmaceutics");
-		
-			fosString = "6840";
-			programString = "00374";
-			bggString = "099";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"PHARMACY");
-			m_FOSD.put(fosString, "Pharmaceutical Chemistry");
-		
-			//Pharmaceutical Sciences
-			fosString = "6860";
-			bggString = "099";
-			m_schoolGroups.put(fosString, bggString);
-			m_BGGD.put(bggString,"");
-			m_FOSD.put(fosString, "Pharmaceutical Sciences");
-		
-			fosString = "6890";
-			programString = "00376";
-			bggString = "099";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"PHARMACY");
-			m_FOSD.put(fosString, "Pharmacognosy");
-		
-			fosString = "6950";
-			programString = "00378";
-			bggString = "098";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"PHARMACOLOGY");
-			m_FOSD.put(fosString, "Pharmacology");
-		
-			fosString = "7010";
-			programString = "00380";
-			bggString = "099";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"PHARMACY");
-			m_FOSD.put(fosString, "Pharmacy");
-		
-			fosString = "7040";
-			programString = "00384";
-			bggString = "076";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"KINESIOLOGY");
-			m_FOSD.put(fosString, "Physical Education: Kinesiology");
-		
-			fosString = "7060";
-			programString = "00387";
-			bggString = "100";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"PHILOSOPHY");
-			m_FOSD.put(fosString, "Philosophy");
-		
-			fosString = "7180";
-			programString = "00389";
-			bggString = "101";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"PHYSICS");
-			m_FOSD.put(fosString, "Physics");
-		
-			fosString = "7350";
-			programString = "00394";
-			bggString = "103";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"PHYSIOLOGY");
-			m_FOSD.put(fosString, "Physiology");
-		
-			fosString = "7460";
-			programString = "00397";
-			bggString = "104";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"POLITICAL SCIENCE");
-			m_FOSD.put(fosString, "Political Science");
-		
-			fosString = "7490";
-			programString = "00403";
-			bggString = "105";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"POPULATION PLN. & INTL. HEALTH");
-			m_FOSD.put(fosString, "Population Planning & International Health");
-		
-			fosString = "7500";
-			programString = "00404";
-			bggString = "105";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"POPULATION PLN. & INTL. HEALTH");
-			m_FOSD.put(fosString, "Population Planning");
-		
-			fosString = "7720";
-			programString = "01677";
-			bggString = "151";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"PUBLIC POLICY JOINT DOCTORAL PGMS");
-			m_FOSD.put(fosString, "Public Policy & Economics");
-		
-			fosString = "7730";
-			programString = "01679";
-			bggString = "151";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"PUBLIC POLICY JOINT DOCTORAL PGMS");
-			m_FOSD.put(fosString, "Public Policy & Political Science");
-		
-			fosString = "7740";
-			programString = "00409";
-			bggString = "106";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"PSYCHOLOGY");
-			m_FOSD.put(fosString, "Psychology");
-		
-			fosString = "7750";
-			programString = "01681";
-			bggString = "151";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"PUBLIC POLICY JOINT DOCTORAL PGMS");
-			m_FOSD.put(fosString, "Public Policy & Sociology");
-					
-			fosString = "7770";
-			programString = "00412";
-			bggString = "107";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"PSYCHOLOGY & WOMEN'S STUDIES");
-			m_FOSD.put(fosString, "Psychology and Women's Studies");
-		
-			fosString = "7880";
-			programString = "00415";
-			bggString = "109";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"PUBLIC POLICY STUDIES");
-			m_FOSD.put(fosString, "Public Policy Studies");
-		
-			fosString = "8030";
-			programString = "00426";
-			bggString = "111";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ROMANCE LANGUAGES & LIT.");
-			m_FOSD.put(fosString, "Romance Languages & Literatures:  French");
-		
-			fosString = "8090";
-			programString = "00456";
-			bggString = "111";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ROMANCE LANGUAGES & LIT.");
-			m_FOSD.put(fosString, "Romance Languages & Literatures:  Italian");
-		
-			fosString = "8170";
-			programString = "00458";
-			bggString = "111";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ROMANCE LANGUAGES & LIT.");
-			m_FOSD.put(fosString, "Romance Languages & Literatures:  Romance Linguistics");
-		
-			fosString = "8200";
-			programString = "00460";
-			bggString = "111";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ROMANCE LANGUAGES & LIT.");
-			m_FOSD.put(fosString, "Romance Languages & Literatures:  Spanish");
-		
-			fosString = "8350";
-			programString = "00463";
-			bggString = "026";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"CIVIL & ENVIRON. ENGINEERING");
-			m_FOSD.put(fosString, "Sanitary Engineering");
-	
-			fosString = "8480";
-			programString = "00467";
-			bggString = "114";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"SLAVIC LANGUAGES & LITERATURES");
-			m_FOSD.put(fosString, "Slavic Languages & Literatures");
-					
-			fosString = "8890";
-			programString = "00475";
-			bggString = "116";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"SOCIAL WORK & SOCIAL SCIENCE");
-			m_FOSD.put(fosString, "Social Work & Social Science");
-					
-			fosString = "8940";
-			programString = "00476";
-			bggString = "117";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"SOCIOLOGY");
-			m_FOSD.put(fosString, "Sociology");
-					
-			fosString = "8950";
-			programString = "00478";
-			bggString = "118";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"SPACE & PLANETARY PHYSICS");
-			m_FOSD.put(fosString, "Space and Planetary Physics");
-					
-			fosString = "9090";
-			programString = "00483";
-			bggString = "119";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"STATISTICS");
-			m_FOSD.put(fosString, "Statistics");
-					
-			fosString = "9280";
-			programString = "00490";
-			bggString = "120";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"THEATRE");
-			m_FOSD.put(fosString, "Theatre");
-					
-			fosString = "9360";
-			programString = "00498";
-			bggString = "052";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"ENVIRON. & INDUS. HEALTH");
-			m_FOSD.put(fosString, "Toxicology");
-		
-			fosString = "9380";
-			programString = "00501";
-			bggString = "123";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString,"URBAN, TECH., & ENVIRON. PLN.");
-			m_FOSD.put(fosString, "Urban, Technological, & Environmental Planning");
-					
-			fosString = "9990";
-			programString = "00512";
-			bggString = "071";
-			m_schoolGroups.put(fosString, bggString);
-			m_schoolGroups.put(programString, bggString);
-			m_BGGD.put(bggString, "INDEPENDENT IDP");
-			m_FOSD.put(fosString, "Independent Interdepartmental Degree Program");
-			
-			Enumeration BGGCodes = m_BGGD.keys();
-			Set keys = m_schoolGroups.keySet();
-			
-			//for each BGG
-			while(BGGCodes.hasMoreElements())
-			{
-				String BGGC = (String)BGGCodes.nextElement();
-				String BGGD = (String)m_BGGD.get(BGGC);
-				
-				//add a Block Grant Group
-				edit = addBlockGrantGroup(m_schoolSite);
-				edit.setCode(BGGC);
-				edit.setDescription(BGGD);
-				
-				//Iterate through keys, and if value matches BGGC addFieldOfStudy()
-				for (Iterator i = keys.iterator(); i.hasNext(); )
-				{
-					String key = (String) i.next();
-					if(key.length()==4)
-					{
-						bggString = (String)m_schoolGroups.get(key);
-						if(bggString.equals(BGGC))
-						{
-							edit.addFieldOfStudy(key, (String)m_FOSD.get(key));
-						}
-					}
-				}
-				commitEdit(edit);
-			}		
-		}
-		catch(Exception e)
-		{
-			if(m_logger.isWarnEnabled())
-			{
-				m_logger.warn("BaseDissertationService.initializeCodes() Exception " + e);
-			}
-		}
-		
-		return m_schoolGroups;
-		
-	}//initCodes
-
-	/**
-	* Returns to uninitialized state.
-	*/
 	public void destroy()
 	{
 		if (m_caching)
@@ -2041,7 +700,8 @@ public abstract class BaseDissertationService
 		m_statusStorage = null;
 		m_infoStorage.close();
 		m_infoStorage = null;
-	}
+		
+	}// destroy
 
 	/*******************************************************************************
 	* DissertationServiceimplementation
@@ -2078,6 +738,7 @@ public abstract class BaseDissertationService
 		
 	} //getDataFileProperties
 	
+
 	/**
 	* See if Rackham extract data loading is in progress.
 	* @return boolean - true if in progress, false otherwise.
@@ -2088,19 +749,24 @@ public abstract class BaseDissertationService
 		String lock_ref = DissertationService.IS_LOADING_LOCK_REFERENCE;
 		
 		//initialize
-		m_loading = false;
 		try
 		{
+			m_loading = true;
+			
 			//take out a lock on a well-known object
 			lock = editCandidateInfo(lock_ref);
 			
-			//remove it
+			//CandidateInfo indicates operation in progress
 			if(lock != null && lock.isActiveEdit())
-				removeCandidateInfo(lock);
+				commitEdit(lock);
 		}
 		catch(IdUnusedException e)
 		{
-			//lock is free
+			//no lock, not loading
+			m_loading = false;
+		}
+		catch(Exception e)
+		{
 			if(lock != null && lock.isActiveEdit())
 			{
 				try
@@ -2113,15 +779,6 @@ public abstract class BaseDissertationService
 						m_logger.warn(this + ".isLoading removeCandidateInfo(lock) " + ee);
 				}
 			}
-		}
-		catch(InUseException e)
-		{
-			//lock is in use
-			m_loading = true;
-			
-		}
-		catch(Exception e)
-		{
 			if(m_logger.isWarnEnabled())
 				m_logger.warn(this + ".isLoading Exception " + e);
 		}
@@ -2130,1175 +787,52 @@ public abstract class BaseDissertationService
 	}//isLoading
 	
 	/**
-	* Load the Rackham data extract files.
-	* @param oard - The content of the OARD data file.
-	* @param mp - The content of the MPathways data file.
-	* @return Vector of String errors or if no errors null.
+	* See if admin step change is in progress.
+	* @return boolean - true if in progress, false otherwise.
 	*/
-	public List loadData(byte[] oard, byte[] mp)
+	public boolean isChangingStep()
 	{
 		CandidateInfoEdit lock = null;
-		Vector rv = new Vector();
-
-		//TODO replace CandidateInfoEdit as lock object
-		String lock_ref = DissertationService.IS_LOADING_LOCK_REFERENCE;
+		String lock_ref = DissertationService.IS_CHANGING_STEP_LOCK_REFERENCE;
+		
+		//initialize
 		try
 		{
-			//we are staring a load
-			lock = addCandidateInfoLock(getSchoolSite());
-			if(lock == null)
-				return rv;
+			m_changing_step = true;
+			
+			//take out a lock on a well-known object
+			lock = editCandidateInfo(lock_ref);
+			
+			//CandidateInfo indicates operation in progress
+			if(lock != null && lock.isActiveEdit())
+				commitEdit(lock);
+		}
+		catch(IdUnusedException e)
+		{
+			//no lock, so not changing step
+			m_changing_step = false;
+
 		}
 		catch(Exception e)
 		{
-			//TODO throw InUseException
-			//but we should not get here because tool checks earlier
-			if(m_logger.isWarnEnabled())
-				m_logger.warn(this + ".loadData addCandidateInfoLock " + e);
-			return rv;
-		}
-		Hashtable ids = new Hashtable();
-		String msg = "";
-		List OARDRecords = new Vector();
-		List MPRecords = new Vector();
-		Date start = null;
-		Date end = null;
-		try
-		{
-			//parse and check for data validation errors
-			if(oard.length > 1)
-				rv.addAll((Collection)validateOARDData(oard));
-			if(mp.length > 1)
-				rv.addAll((Collection) validateMPData(mp));
-			
-			//if data was validated, load it, otherwise return validation errors
-			if((rv==null || rv.size() == 0))
+			if(lock != null && lock.isActiveEdit())
 			{
-				//no errors reported, so create records to use
-				if(oard.length > 1)
-					OARDRecords = (Vector) createOARDRecords(oard, ids);
-				if(mp.length > 1)
-					MPRecords = (Vector) createMPRecords(mp, ids);
-				
-				//if we have no Chef ids at this point, raise an error
-				if(!ids.elements().hasMoreElements())
-				{
-					m_logger.warn("DISSERTATION : SERVICE: UMIAC QUERY FOR CHEF IDS : NO UNIQNAMES FOUND");
-					msg = "Unable to get Chef ids for these U-M ids.";
-					rv.add(0, msg);
-				}
-				rv.addAll((Collection)queryLists(OARDRecords, MPRecords, ids));
-				if((rv != null) && (rv.size() > 0))
-				{
-					//return loading errors to the tool
-					msg = "During loading of data:";
-					rv.add(0, msg);
-				}
-			}
-			else
-			{	
-				//return validation errors to the tool
-				msg = "During validation of data:";
-				rv.add(0,msg);
-			}
-		}
-		catch(Exception e)
-		{
-			msg = this + ".loadData exception: " + e.getMessage();
-			rv.add(0, msg);
-		}
-		finally
-		{
-			try
-			{
-				//at the end remove the lock object
-				if(lock != null && lock.isActiveEdit())
-					removeCandidateInfo(lock);
-			}
-			catch(Exception e)
-			{
-				if(m_logger.isWarnEnabled())
-					m_logger.warn(this + ".loadData cancelEdit(lock) " + e);
-			}
-			
-		}
-			
-		return rv;
-		
-	} //loadData
-	
-	/**
-	* Create a Time object from the raw time string.
-	* Based on DissertationDataListenerService.parseOracleTimeString()
-	* @param timeString The raw oracle time string.
-	* @return The CHEF Time object.
-	*/
-	protected Time parseTimeString(String timeString)
-	{
-		Time retVal = null;
-		if(timeString != null && !timeString.equals(""))
-		{
-			int year = 0;
-			int month = 0;
-			int day = 0;
-			
-			int index = 0;
-			String tempString = null;
-			String dayString = null;
-			String[] parts = timeString.split("/");
-			for(int x = 0; x < parts.length; x++)
-			try
-			{
-				year = Integer.parseInt(parts[2]);
-			}
-			catch(NumberFormatException nfe)
-			{
-				m_logger.warn("DISSERTATION : SERVICE: PARSE TIME STRING : YEAR : NumberFormatException  " + timeString);
-			}
-			
-			try
-			{
-				month = Integer.parseInt(parts[0]);
-			}
-			catch(NumberFormatException nfe)
-			{
-				m_logger.warn("DISSERTATION : SERVICE: PARSE TIME STRING : MONTH : NumberFormatException  " + timeString);
-			}
-			
-			try
-			{
-				day = Integer.parseInt(parts[1]);
-			}
-			catch(NumberFormatException nfe)
-			{
-				m_logger.warn("DISSERTATION : SERVICE: PARSE TIME STRING : DAY : NumberFormatException  " + timeString);
-			}
-			TimeBreakdown tb = TimeService.newTimeBreakdown(year, month, day, 0, 0, 0, 0);
-			retVal = TimeService.newTimeLocal(tb);
-		}
-		return retVal;
-
-	}//parseTimeString
-	
-	/**
-	*
-	* Use Rackham data to initialize and update CandidateInfo.
-	* Based on DissertationDataListenerService.queryDatabase().
-	* @param OARDRecs - Vector of OARDRecords
-	* @param  MPRecs - Vector of MPRecords
-	* @param  ids - Hashtable of umid keys and chefid elements
-	* @return rv - a Vector of error messages
-	*/
-	private List queryLists(List OARDRecords, List MPRecords, Hashtable ids)
-	{
-		Vector rv = new Vector();
-		boolean reqMet = false;
-		Vector data = new Vector();
-		List OARDrecs = new Vector();
-		List MPrecs = new Vector();
-		String oneEmplid = null;
-		String chefId = null;
-		String program = null;
-		String msg = null;
-		String committeeEvalCompleted = null;
-		String line = null;
-		String firstLetter = "";
-		String rest = "";
-		String name = "";
-		String lastName = "";
-		String firstName = "";
-		String middleName = "";
-		CandidateInfoEdit infoEdit = null;
-		CandidateInfo info = null;
-		boolean commitEdit = false;
-		boolean tryMPrecs = false;
-		boolean existsOARDrecs = false;
-		boolean existsMPrecs = false;
-		Map membersEvals = new TreeMap();
-		Collection requiredFrom = new Vector();
-		
-		Enumeration emplids = ids.keys();
-		if(emplids != null)
-		{
-			while(emplids.hasMoreElements())
-			{
-				commitEdit = false;
-				committeeEvalCompleted = "";
-				oneEmplid = (String)emplids.nextElement();
-				OARDrecs.clear();
-				MPrecs.clear();
-				
-				//get the MP records for this oneEmplid
-				if((MPRecords!=null) && (MPRecords.size() > 0))
-				{
-					for(ListIterator i = MPRecords.listIterator(); i.hasNext(); )
-					{
-						MPRecord rec = (MPRecord) i.next();
-						if(rec.m_umid.equals(oneEmplid)) 
-							MPrecs.add(rec);
-					}
-					if((MPrecs != null) && (MPrecs.size() > 0))
-					{
-						existsMPrecs = true;
-					}
-					else
-					{
-						existsMPrecs = false;
-					}
-				}
-				
-				//get the OARD records for this oneEmplid
-				if((OARDRecords!=null) && (OARDRecords.size() > 0))
-				{
-					for(ListIterator i = OARDRecords.listIterator(); i.hasNext(); )
-					{
-						OARDRecord rec = (OARDRecord) i.next();
-						if(rec.m_umid.equals(oneEmplid)) 
-							OARDrecs.add(rec);
-					}
-					if((OARDrecs != null) && (OARDrecs.size() > 0)) 
-					{
-						existsOARDrecs = true;
-					}
-					else
-					{
-						existsOARDrecs = false;
-					}
-				}
 				try
 				{
-					infoEdit = getCandidateInfoEditForEmplid(oneEmplid);
-					if(infoEdit == null)
-					{
-						// NO CANDIDATE INFO EXISTS FOR THIS CANDIDATE - CREATE ONE
-						infoEdit = addCandidateInfoFromListener("datalistener");
-						infoEdit.setEmplid(oneEmplid);
-						commitEdit = true;
-					}
-					
-					// CHECK FOR CHEF ID
-					try
-					{
-						chefId = infoEdit.getChefId();
-						if(chefId.equals(""))
-						{
-							chefId = (String)ids.get(oneEmplid);
-							if(chefId != null)
-								infoEdit.setChefId(chefId.toLowerCase());
-							commitEdit = true;
-						}
-					}
-					catch(Exception e)
-					{
-						msg = "// CHECK FOR CHEF ID " + oneEmplid + e.getMessage();
-						rv.add(msg);
-						m_logger.warn("DISSERTATION : SERVICE : CHECK FOR CHEF ID: EXCEPTION : " + e);
-					}
-			
-					// CHECK FOR PROGRAM
-					try
-					{
-						program = infoEdit.getProgram();
-						if(program == null || program.equals(""))
-						{
-							if(existsOARDrecs && existsMPrecs)
-							{
-								//CHECK OARD AND IF PROGRAM NULL THEN CHECK MP
-								for(ListIterator i = OARDrecs.listIterator(); i.hasNext(); )
-								{
-									OARDRecord rec = (OARDRecord) i.next();
-									if(rec.m_fos != null) program = rec.m_fos;
-								}
-								if(program != null)
-								{
-									infoEdit.setProgram(getProgram(program));
-									infoEdit.setParentSite("diss" +  getProgram(program));
-								}
-								else
-								{
-									tryMPrecs = true;
-								}
-								if(tryMPrecs)
-								{
-									// THEN TRY GETTING THE FOS PART OF THE ACADEMIC PLAN IN MPEXT
-									for(ListIterator i = MPrecs.listIterator(); i.hasNext(); )
-									{
-										MPRecord rec = (MPRecord) i.next();
-										if(rec.m_academic_plan != null) 
-											program = rec.m_academic_plan.substring(0,4);
-									}
-									if(program != null)
-									{
-										infoEdit.setProgram(getProgram(program));
-										infoEdit.setParentSite("diss" +  getProgram(program));
-									}
-								}
-							}
-							else if(existsOARDrecs)
-							{
-								//CHECK OARD FOR THE FOS
-								for(ListIterator i = OARDrecs.listIterator(); i.hasNext(); )
-								{
-									OARDRecord rec = (OARDRecord) i.next();
-									if(rec.m_fos != null) program = rec.m_fos;
-								}
-								if (program != null)
-								{
-									infoEdit.setProgram(getProgram(program));
-									infoEdit.setParentSite("diss" +  getProgram(program));
-								}
-							}
-							else if (existsMPrecs)
-							{
-								// THEN TRY GETTING THE FOS PART OF THE ACADEMIC PLAN
-								for(ListIterator i = MPrecs.listIterator(); i.hasNext(); )
-								{
-									MPRecord rec = (MPRecord) i.next();
-									if(rec.m_academic_plan != null) program = rec.m_academic_plan.substring(0,4);
-								}
-								if(program != null)
-								{
-									infoEdit.setProgram(getProgram(program));
-									infoEdit.setParentSite("diss" +  getProgram(program));
-								}
-							}
-							else
-							{
-								//WE SHOULDN"T GET HERE
-								m_logger.warn("DISSERTATION : SERVICE : no OARD or MP records for " + oneEmplid);
-							}
-							commitEdit = true;
-						}
-					}
-					catch(Exception e)
-					{
-						msg = "// CHECK FOR PROGRAM " + oneEmplid + e.getMessage();
-						rv.add(msg);
-						m_logger.warn("DISSERTATION : LISTENER : SELECT FOS/ACAD_PROG FROM RECORDS WHERE UMID = ? : EXCEPTION : " + e);
-					}
-					
-					//GET STATUS DATA
-					if(existsMPrecs)
-					{
-						infoEdit.setMPRecInExtract(true);
-						for(ListIterator i = MPrecs.listIterator(); i.hasNext(); )
-						{
-							MPRecord rec = (MPRecord) i.next();
-						
-							//	ANTICIPATE
-							infoEdit.setAdvCandDesc(rec.m_anticipate);
-						
-							//	DATE_COMPL
-							if(rec.m_milestone.equalsIgnoreCase("prelim"))
-							{
-								infoEdit.setPrelimTimeMilestoneCompleted(parseTimeString(rec.m_date_compl));
-								infoEdit.setPrelimMilestone(rec.m_milestone);
-							}
-							else if(rec.m_milestone.equalsIgnoreCase("advcand"))
-							{
-								infoEdit.setAdvcandTimeMilestoneCompleted(parseTimeString(rec.m_date_compl));
-								infoEdit.setAdvcandMilestone(rec.m_milestone);
-							}
-						}
-					}
-					
-					if(existsOARDrecs)
-					{
-						infoEdit.setOARDRecInExtract(true);
-						for(ListIterator i = OARDrecs.listIterator(); i.hasNext(); )
-						{
-							OARDRecord rec = (OARDRecord) i.next();
-						
-							//	DEGREETERM_TRANS
-							infoEdit.setDegreeTermTrans(rec.m_degreeterm_trans);
-						
-							//	ORAL_EXAM_DATE
-							infoEdit.setTimeOralExam(parseTimeString(rec.m_oral_exam_date));
-						
-							//	ORAL_EXAM_TIME
-							infoEdit.setOralExamTime(rec.m_oral_exam_time);
-						
-							//	ORAL_EXAM_PLACE
-							infoEdit.setOralExamPlace(rec.m_oral_exam_place);
-						
-							//	COMMITTE_APPROVED_DATE
-							infoEdit.setTimeCommitteeApproval(parseTimeString(rec.m_committee_approved_date));
-						
-							//	FIRST_FORMAT_DATE
-							infoEdit.setTimeFirstFormat(parseTimeString(rec.m_first_format_date));
-						
-							//	BINDER_RECEPT_DATE
-							infoEdit.setTimeBinderReceipt(parseTimeString(rec.m_binder_receipt_date));
-						
-							//	FEE_REQUIREMENT_MET
-							if(rec.m_fee_requirement_met != null)
-							{
-								if((rec.m_fee_requirement_met.indexOf("y") != -1) || (rec.m_fee_requirement_met.indexOf("Y") != -1))
-									reqMet = true;
-							}
-							infoEdit.setFeeRequirementMet(reqMet);
-						
-							//	FEE_RECEIPT_DATE_SEEN
-							infoEdit.setTimeReceiptSeen(parseTimeString(rec.m_fee_date_receipt_seen));
-						
-							//	PUB_FEE_DATE_RECEIVED
-							infoEdit.setTimePubFee(parseTimeString(rec.m_pub_fee_date_received));
-						
-							//	ORAL_REPORT_RETURN_DATE
-							infoEdit.setTimeOralReportReturned(parseTimeString(rec.m_oral_report_return_date));
-						
-							//	UNBOUND_DATE
-							infoEdit.setTimeUnbound(parseTimeString(rec.m_unbound_date));
-						
-							//	ABSTRACT_DATE
-							infoEdit.setTimeAbstract(parseTimeString(rec.m_abstract_date));
-							
-							//	BOUND_COPY_RECEIVED_DATE
-							infoEdit.setTimeBound(parseTimeString(rec.m_bound_copy_received_date));
-							
-							//	DIPLOMA_APPLICATION_DATE
-							infoEdit.setTimeDiplomaApp(parseTimeString(rec.m_diploma_application_date));
-							
-							//	CONTRACT_RECEIVED_DATE
-							infoEdit.setTimeContract(parseTimeString(rec.m_contract_received_date));
-							
-							//	NSF_survey_date
-							infoEdit.setTimeSurvey(parseTimeString(rec.m_nsf_survey_date));
-							
-							//	DEGREE_CONFERRED_DATE
-							infoEdit.setTimeDegreeConferred(parseTimeString(rec.m_degree_conferred_date));
-							
-							//	FINAL_FORMAT_RECORDER
-							infoEdit.setFinalFormatRecorder(rec.m_final_format_recorder);
-							
-							//	COMM_CERT_DATE
-							infoEdit.setTimeCommitteeCert(parseTimeString(rec.m_comm_cert_date));
-							
-							//	EVAL_DATE
-							infoEdit.addTimeCommitteeEval(parseTimeString(rec.m_eval_date));
-							
-							//ADD MEMBERS AND THEIR EVAL DATES
-							if(rec.m_member != null && !rec.m_member.equals(""))
-							{
-								// upper/lower case name
-								String[] parts = rec.m_member.split(",");
-								
-								//for each name part in "LAST,FIRST,MIDDLE"
-								for (int j = 0; j < parts.length; j++)
-								{
-									//for each letter in name part
-									if(parts[j].length() > 0)
-									{
-										firstLetter = parts[j].substring(0,1);
-										if(parts[j].length() > 1)
-										{
-											rest = parts[j].substring(1);
-											name = firstLetter.toUpperCase() + rest.toLowerCase();
-										}
-										else
-										{
-											name = firstLetter;
-										}
-									}
-									if(j == 0)
-										lastName = name;
-									else if(j == 1)
-										firstName = name;
-									else if(j == 2)
-										middleName = name;
-								}
-								name = firstName;
-								if(!middleName.equals(""))
-									name = name + " " + middleName + " ";
-								name = name + lastName;
-								
-								//if report has been received, add the date received
-								if(rec.m_eval_date != null && !rec.m_eval_date.equals(""))
-								{
-									
-									//format date
-									Time memberDate = parseTimeString(rec.m_eval_date);
-									String memberEvalDate = memberDate.toStringLocalDate();
-									
-									committeeEvalCompleted = name + ", received on " + memberEvalDate;
-								}
-								else
-								{
-									committeeEvalCompleted = name;
-								}
-								membersEvals.put(rec.m_member, committeeEvalCompleted);
-							}
-							//infoEdit.addCommitteeEvalCompleted(committeeEvalCompleted);
-							committeeEvalCompleted = "";
-						}
-						if(!membersEvals.isEmpty())
-						{
-							requiredFrom = membersEvals.values();
-							infoEdit.addCommitteeEvalsCompleted(requiredFrom);
-							
-							//clear for next infoEdit
-							membersEvals.clear();
-						}
-					}
-
-					if(commitEdit)
-						commitEdit(infoEdit);
-					else
-						cancelEdit(infoEdit);
-					
-					//not all infoEdit properties persistent so pass local instance not from db
-					data.add(infoEdit);
+					removeCandidateInfo(lock);
 				}
-				catch(Exception e)
+				catch(Exception ee)
 				{
-					m_logger.warn("DISSERTATION : getCandidateInfoEditForEmplid(" + oneEmplid + ") "+ e);
-					msg = "// GET CANDIDATE INFO FOR ID " + oneEmplid + e.getMessage();
-					rv.add(msg);
+					if(m_logger.isWarnEnabled())
+						m_logger.warn(this + ".isChangingStep removeCandidateInfo(lock) " + ee);
 				}
 			}
-			rv.addAll((Collection)dumpData(data));
-		}
-
-		return rv;
-			
-	} //queryLists
-
-	/**
-	*
-	* Parse and validate a Rackham OARD data extract file
-	* @param fi - the OARD FileItem to be parsed
-	* @return rv - a Vector of String error messages
-	*/
-	private Vector validateOARDData(byte[] content)
-	{
-		Vector rv = new Vector();
-		boolean replace = true;
-		String message = "";
-		String prefix = "";
-		int lineNumber = 0;
-		try
-		{
-			// get lines
-			String[] lns = ((String)new String(content)).split("\n");
-				
-			// replace commas used as field separators, but leave commas within quoted fields
-			for (int i = 0; i < lns.length; i++)
-			{
-				//skip last line which contains a single hex value 0x1A
-				if(lns[i].length() > 1)
-				{
-					StringBuffer buf = new StringBuffer(lns[i]);
-					for (int j = 0; j < ((String) lns[i]).length(); j++)
-					{
-						char ch = lns[i].charAt(j);
-						if(ch == '"') 
-						{
-							replace = !replace;
-						}
-						if(ch == ',')
-						{
-							if(replace) 
-							{
-								buf.setCharAt(j, '%');
-							}
-							else
-							{
-								buf.setCharAt(j, ch);
-							}
-						}
-						else
-						{
-							buf.setCharAt(j, ch);
-						}
-					}
-						
-					String line = buf.toString();
-					buf.setLength(0);
-						
-					//get the fields
-					String[] flds = line.split("[%]");
-					
-					lineNumber = i + 1;
-					prefix = "Source: OARD File: Location: line " + lineNumber + ", field ";
-					message = "";
-					
-					//check that we have the right number of fields
-					if((flds.length==29))
-					{
-						//check that content of field matches field pattern, umid not null
-						matcher = m_patternUMId.matcher(flds[0]);
-						if(!matcher.matches()) 
-						{
-							message = prefix + "1  Explanation: umid = " + flds[0];
-							rv.add(message);
-						}
-						matcher = m_patternFOS.matcher(flds[1]);
-						if(!matcher.matches())
-						{
-							message = prefix + "2  Explanation:  fos = " + flds[1];
-							rv.add(message);
-						}
-						
-						//we are not checking lname or fname - these come from UMIAC
-						
-						matcher = m_patternDegreeTermTrans.matcher(flds[4]);
-						if(!(flds[4] == null || matcher.matches()))
-						{
-							message = prefix + "5  Explanation: degreeterm_trans = " + flds[4];
-							rv.add(message);
-						}
-						matcher = m_patternDate.matcher(flds[5]);
-						if(!(flds[5] == null || matcher.matches()))
-						{
-							message = prefix + "6  Explanation: oral_exam_date_time = " + flds[5];
-							rv.add(message);
-						}
-						matcher = m_patternOralExamTime.matcher(flds[6]);
-						if(!(flds[6] == null || matcher.matches()))
-						{
-							message = prefix + "7  Explanation: oral_exam_time = " + flds[6];
-							rv.add(message);
-						}
-						matcher = m_patternOralExamPlace.matcher(flds[7]);
-						if(!(flds[7] == null || matcher.matches()))
-						{
-							message = prefix + "8  Explanation: oral_exam_place = " + flds[7];
-							rv.add(message);
-						}
-						matcher = m_patternDate.matcher(flds[8]);
-						if(!(flds[8] == null || matcher.matches()))
-						{
-							message = prefix + "9  Explanation: committee_approved_date = " + flds[8];
-							rv.add(message);
-						}
-						matcher.reset(flds[9]);
-						if(!(flds[9] == null || matcher.matches()))
-						{
-							message = prefix + "10  Explanation: first_format_date = " + flds[9];
-							rv.add(message);
-						}
-						matcher.reset(flds[10]);
-						if(!(flds[10] == null || matcher.matches()))
-						{
-							message = prefix + "11  Explanation: binder_receipt_date = " + flds[10];
-							rv.add(message);
-						}
-						matcher = m_patternFeeRequirementMet.matcher(flds[11]);
-						if(!(flds[11] == null || matcher.matches()))
-						{
-							message = prefix + "12  Explanation: fee_requirement_met  = " + flds[11];
-							rv.add(message);
-						}
-						matcher = m_patternDate.matcher(flds[12]);
-						if(!(flds[12] == null || matcher.matches()))
-						{
-							message = prefix + "13  Explanation: fee_receipt_date_seen = " + flds[12];
-							rv.add(message);
-						}
-						matcher.reset(flds[13]);
-						if(!(flds[13] == null || matcher.matches()))
-						{
-							message = prefix + "14  Explanation: pub_fee_date_received = " + flds[13];
-							rv.add(message);
-						}
-						matcher.reset(flds[14]);
-						if(!(flds[14] == null || matcher.matches()))
-						{
-							message = prefix + "15  Explanation: oral_report_return_date = " + flds[14];
-							rv.add(message);
-						}
-						matcher.reset(flds[15]);
-						if(!(flds[15] == null || matcher.matches()))
-						{
-							message = prefix + "16  Explanation: unbound_date = " + flds[15];
-							rv.add(message);
-						}
-						matcher.reset(flds[16]);
-						if(!(flds[16] == null || matcher.matches()))
-						{
-							message = prefix + "17  Explanation: abstract_date = " + flds[16];
-							rv.add(message);
-						}
-						matcher.reset(flds[17]);
-						if(!(flds[17] == null || matcher.matches()))
-						{
-							message = prefix + "18  Explanation: bound_copy_received_date = " + flds[17];
-							rv.add(message);
-						}
-						matcher.reset(flds[18]);
-						if(!(flds[18] == null || matcher.matches()))
-						{
-							message = prefix + "19  Explanation: diploma_application_date = " + flds[18];
-							rv.add(message);
-						}
-						matcher.reset(flds[19]);
-						if(!(flds[19] == null || matcher.matches()))
-						{
-							message = prefix + "20  Explanation: contract_received_date  = " + flds[19];
-							rv.add(message);
-						}
-						matcher.reset(flds[20]);
-						if(!(flds[20] == null || matcher.matches()))
-						{
-							message = prefix + "21  Explanation: nsf_survey_date = " + flds[20];
-							rv.add(message);
-						}
-						matcher.reset(flds[21]);
-						if(!(flds[21] == null || matcher.matches()))
-						{
-							message = prefix + "22  Explanation: degree_conferred_date = " + flds[21];
-							rv.add(message);
-						}
-						matcher = m_patternFinalFormatDate.matcher(flds[22]);
-						if(!(flds[22] == null || matcher.matches())) 
-						{
-							message = prefix + "23  Explanation: final_format_recorder = " + flds[22];
-							rv.add(message);
-						}
-						matcher = m_patternDate.matcher(flds[23]);
-						if(!(flds[23] == null || matcher.matches()))
-						{
-							message = prefix + "24  Explanation: update_date = " + flds[23];
-							rv.add(message);
-						}
-						matcher.reset(flds[24]);
-						if(!(flds[24] == null || matcher.matches()))
-						{
-							message = prefix + "25  Explanation: comm_cert_date = " + flds[24];
-							rv.add(message);
-						}
-						matcher = m_patternRole.matcher(flds[25]);
-						if(!(flds[25] == null || matcher.matches())) 
-						{
-							message = prefix + "26  Explanation: role = " + flds[25];
-							rv.add(message);
-						}
-						matcher = m_patternMember.matcher(flds[26]);
-						if(!(flds[26] == null || matcher.matches()))
-						{
-							message = prefix + "27  Explanation: member = " + flds[26];
-							rv.add(message);
-						}
-						matcher = m_patternEvalDate.matcher(flds[27]);
-						if(!(flds[27] == null || matcher.matches())) 
-						{
-							message = prefix + "28  Explanation: eval_date = " + flds[27];
-							rv.add(message);
-						}
-						matcher = m_patternCampusId.matcher(flds[28]);
-						if(!(flds[28] == null || matcher.matches()))
-						{
-							message = prefix + "29  Explanation: campus_id = " + flds[28];
-							rv.add(message);
-						}
-							
-						//check that there is a group roll-up code that matches this field of study value
-						String field_of_study = flds[1].substring(1,flds[1].length()-1);
-						String rollup = getProgram(field_of_study);
-						if(rollup==null)
-						{
-							//no matching group roll-up code
-							message = prefix + "1  Explanation: fos " + field_of_study + " does not match an existing group roll-up code.";
-							rv.add(message);
-						}
-					}
-					else
-					{
-						//number of fields exception
-						lineNumber = i + 1;
-						message = "Source: OARD File: Location: line " + lineNumber + " Explanation: has " + flds.length + " fields: 29 expected.";
-						if(m_logger.isInfoEnabled())
-							m_logger.info(this + ".createRecordsMP: " + message);
-						rv.add(message);
-					}
-				}
-			}
-		}
-		catch (Exception e)
-		{
-			message = "Source: OARD File: Explanation: unexpected problem: "  + e.getMessage();
 			if(m_logger.isWarnEnabled())
-				m_logger.warn(this + ".validateOARDData: " + message);
-			rv.add(message);
+				m_logger.warn(this + ".isChangingStep Exception " + e);
 		}
+		return m_changing_step;
 		
-		return rv;
-		
-	}//validateOARDData
-	
-	/**
-	*
-	* Parse a Rackham OARD data extract file
-	* @param content - the content to be parsed
-	* @param ids - Hashtable with key = emplid value = uniqname
-	* @return rv - a Vector of OARDRecord
-	*/
-	private Vector createOARDRecords(byte[] content, Hashtable ids)
-	{
-		Vector rv = new Vector();
-		boolean replace = true;
-		char quote = '"';
-
-		try
-		{
-			// get individual lines
-			String[] lns = ((String) new String(content)).split("\n");
-				
-			// replace commas used as field separators, but leave commas within quoted fields (i.e., committee member's name)
-			for (int i = 0; i < lns.length; i++)
-			{
-				//skip last line, which contains a single hidden character
-				if(lns[i].length() > 1)
-				{
-					StringBuffer buf = new StringBuffer(lns[i]);
-					for (int j = 0; j < ((String) lns[i]).length(); j++)
-					{
-						char ch = lns[i].charAt(j);
-						
-						//replace commas separating fields with %'s
-						if(ch == '"') 
-						{
-							replace = !replace;
-						}
-						if(ch == ',')
-						{
-							if(replace) 
-							{
-								buf.setCharAt(j, '%');
-							}
-							else
-							{
-								buf.setCharAt(j, ch);
-							}
-						}
-						else
-						{
-							buf.setCharAt(j, ch);
-						}
-					}
-						
-					//if last character is \r, remove it
-					if(buf.indexOf("\r") != -1)
-					{
-						buf.setLength(buf.length() -1);
-					}
-					String line = buf.toString();
-					buf.setLength(0);
-					
-					//get the individual fields
-					String[] flds = line.split("%");
-					
-					//check that we have the right number of fields
-					if(flds.length == 29)
-					{
-						//create a record and add it to the Vector
-						OARDRecord oard = new OARDRecord();
-						
-						//* 1 ¦  Emplid   ¦  A8 - Student's emplid
-						oard.m_umid = flds[0].substring(1,flds[0].length()-1);
-						
-						//* 2 ¦  Fos      ¦  A4    - Students field of study code
-						oard.m_fos = flds[1].substring(1,flds[1].length()-1);
-						
-						//* 3 ¦  Lname    ¦  A25 - Students last name
-						oard.m_lname = flds[2].substring(1,flds[2].length()-1);
-						
-						//* 4 ¦  Fname    ¦  A30 - Students first name
-						oard.m_fname = flds[3].substring(1,flds[3].length()-1);
-						
-						//* 5 ¦  Degterm trans   ¦  A7 - Students degree term as TT-CCYY (e.g. FA-2003)
-						oard.m_degreeterm_trans = flds[4].substring(1,flds[4].length()-1);
-						
-						//* 6 ¦  Oral exam date  ¦  D - Date of oral defense
-						oard.m_oral_exam_date = flds[5];
-						
-						//* 7 ¦  Oral exam time  ¦  A7 - Time of oral defense
-						oard.m_oral_exam_time = flds[6].substring(1,flds[6].length()-1);
-						
-						//* 8 ¦  Oral exam place ¦  A25 - Place of oral defense
-						oard.m_oral_exam_place = flds[7].substring(1,flds[7].length()-1);
-						
-						//* 9 ¦  Committee approved date ¦  D - date committee was approved
-						oard.m_committee_approved_date = flds[8];
-						
-						//*10 ¦  First format date  ¦  D - date of pre defense meeting in Rackham
-						oard.m_first_format_date = flds[9];
-						
-						//*11 ¦  Binder receipt date  ¦  D 
-						oard.m_binder_receipt_date = flds[10];
-						
-						//*12 ¦  Fee requirement met  ¦  A1 - Y or N 
-						oard.m_fee_requirement_met = flds[11].substring(1,flds[11].length()-1);
-						
-						//*13 ¦  Fee date receipt seen ¦  D 
-						oard.m_fee_date_receipt_seen = flds[12];
-						
-						//*14 ¦  Pub fee date received ¦  D
-						oard.m_pub_fee_date_received = flds[13];
-						
-						//*15 ¦  Oral report return date ¦  D
-						oard.m_oral_report_return_date = flds[14];
-						
-						//*16 ¦  Unbound date   ¦  D
-						oard.m_unbound_date = flds[15];
-						
-						//*17 ¦  Abstract date   ¦  D
-						oard.m_abstract_date = flds[16];
-						
-						//*18 ¦  Bound copy received date ¦  D
-						oard.m_bound_copy_received_date = flds[17];
-						
-						//*19 ¦  Diploma application date ¦  D
-						oard.m_diploma_application_date = flds[18];
-						
-						//*20 ¦  Contract received date ¦  D
-						oard.m_contract_received_date = flds[19];
-						
-						//*21 ¦  NSF Survey date  ¦  D
-						oard.m_nsf_survey_date = flds[20];
-						
-						//*22 ¦  Degree conferred date ¦  D - date the degree was conferred in OARD system
-						oard.m_degree_conferred_date = flds[21];
-						
-						//*23 ¦  Final format recorder ¦  A3 - initials
-						oard.m_final_format_recorder = flds[22].substring(1,flds[22].length()-1);
-						
-						//*24 ¦  Update date  ¦  D - date record was last modified
-						oard.m_update_date = flds[23];
-						
-						//*25 ¦  Comm cert date  ¦  D -
-						oard.m_comm_cert_date = flds[24];
-						
-						//*26 ¦  Role  ¦  A2 - role code
-						oard.m_role = flds[25].substring(1,flds[25].length()-1);
-						
-						//*27 ¦  Member ¦  A40 - faculty member name
-						oard.m_member = flds[26].substring(1,flds[26].length()-1);
-						
-						//*28 ¦  Eval date  ¦  D - evaluation received date
-						oard.m_eval_date = flds[27];
-						
-						//*29 ¦  Campus id  ¦  A1-A8 - uniqname
-						if(flds[28].indexOf("\r") != -1)
-						{
-							oard.m_campus_id = flds[28].substring(1,flds[28].length()-2);
-						}
-						else
-						{
-							oard.m_campus_id = flds[28].substring(1,flds[28].length()-1);
-						}
-						
-						//add a record
-						rv.add(oard);
-						
-						//add a uniqname
-						ids.put(oard.m_umid, oard.m_campus_id);
-					}
-					else
-					{
-						m_logger.warn(this + ".createOARDRecords: file has " + flds.length + " fields.");
-					}
-				}
-			}
-		}
-		catch (Exception e)
-		{
-			m_logger.warn(this + " .createOARDRecords: " + e.getMessage());
-		}
-
-		return rv;
-		
-	}//createOARDRecords
-	
-	/**
-	*
-	* Parse and validate a Rackham MP data extract file
-	* @param fi - the MP FileItem to be parsed
-	* @return rv - a Vector of MPRecord
-	*/
-	private Vector validateMPData(byte[] content)
-	{
-		Vector rv = new Vector();
-		String field_of_study = "";
-		String message = "";
-		String prefix = "";
-		int lineNumber = 0;
-		try
-		{
-			// get lines
-			String[] lns = ((String) new String(content)).split("\n");
-			for (int i = 0; i < lns.length; i++)
-			{
-				//skip last line which contains a single hex 0x1A
-				if(lns[i].length() > 1)
-				{
-					String[] flds = lns[i].split(",");
-					message = "";
-					lineNumber = i + 1;
-					prefix = "Source: MP File: Location: line " + lineNumber + ", field ";
-
-					//check that we have the right number of fields
-					if(flds.length==7)
-					{
-						//check that content of field matches field pattern, umid not null
-						matcher = m_patternUMId.matcher(flds[0]);
-						if(!matcher.matches()) 
-						{
-							message = prefix + "1  Explanation: umid = " + flds[0];
-							rv.add(message);
-						}
-						matcher = m_patternAcadProg.matcher(flds[1]);
-						if(!(flds[1] == null || matcher.matches()))
-						{
-							message = prefix + "2  Explanation: acad_prog = " + flds[1];
-							rv.add(message);
-						}
-						matcher = m_patternAnticipate.matcher(flds[2]);
-						if(!(flds[2] == null || matcher.matches()))
-						{
-							message = prefix + "3  Explanation: anticipate = " + flds[2];
-							rv.add(message);
-						} 
-						matcher = m_patternDateCompl.matcher(flds[3]);
-						if(!(flds[3] == null || matcher.matches()))
-						{
-							message = prefix + "4  Explanation:  date_compl = " + flds[3];
-							rv.add(message);
-						}
-						matcher = m_patternMilestone.matcher(flds[4]);
-						if(!(flds[4] == null || matcher.matches()))
-						{
-							message = prefix + "5  Explanation: milestone = " + flds[4];
-							rv.add(message);
-						}
-						matcher = m_patternAcademicPlan.matcher(flds[5]);
-						if(!(flds[5] == null || matcher.matches()))
-						{
-							message = prefix + "6  Explanation: academic_plan = " + flds[5];
-							rv.add(message);
-						}
-						else
-						{
-							//get the field of study part of the academic plan for roll-up
-							field_of_study = flds[5].substring(1,5);
-						}
-						matcher = m_patternCampusId.matcher(flds[6]);
-						if(!(matcher.matches()))
-						{
-							//m_patternCampusId
-							message = prefix + "7  Explanation: campus_id = " + flds[6];
-							rv.add(message);
-						}
-							
-						//check that there is a group roll-up code that matches this field of study value
-						String rollup = getProgram(field_of_study);
-						if(rollup==null)
-						{
-							//no matching group roll-up code
-							message = prefix + "1  Explanation: field of study " + field_of_study + " does not match an existing group roll-up code.";
-							rv.add(message);
-						}
-					}
-					else
-					{
-						lineNumber = i + 1;
-						message = "Source: MP File: Location: line " + lineNumber + " Explanation: has " + flds.length + " fields: 7 expected.";
-						if(m_logger.isInfoEnabled())
-							m_logger.info(this + ".validateMPData: " + message);
-						rv.add(message);
-					}
-				}
-			}
-		}
-		catch (Exception e)
-		{
-			message = "Source: MP File: Explanation: unexpected problem with data: "  + e.getMessage();
-			if(m_logger.isWarnEnabled())
-				m_logger.warn(this + ".validateMPData: " + message);
-			rv.add(message);
-		}
-		
-		return rv;
-		
-	}//validateMPData
-	
-	/**
-	*
-	* Parse a Rackham MP data extract file
-	* @param content - the MPathways data content to be parsed
-	* @param ids - Hashtable with key = emplid value = uniqname
-	* @return rv - a Vector of MPRecord
-	*/
-	private Vector createMPRecords(byte[] content, Hashtable ids)
-	{
-		Vector rv = new Vector();
-		
-		try
-		{
-			// get lines
-			String[] lns = ((String) new String(content)).split("\n");
-			for (int i = 0; i < lns.length; i++)
-			{
-				//skip last line which contains a single hex value 0x1A
-				if(lns[i].length() > 1)
-				{
-					String[] flds = lns[i].split(",");
-						
-					//check that we have the right number of fields
-					if(flds.length == 7)
-					{
-						//strip quotation marks from quoted fields
-						MPRecord mp = new MPRecord();
-						
-						//* 1 ¦  Emplid ¦  A9	| Student's emplid
-						mp.m_umid = flds[0].substring(1,flds[0].length()-1);
-						
-						//* 2 ¦  Acad_prog ¦  A9	| Academic Program Code
-						mp.m_acad_prog = flds[1].substring(1,flds[1].length()-1);
-						
-						//* 3 ¦  Anticipate_Anticipate_1 ¦  A15	| Adv to cand term code
-						mp.m_anticipate = flds[2].substring(1,flds[2].length()-1);
-						
-						//* 4 ¦  Date_compl ¦  D	| Date milestone was completed 
-						mp.m_date_compl = StringUtil.trimToNull(flds[3]);
-						
-						//* 5 ¦  Milestone ¦  A10	| name of milestone PRELIM or ADVCAND
-						mp.m_milestone = flds[4].substring(1,flds[4].length()-1);
-						
-						//* 6 | Academic plan |  A4	| Field of study and degree (e.g. 1220PHD1)
-						mp.m_academic_plan = flds[5].substring(1,flds[5].length()-1);
-						
-						//*7  | Campus id  | A1-A8   | uniqname
-						if(flds[6].indexOf("\r") != -1)
-						{
-							mp.m_campus_id = flds[6].substring(1,flds[6].length()-2);
-						}
-						else
-						{
-							mp.m_campus_id = flds[6].substring(1,flds[6].length()-1);
-						}
-						
-						//add a record
-						rv.add(mp);
-						
-						//add a uniqname
-						ids.put(mp.m_umid, mp.m_campus_id);
-					}
-					else
-					{
-						m_logger.warn(this + ".createRecordsMP: file has " + flds.length + " fields.");
-					}
-				}
-			}
-		}
-		catch (Exception e)
-		{
-			m_logger.warn(this + ".createMPRecords: " + e.getMessage());
-		}
-
-		return rv;
-		
-	}//createMPRecords
+	}//isChangingStep
 	
 	/** 
 	* Access the Rackham program id for Rackham field of study id.
@@ -3348,307 +882,6 @@ public abstract class BaseDissertationService
 	}
 
 	/** 
-	* Send in a load of data from the Rackham database.
-	* @param data Vector of CandidateInfo objects.
-	*/
-	public List dumpData(Vector data)
-	{
-		boolean changed = false;
-		CandidateInfoEdit info = null;
-		CandidatePath path = null;
-		Hashtable orderedStatus = null;
-		Collection statusRefs = null;
-		String statusId = null;
-		String statusRef = null;
-		String autoValidationId = null;
-		String oralExamText = null;
-		String degreeTerm = null;
-		String newDegreeTerm = null;
-		int autoValidNumber = 0;
-		StepStatus status = null;
-		StepStatusEdit statusEdit = null;
-		Time completionTime = null;
-		Vector rv = new Vector();
-		String msg = null;
-
-		for(int x = 0; x < data.size(); x++)
-		{
-			try
-			{
-				//infoEdit was committed or cancelled in queryLists, so no need to commit or cancel here
-				info = (CandidateInfoEdit)data.get(x);
-				
-				// UPDATE CANDIDATE PATH DATA
-				path = getCandidatePathForCandidate(info.getChefId());
-				if(path == null)
-				{
-					//NO PATH EXISTS FOR USER - CREATING ONE
-					CandidatePathEdit pathEdit = null;
-					
-					//there is no student site id yet; site is set to uniqname
-					String currentSite = info.getChefId();
-					String parentSite = info.getParentSite();
-					Dissertation dissertation = getDissertationForSite(parentSite);
-					if(dissertation == null)
-					{
-						//USING SCHOOL DISSERTATION BECAUSE DISSERTATION FOR USERS PARENT DEPT IS NULL
-						String schoolSite = getSchoolSite();
-						if(parentSite.equals(m_musicPerformanceSite))
-						{
-							dissertation = getDissertationForSite(schoolSite, DissertationService.DISSERTATION_TYPE_MUSIC_PERFORMANCE);
-						}
-						else
-						{
-							dissertation = getDissertationForSite(schoolSite, DissertationService.DISSERTATION_TYPE_DISSERTATION_STEPS);
-						}
-						if(dissertation == null)
-						{
-							m_logger.warn(this + ". dumpData DISSERTATION FOR SCHOOL IS NULL");
-							msg = info.getChefId() + ": cannot create CandidatePath, because dissertation for school is null";
-							rv.add(msg);
-							continue;
-						}
-					}
-					try
-					{
-						//The student's site might not yet exist, in lieu set to uniqname
-						pathEdit = addCandidatePathFromListener(dissertation, currentSite);
-						if(pathEdit == null)
-						{
-							m_logger.warn(this + ". dumpData pathEdit from addCandidatePathFromListener is null");
-							msg = info.getChefId() + ": cannot create CandidatePath, because path from addCandidatePathFromListener was null";
-							rv.add(msg);
-							continue;
-						}
-						
-						//CANDIDATE PATH CREATED FOR USER
-						pathEdit.setCandidate(info.getChefId());
-						
-						//set alphabetical candidate chooser letter
-						pathEdit.setSortLetter(getSortLetter(info.getChefId()));
-						
-						//if there is a problem setting sort letter, msg and clean up after
-						if(pathEdit.getSortLetter().equals("") || !((String)pathEdit.getSortLetter()).matches("[A-Z]"))
-						{							
-							msg = info.getChefId() + ": problem setting CandidatePath sort letter, path was not created";
-							rv.add(msg);
-							
-							//remove step statuses
-							statusRefs = pathEdit.getOrderedStatus().values();
-							Iterator i = statusRefs.iterator();
-							while(i.hasNext())
-							{
-								statusRef = (String)i.next();
-								statusEdit = editStepStatus(statusRef);
-								removeStepStatus(statusEdit);
-							}
-							statusRefs = null;
-							statusEdit = null;
-							statusRef = null;
-							
-							//remove candidate path
-							removeCandidatePath(pathEdit);
-							try
-							{
-								CandidateInfoEdit ci = getCandidateInfoEditForEmplid(info.getEmplid());
-								
-								//remove candidate info
-								removeCandidateInfo(ci);
-							}
-							catch(Exception e)
-							{
-								msg = info.getChefId() + ": problem removing corresponding CandidateInfo - " + e.toString();
-								rv.add(msg);
-							}
-							continue;
-						}
-						
-						//set the parent department site id
-						pathEdit.setParentSite(info.getParentSite());
-						if(!(pathEdit.getParentSite().matches("^diss[0-9]*$")))
-						{
-							msg = info.getChefId() + ": problem setting CandidatePath parent site";
-							rv.add(msg);
-						}
-						
-						//set dissertation steps type
-						if(parentSite.equals(m_musicPerformanceSite))
-						{
-							pathEdit.setType(DissertationService.DISSERTATION_TYPE_MUSIC_PERFORMANCE);
-						}
-						else
-						{
-							pathEdit.setType(DissertationService.DISSERTATION_TYPE_DISSERTATION_STEPS);
-						}
-					}
-					catch(Exception e)
-					{
-						msg = info.getChefId() + ": exception setting initial CandidatePath attributes: " + e.toString();
-						rv.add(msg);
-					}
-					finally
-					{
-						if(pathEdit != null && pathEdit.isActiveEdit())
-						{
-							commitEdit(pathEdit);
-						}
-					}
-				}
-				path = getCandidatePathForCandidate(info.getChefId());
-				if(path == null)
-				{
-					m_logger.warn(this + ".dumpData path from getCandidatePathForCandidate for " + info.getChefId() + " is null");
-					msg = info.getChefId() + ": the path from getCandidatePathForCandidate was null"; 
-					rv.add(msg);
-					continue;
-				}
-				orderedStatus = path.getOrderedStatus();
-				
-				//ITERATE THROUGH ORDERED STEPS
-				for(int y = 1; y < (orderedStatus.size()+1); y++)
-				{
-					
-					//GET A STATUS REF
-					statusRef = (String)orderedStatus.get("" + y);
-					statusId = statusId(statusRef);
-					status = m_statusStorage.get(statusId);
-					autoValidationId = status.getAutoValidationId();
-					
-					//GET THE AUTO VALID ID IF ANY
-					if((!"".equals(autoValidationId)) && (!"None".equals(autoValidationId)))
-					{
-						
-						try
-						{
-							//take out status edit here
-							statusEdit = m_statusStorage.edit(statusId);
-							
-							//GET THE AUTO VALID NUMBER
-							autoValidNumber = Integer.parseInt(autoValidationId);
-							
-							//remove prior auxiliary text
-							if(statusEdit.getAuxiliaryText() != null)
-								statusEdit.setAuxiliaryText(null);
-							
-							//display committee member names/dates with Submit completed evaluation forms to Rackham three days before defense
-							//previously was with Return Final Oral Examination report to Rackham
-							if(autoValidNumber == 6 && ((Vector)info.getCommitteeEvalsCompleted()).size() > 0)
-							{
-								statusEdit.setAuxiliaryText(info.getCommitteeEvalsCompleted());
-							}
-							
-							completionTime = info.getExternalValidation(autoValidNumber);
-							if(completionTime != null)
-							{
-								//We only want autovalidation #9 to set TimeCompleted to new Time() once
-								if(autoValidNumber != 9)
-								{
-									//statusEdit = m_statusStorage.edit(statusId);	
-									statusEdit.setCompleted(true);
-									statusEdit.setTimeCompleted(completionTime);
-									
-									//We want to display Advanced to Candidacy Term (e.g., 'Fall 2003') with time 'Approve advance to candidacy' completed
-									if(autoValidNumber == 2)
-									{
-										degreeTerm = info.getAdvCandDesc();
-										if(degreeTerm != null && !degreeTerm.equals(""))
-										{
-											if(degreeTerm.startsWith("FA"))
-												newDegreeTerm = degreeTerm.replaceFirst("FA", "Fall ");
-											else if(degreeTerm.startsWith("WN"))
-												newDegreeTerm = degreeTerm.replaceFirst("WN", "Winter ");
-											else if(degreeTerm.startsWith("SP"))
-												newDegreeTerm = degreeTerm.replaceFirst("SP", "Spring ");
-											else if(degreeTerm.startsWith("SU"))
-												newDegreeTerm = degreeTerm.replaceFirst("SU", "Summer ");
-											else if(degreeTerm.startsWith("SS"))
-												newDegreeTerm = degreeTerm.replaceFirst("SS", "Spring-Summer ");
-											if(newDegreeTerm != null)
-												degreeTerm = newDegreeTerm;
-											statusEdit.setTimeCompletedText(degreeTerm);
-										}
-									}
-									
-									//We want to display Oral Exam Date, Oral Exam Time, Oral Exam Place with first format time 'Complete Rackham pre-defense meeting' completed
-									if(autoValidNumber == 4)
-									{
-										oralExamText = info.getOralExamTime().toString() + " " + info.getOralExamPlace();
-										statusEdit.setTimeCompletedText(oralExamText);
-									}
-									
-									//We want to display student's Degree Term with date of approval of degree conferral
-									if(autoValidNumber == 11)
-									{
-										degreeTerm = info.getDegreeTermTrans();
-										if(degreeTerm != null && !degreeTerm.equals(""))
-										{
-											if(degreeTerm.startsWith("FA-"))
-												newDegreeTerm = degreeTerm.replaceFirst("FA-", "Fall ");
-											else if(degreeTerm.startsWith("WN-"))
-												newDegreeTerm = degreeTerm.replaceFirst("WN-", "Winter ");
-											else if(degreeTerm.startsWith("SP-"))
-												newDegreeTerm = degreeTerm.replaceFirst("SP-", "Spring ");
-											else if(degreeTerm.startsWith("SU-"))
-												newDegreeTerm = degreeTerm.replaceFirst("SU-", "Summer ");
-											else if(degreeTerm.startsWith("SS-"))
-												newDegreeTerm = degreeTerm.replaceFirst("SS-", "Spring-Summer ");
-											if(newDegreeTerm != null)
-												degreeTerm = newDegreeTerm;
-											statusEdit.setTimeCompletedText(degreeTerm);
-										}
-									}
-								}
-								else
-								{
-									if(status.getTimeCompleted()==null || status.getTimeCompleted().equals(""))
-									{
-										statusEdit.setCompleted(true);
-										statusEdit.setTimeCompleted(completionTime);
-									}
-								}
-							}
-							else
-							{
-								//COMPLETION TIME IS NULL
-
-								/* if null is because there is a record with date set to null, set status to null
-								 * if null is because the record is missing, do not change the existing status
-								 */
-								if((((autoValidNumber == 1) || (autoValidNumber == 2)) && info.getMPRecInExtract()) ||
-								((autoValidNumber != 1) && (autoValidNumber != 2) && info.getOARDRecInExtract()))
-								{
-									statusEdit.setCompleted(false);
-									statusEdit.setTimeCompleted(completionTime);
-								}
-							}
-						}
-						catch(Exception nfe)
-						{
-							m_logger.warn("DISSERTATION : BASE SERVICE : DUMP DATA : EXCEPTION PROCESSING AUTOVALID NUMBER : " + autoValidationId + " " + nfe.toString());
-							msg = info.getChefId() + ": exception processing step with autovalidation number " + autoValidationId + ": " + nfe;
-							rv.add(msg);
-						}
-						finally
-						{
-							if(statusEdit != null && statusEdit.isActiveEdit())
-								commitEdit(statusEdit);
-						}
-					}
-				}
-			}
-			catch(Exception e)
-			{
-				m_logger.warn("DISSERTATION : BASE SERVICE : DUMP DATA : EXCEPTION STORING DATA FOR : " + info.getChefId() + ": " + e.toString());
-				msg = info.getChefId() + ": exception " + e.toString();
-				rv.add(msg);
-			}
-		}
-		m_initialized = true;
-		return rv;
-		
-	}//dumpData
-	
-	/** 
 	* Access the site for a Rackham program.
 	* @param program The Rackham program id.
 	* @return The CHEF site id for that program.
@@ -3658,7 +891,7 @@ public abstract class BaseDissertationService
 		String retVal = "diss" + program;
 		return retVal;
 		
-	}//getParentSiteIdForProgram
+	}
 	
 	/** 
 	* Access the list of candidates with the parent department site, optionally filtered by dissertation step type.
@@ -3673,8 +906,6 @@ public abstract class BaseDissertationService
 		CandidatePath aPath = null;
 		List userIds = new Vector();
 		List paths = getCandidatePaths();
-		User aUser = null;
-
 		for(int x = 0; x < paths.size(); x++)
 		{
 			aPath = (CandidatePath)paths.get(x);
@@ -3731,7 +962,7 @@ public abstract class BaseDissertationService
 		}
 		return retVal;
 		
-	}//isCandidate
+	}
 	
 	/** 
 	* Access whether this user is a Music Performance candidate.
@@ -3751,7 +982,7 @@ public abstract class BaseDissertationService
 		}
 		return retVal;
 		
-	}//isMusicPerformanceCandidate
+	}
 	
 	/**
 	* Access the site for the user's Rackham department.
@@ -3774,7 +1005,7 @@ public abstract class BaseDissertationService
 		}
 		return retVal;
 		
-	}//getParentSiteForUser
+	}
 
 	/**
 	* Access the University id for the user.
@@ -3794,7 +1025,7 @@ public abstract class BaseDissertationService
 		}
 		return retVal;
 
-	}//getEmplidForUser
+	}
 	
 	/** 
 	* Creates and adds a new BlockGrantGroup to the service.
@@ -4093,7 +1324,7 @@ public abstract class BaseDissertationService
 		}
 		return retVal;
 
-	}//getBlockGrantGroupForFieldOfStudy	
+	}	
 
 	
 	/** 
@@ -4175,7 +1406,7 @@ public abstract class BaseDissertationService
 
 		return dissertation;
 
-	}//mergeDissertation
+	}
 	
 	/**
 	* Access the Dissertation with the specified reference.
@@ -4291,7 +1522,7 @@ public abstract class BaseDissertationService
 		}
 		return dissertations;
 		
-	}//getDissertationsOfType
+	}
 	
 	
 	/**
@@ -4334,7 +1565,7 @@ public abstract class BaseDissertationService
 
 		return dissertation;
 
-	}   // editDissertation
+	}
 	
 	
 	/**
@@ -4364,7 +1595,7 @@ public abstract class BaseDissertationService
 		// close the edit object
 		((BaseDissertationEdit) dissertation).closeEdit();
 
-	}	// commitEdit
+	}
 
 	
 	/**
@@ -4387,7 +1618,7 @@ public abstract class BaseDissertationService
 		// close the edit object
 		((BaseDissertationEdit) dissertation).closeEdit();
 
-	}	// cancelEdit(Dissertation)
+	}
 	
 	/** 
 	* Removes this Dissertation and all references to it.
@@ -4414,7 +1645,7 @@ public abstract class BaseDissertationService
 			
 			((BaseDissertationEdit)dissertation).closeEdit();
 		}
-	}//removeDissertaion
+	}
 
 	/** 
 	* Creates and adds a new DissertationStep to the service.
@@ -4539,7 +1770,7 @@ public abstract class BaseDissertationService
 
 		return step;
 		
-	}//mergeStep
+	}
 	
 	/**
 	* Access the DissertationStep with the specified id.
@@ -4576,7 +1807,7 @@ public abstract class BaseDissertationService
 		
 		return step;
 
-	}//getDissertationStep
+	}
 
 
 	/**
@@ -4636,7 +1867,7 @@ public abstract class BaseDissertationService
 
 		return steps;
 
-	}   // getDissertationSteps
+	}// getDissertationSteps
 	
 	
 	/**
@@ -4680,7 +1911,7 @@ public abstract class BaseDissertationService
 
 		return step;
 
-	}   // editDissertationStep
+	}
 
 	
 	/**
@@ -4710,7 +1941,7 @@ public abstract class BaseDissertationService
 		// close the edit object
 		((BaseDissertationStepEdit) step).closeEdit();
 
-	}	// commitEdit
+	}
 
 	
 	/**
@@ -4733,7 +1964,7 @@ public abstract class BaseDissertationService
 		// close the edit object
 		((BaseDissertationStepEdit) step).closeEdit();
 
-	}	// cancelEdit(DissertationStep)
+	}
 	
 	/** 
 	* Removes a DissertationStep
@@ -4806,47 +2037,6 @@ public abstract class BaseDissertationService
 		return path;
 	}
 	
-	/** 
-	* Adds an CandidatePath to the service.
-	* @param dissertation - The parent Dissertation.
-	* @param site - There is no current site - request comes from DissertationDataListenerService.
-	* @return The new CandidatePathEdit.
-	*/
-	protected CandidatePathEdit addCandidatePathFromListener(Dissertation dissertation, String site)
-	{
-		String pathId = null;
-		boolean badId = false;
-		
-		do
-		{
-			badId = false;
-			pathId = IdService.getUniqueId();
-			try
-			{
-				Validator.checkResourceId(pathId);
-			}
-			catch(IdInvalidException iie)
-			{
-				badId = true;
-			}
-
-			if(m_pathStorage.check(pathId))
-				badId = true;
-
-		}while(badId);
-		
-		String key = pathReference(site, pathId);
-		
-		CandidatePathEdit path = m_pathStorage.put(pathId, site);
-		
-		dissertation.initializeCandidatePath(path, site);
-		
-		((BaseCandidatePathEdit) path).setEvent(SECURE_ADD_DISSERTATION_CANDIDATEPATH);
-		
-		return path;
-	}
-
-	
 	/**
 	* Add a new CandidatePath to the directory, from a definition in XML.
 	* Must commitEdit() to make official, or cancelEdit() when done!
@@ -4878,14 +2068,11 @@ public abstract class BaseDissertationService
 		// transfer from the XML read path object to the CandidatePathEdit
 		((BaseCandidatePathEdit) path).set(pathFromXml);
 
-
 		((BaseCandidatePathEdit) path).setEvent(SECURE_ADD_DISSERTATION_CANDIDATEPATH);
 
 		return path;
 
-	}//mergeCandidatePath
-	
-	//%%% new APIs
+	}
 	
 	/**
 	* Check whether there exists a CandidatePath with this parent site
@@ -4905,7 +2092,6 @@ public abstract class BaseDissertationService
 		String sortName = null;
 		if(parent != null)
 		{
-			
 			List paths = m_pathStorage.getAllOfParentForLetter(parent, letter);
 			for (int i = 0; i < paths.size(); i++)
 			{
@@ -4924,7 +2110,7 @@ public abstract class BaseDissertationService
 		}
 		return retVal;
 		
-	}//isUserOfParentForLetter
+	}
 
 	/**
 	* Check whether there exists a CandidatePath having candidate attribute (uniqname)
@@ -4945,7 +2131,6 @@ public abstract class BaseDissertationService
 		String sortName = null;
 		if(type != null)
 		{
-			
 			List paths = m_pathStorage.getAllOfTypeForLetter(type, letter);
 			for (int i = 0; i < paths.size(); i++)
 			{
@@ -4964,7 +2149,7 @@ public abstract class BaseDissertationService
 		}
 		return retVal;
 		
-	}//isUserOfTypeForLetter
+	}
 	
 	/**
 	* Access the alphabetical candidate chooser letter for this student. 
@@ -4995,7 +2180,7 @@ public abstract class BaseDissertationService
 		}
 		return retVal;
 		
-	}//getSortLetter
+	}
 
 	/**
 	* Access in Sort Name order the student User objects for which CandidatePath candidate 
@@ -5035,7 +2220,7 @@ public abstract class BaseDissertationService
 		}
 		return retVal;
 		
-	}//getSortedUsersOfTypeForLetter
+	}
 	
 	/**
 	* Access in Sort Name order the student User objects for which CandidatePath candidate 
@@ -5075,7 +2260,7 @@ public abstract class BaseDissertationService
 		}
 		return retVal;
 		
-	}//getSortedUsersOfParentForLetter
+	}
 
 	/**
 	* Access the CandidatePaths of this type (e.g, “Dissertation Steps”, “Dissertation Steps: Music Performance”)
@@ -5091,8 +2276,7 @@ public abstract class BaseDissertationService
 		}
 		return paths;
 		
-	}//getCandidatePathsOfType
-
+	}
 
 	/**
 	* Check whether a CandidatePath of this type exists.
@@ -5105,8 +2289,7 @@ public abstract class BaseDissertationService
 		exists = m_pathStorage.existsPathOfType(type);
 		return exists;
 		
-	}//isCandidatePathOfType
-
+	}
 
 	/**
 	* Access the CandidatePath with the specified reference.
@@ -5145,7 +2328,6 @@ public abstract class BaseDissertationService
 		
 		return path;
 	}
-	
 	
 	/**
 	* Access all CandidatePath objects - known to us (not from external providers).
@@ -5206,7 +2388,7 @@ public abstract class BaseDissertationService
 
 		return paths;
 
-	}   // getCandidatePaths
+	}//getCandidatePaths
 	
 	
 	/**
@@ -5249,9 +2431,8 @@ public abstract class BaseDissertationService
 
 		return path;
 
-	}   // editCandidatePath
+	}
 
-	
 	/**
 	* Commit the changes made to a CandidatePathEdit object, and release the lock.
 	* @param path The CandidatePathEdit object to commit.
@@ -5279,8 +2460,7 @@ public abstract class BaseDissertationService
 		// close the edit object
 		((BaseCandidatePathEdit) path).closeEdit();
 
-	}	// commitEdit(CandidatePath)
-
+	}
 	
 	/**
 	* Cancel the changes made to a CandidatePathEdit object, and release the lock.
@@ -5302,7 +2482,7 @@ public abstract class BaseDissertationService
 		// close the edit object
 		((BaseCandidatePathEdit) path).closeEdit();
 
-	}	// cancelEdit(Path)
+	}
 	
 	/** 
 	* Removes an CandidatePath and all references to it
@@ -5408,7 +2588,6 @@ public abstract class BaseDissertationService
 			
 		}while(badId);
 		
-		String key = statusReference(site, statusId);
 		StepStatusEdit status = m_statusStorage.put(statusId, site);
 		status.initialize(site, step, oardStep);
 
@@ -5461,7 +2640,6 @@ public abstract class BaseDissertationService
 		return status;
 	}
 
-
 	/**
 	* Add a new StepStatus to the directory, from a definition in XML.
 	* Must commitEdit() to make official, or cancelEdit() when done!
@@ -5497,7 +2675,7 @@ public abstract class BaseDissertationService
 
 		return status;
 
-	}//mergeStepStatus
+	}
 
 	/**
 	* Access the StepStatus with the specified reference.
@@ -5535,8 +2713,7 @@ public abstract class BaseDissertationService
 		
 		return status;
 
-	}//getStepStatus
-	
+	}
 	
 	/**
 	* Access all StepStatus objects - known to us (not from external providers).
@@ -5551,7 +2728,6 @@ public abstract class BaseDissertationService
 		{
 			statusi = m_statusStorage.getAll();
 		}
-
 		else
 		{
 			// if the cache is complete, use it
@@ -5597,8 +2773,7 @@ public abstract class BaseDissertationService
 
 		return statusi;
 
-	}   // getStepStatus
-	
+	}
 	
 	/**
 	* Get a locked StepStatus object for editing.  Must commitEdit() to make official, or cancelEdit() when done!
@@ -5641,49 +2816,7 @@ public abstract class BaseDissertationService
 
 		return status;
 
-	}   // editStepStatus
-
-
-	/**
-	* Get a locked StepStatus object for editing.  Must commitEdit() to make official, or cancelEdit() when done!
-	* @param statusReference The StepStatus reference string.
-	* @return An StepStatusEdit object for editing.
-	* @exception IdUnusedException if not found, or if not an StepStatusEdit object
-	* @exception PermissionException if the current user does not have permission to edit this StepStatus.
-	* @exception InUseException if the StepStatus is being edited by another user.
-	*/
-	protected StepStatusEdit editStepStatusFromListener(String statusReference)
-		throws IdUnusedException, InUseException
-	{
-		String statusId = statusId(statusReference);
-
-		// check for existance
-		if (m_caching)
-		{
-			if ((m_statusCache.get(statusReference) == null) && (!m_statusStorage.check(statusId)))
-			{
-				throw new IdUnusedException(statusId);
-			}
-		}
-		else
-		{
-			if (!m_statusStorage.check(statusId))
-			{
-				throw new IdUnusedException(statusId);
-			}
-		}
-
-		// ignore the cache - get the StepStatus with a lock from the info store
-		StepStatusEdit status = m_statusStorage.edit(statusId);
-		
-		if (status == null) throw new InUseException(statusId);
-
-		((BaseStepStatusEdit) status).setEvent(SECURE_UPDATE_DISSERTATION_STEPSTATUS);
-
-		return status;
-
-	}   // editStepStatusFromListener
-	
+	}
 	
 	/**
 	* Commit the changes made to an StepStatusEdit object, and release the lock.
@@ -5712,9 +2845,8 @@ public abstract class BaseDissertationService
 		// close the edit object
 		((BaseStepStatusEdit) status).closeEdit();
 
-	}	// commitEdit
+	}
 
-	
 	/**
 	* Cancel the changes made to a StepStatusEdit object, and release the lock.
 	* @param status The StepStatusEdit object to commit.
@@ -5735,7 +2867,7 @@ public abstract class BaseDissertationService
 		// close the edit object
 		((BaseStepStatusEdit) status).closeEdit();
 
-	}	// cancelEdit(StepStatus)
+	}
 
 	/** 
 	* Removes a StepStatus and all references to it
@@ -5763,45 +2895,8 @@ public abstract class BaseDissertationService
 			((BaseStepStatusEdit)status).closeEdit();		
 		}
 
-	}//removeStepStatus
+	}
 	
-	/** 
-	* Adds a well-known CandidateInfo as a lock during uploads.
-	* @param site - The site for which permissions are being checked.
-	* @throws PermissionException if the current User does not have permission
-	*  to do this.
-	* @return CandidateInfoEdit The edit used to lock uploads.
-	*/
-	public CandidateInfoEdit addCandidateInfoLock(String site)
-		throws PermissionException
-	{
-		String infoId = null;
-		CandidateInfoEdit info = null;
-			
-		//set an id that can be easily identified in the datbase
-		infoId = DissertationService.IS_LOADING_LOCK_ID;
-
-		//check for the locked object
-		if(m_infoStorage.check(infoId))
-			return info;
-		
-		String key = infoReference(site, infoId);
-		unlock(SECURE_ADD_DISSERTATION_CANDIDATEINFO, key);
-		info = m_infoStorage.put(infoId, site);
-		info.setSite(site);
-		try
-		{
-			((BaseCandidateInfoEdit) info).setEvent(SECURE_ADD_DISSERTATION_CANDIDATEINFO);
-		}
-		catch(Exception e)
-		{
-			m_logger.warn(this + ".addCandidateInfoLock setEvent " + e);
-		}
-		
-		return info;
-		
-	}//addCandidateInfoLock
-
 	/** 
 	* Adds an CandidateInfo to the service.
 	* @param site - The site for which permissions are being checked.
@@ -5852,46 +2947,6 @@ public abstract class BaseDissertationService
 		return info;
 	}
 
-	/** 
-	* Adds an CandidateInfo to the service.
-	* @param site - There is no current site - request comes from DissertationDataListenerService.
-	* @return The new CandidateInfo.
-	*/
-	public CandidateInfoEdit addCandidateInfoFromListener(String site)
-	{
-		String infoId = null;
-		boolean badId = false;
-		
-		do
-		{
-			badId = false;
-			infoId = IdService.getUniqueId();
-			try
-			{
-				Validator.checkResourceId(infoId);
-			}
-			catch(IdInvalidException iie)
-			{
-				badId = true;
-			}
-
-			if(m_infoStorage.check(infoId))
-				badId = true;
-
-		}while(badId);
-		
-		String key = infoReference(site, infoId);
-		
-		CandidateInfoEdit info = m_infoStorage.put(infoId, site);
-		
-		info.setSite(site);
-		
-		((BaseCandidateInfoEdit) info).setEvent(SECURE_ADD_DISSERTATION_CANDIDATEINFO);
-		
-		return info;
-	}
-	
-	
 	/**
 	* Add a new CandidateInfo to the directory, from a definition in XML.
 	* Must commitEdit() to make official, or cancelEdit() when done!
@@ -5927,7 +2982,7 @@ public abstract class BaseDissertationService
 
 		return info;
 
-	}//mergeCandidateInfo
+	}
 
 	/**
 	* Access the CandidateInfo with the specified reference.
@@ -5966,7 +3021,7 @@ public abstract class BaseDissertationService
 		
 		return info;
 
-	}//getCandidateInfo
+	}
 
 	/**
 	* Access the CandidateInfo for the specified user.
@@ -5990,7 +3045,7 @@ public abstract class BaseDissertationService
 		
 		return retVal;
 
-	}//getCandidateInfoEditForEmplid	
+	}	
 	
 	/**
 	* Access all CandidateInfo objects - known to us (not from external providers).
@@ -6051,7 +3106,7 @@ public abstract class BaseDissertationService
 
 		return infos;
 
-	}   // getCandidateInfos
+	}//getCandidateInfos
 	
 	
 	/**
@@ -6095,8 +3150,7 @@ public abstract class BaseDissertationService
 
 		return info;
 
-	}   // editCandidateInfo
-
+	}
 
 	/**
 	* Commit the changes made to an CandidateInfoEdit object, and release the lock.
@@ -6125,9 +3179,8 @@ public abstract class BaseDissertationService
 		// close the edit object
 		((BaseCandidateInfoEdit) info).closeEdit();
 
-	}	// commitEdit
+	}
 
-	
 	/**
 	* Cancel the changes made to a CandidateInfoEdit object, and release the lock.
 	* @param info The CandidateInfoEdit object to commit.
@@ -6148,7 +3201,7 @@ public abstract class BaseDissertationService
 		// close the edit object
 		((BaseCandidateInfoEdit) info).closeEdit();
 
-	}	// cancelEdit(CandidateInfo)
+	}
 
 	/** 
 	* Removes an CandidateInfo and all references to it
@@ -6176,9 +3229,15 @@ public abstract class BaseDissertationService
 			((BaseCandidateInfoEdit)info).closeEdit();		
 		}
 
-	}//removeCandidateInfo
+	}
 
 
+	/** 
+	* Get a List of DissertationSteps with site equal to this site
+	* @param site - the site to match
+	* @throws PermissionException if current User does not have permission to do this.
+	* @throws IdUnusedException if step cannot be found
+	*/
 	public List getDissertationStepsForSite(String site)
 		throws IdUnusedException, PermissionException
 	{
@@ -6199,7 +3258,7 @@ public abstract class BaseDissertationService
 
 		return retVal;
 		
-	}//getDissertationStepsForSite
+	}
 	
 	/** 
 	* Get the List of CandidatePaths assiciated with a parent (department) site.
@@ -6215,7 +3274,7 @@ public abstract class BaseDissertationService
 		}
 		return retVal;
 		
-	}//getCandidatePathsForParentSite
+	}
 	
 	/**
 	* Access the CandidatePath for the specified candidate.
@@ -6233,7 +3292,7 @@ public abstract class BaseDissertationService
 		}
 		return retVal;
 		
-	}//getCandidatePathForCandidate
+	}
 	
 	/**
 	* Access the CandidatePath for the specified site.
@@ -6252,7 +3311,7 @@ public abstract class BaseDissertationService
 		catch(Exception e) {}
 		return retVal;
 		
-	}//getCandidatePathForSite
+	}
 	
 	/**
 	* Access the Dissertation associated with pedagogical approach of Music Performance or otherwise.
@@ -6277,7 +3336,7 @@ public abstract class BaseDissertationService
 		}
 		return retVal;
 		
-	}//getDissertationForSite
+	}
 	
 	/**
 	* Access the Dissertation associated with a site.
@@ -6294,7 +3353,7 @@ public abstract class BaseDissertationService
 		}
 		return retVal;
 		
-	}//getDissertationForSite
+	}
 	
 	
 	/** 
@@ -6335,7 +3394,7 @@ public abstract class BaseDissertationService
 		}
 		return retVal;
 		
-	}//getCandidateInfoForCandidate
+	}
 	
 	/** 
 	* Access whether a department site has any active CandidatePaths associated with it.
@@ -6355,7 +3414,7 @@ public abstract class BaseDissertationService
 		}
 		return retVal;
 		
-	}//getActivePathsForSite
+	}
 	
 	/**
 	* Access the CandidateInfo for the candidate.
@@ -6412,7 +3471,7 @@ public abstract class BaseDissertationService
 		props.addProperty(ResourceProperties.PROP_MODIFIED_DATE,
 			TimeService.newTime().toString());
 
-	}	//  addLiveUpdateProperties
+	}
 
 	/**
 	* Create the live properties for the object.
@@ -6427,7 +3486,7 @@ public abstract class BaseDissertationService
 		props.addProperty(ResourceProperties.PROP_CREATION_DATE, now);
 		props.addProperty(ResourceProperties.PROP_MODIFIED_DATE, now);
 
-	}	//  addLiveProperties
+	}
 	
 	/**
 	* Check permissions for adding a BlockGrantGroup
@@ -6476,7 +3535,7 @@ public abstract class BaseDissertationService
 	*/
 	public boolean allowAddDissertation(String site)
 	{
-			// check security (throws if not permitted)
+		// check security (throws if not permitted)
 		String resourceString = dissertationReference(site, "");
 		return unlockCheck(SECURE_ADD_DISSERTATION, resourceString);
 	}
@@ -6923,7 +3982,6 @@ public abstract class BaseDissertationService
 			
 			String keyString = null;
 			String valueString = null;
-			List schoolPrereqs = null;
 			
 			m_id = el.getAttribute("id");
 			m_code = el.getAttribute("code");
@@ -8601,10 +5659,6 @@ public abstract class BaseDissertationService
 			
 			stack.push(step);
 
-			String attributeString = null;
-			String itemString = null;
-			String intString = null;
-
 			step.setAttribute("id", m_id);
 			step.setAttribute("site", m_site);
 			step.setAttribute("validationtype", m_validationType);
@@ -8830,14 +5884,10 @@ public abstract class BaseDissertationService
 			StringBuffer buffer = new StringBuffer();
 			String retVal = null;
 			String tempString = null;
-			String linkString = null;
 			String linkTextString = null;
-			String fullLinkString = null;
 			boolean goodSyntax = true;
 			int midIndex = -1;
 			int endIndex = -1;
-			int tagIndex = -1;
-			
 			int beginIndex = m_instructionsText.indexOf("http");
 			if(beginIndex == -1)
 			{
@@ -9502,15 +6552,10 @@ public abstract class BaseDissertationService
 			}
 
 			stack.push(path);
-			
-			String numItemsString = null;
-			String attributeString = null;
+
 			String itemString = null;
 			String keyString = null;
-			String intString = null;
 			
-			//String sortLetter = Character.toString(m_sortLetter);
-
 			path.setAttribute("id", m_id);
 			path.setAttribute("candidate", m_candidate);
 			path.setAttribute("advisor", m_advisor);
@@ -10169,7 +7214,6 @@ public abstract class BaseDissertationService
 			if(statusToRemoveReference != null)
 			{
 				Hashtable newOrder = new Hashtable();
-				List schoolStepPrereqs = null;
 				String keyString = null;
 				String statusId = null;
 				boolean foundIt = false;
@@ -11483,9 +8527,7 @@ public abstract class BaseDissertationService
 			StringBuffer buffer = new StringBuffer();
 			String retVal = null;
 			String tempString = null;
-			String linkString = null;
 			String linkTextString = null;
-			String fullLinkString = null;
 			boolean goodSyntax = true;
 			int midIndex = -1;
 			int endIndex = -1;
@@ -11960,7 +9002,7 @@ public abstract class BaseDissertationService
 	*
 	* Contains a Rackham MPathways data record
 	* 
-	*/
+	*
 	private class MPRecord
 	{
 		/**
@@ -11973,7 +9015,7 @@ public abstract class BaseDissertationService
 		* 5 ¦  Milestone				¦  A10	| name of milestone PRELIM or ADVCAND
 		* 6 | Academic plan				|  A4	| Field of study and degree (e.g. 1220PHD1)
 		* 7 | Campus id					|  A1-A8| Student's uniqname (Chef id)
-		*/
+		*
 		public String m_umid = null;
 		public String m_acad_prog = null;
 		public String m_anticipate = null;
@@ -12001,7 +9043,7 @@ public abstract class BaseDissertationService
 	*
 	* Contains a Rackham OARD data record
 	* 
-	*/
+	*
 	private class OARDRecord
 	{
 		/**
@@ -12039,7 +9081,7 @@ public abstract class BaseDissertationService
 		*27 ¦  Member                    ¦  A40 - faculty member name
 		*28 ¦  Eval date                 ¦  D - evaluation received date
 		*29 |  Campus id                 |  A1-A8 - student's uniqname (Chef id)
-		*/
+		*
 		public String m_umid = null;
 		public String m_fos = null;
 		public String m_lname = null;
@@ -12102,7 +9144,7 @@ public abstract class BaseDissertationService
 		public String getCampusId() { return m_campus_id; }
 		
 	} // OARDRecord
-
+	*/
 	
 	/**
 	* Comparator for alphabetizing User's Display Name
@@ -12184,7 +9226,7 @@ public abstract class BaseDissertationService
 		public String m_advCandDesc;
 		public String m_oralExamPlace;
 		public String m_oralExamTime;
-		public String m_finalFormatRecorder;
+		//public String m_finalFormatRecorder;
 		public String m_degreeTermTrans;
 		public String m_milestone;
 		public Vector m_committeeEvalsCompleted;
@@ -12198,17 +9240,17 @@ public abstract class BaseDissertationService
 		public Time m_firstFormat;
 		public Time m_oralReportReturned;
 		public Time m_committeeCert;
-		public Time m_binderReceipt;
-		public Time m_receiptSeen;
-		public Time m_pubFee;
-		public Time m_unbound;
-		public Time m_abstract;
-		public Time m_bound;
-		public Time m_diplomaApp;
-		public Time m_contract;
-		public Time m_survey;
+		//public Time m_binderReceipt;
+		//public Time m_receiptSeen;
+		//public Time m_pubFee;
+		//public Time m_unbound;
+		//public Time m_abstract;
+		//public Time m_bound;
+		//public Time m_diplomaApp;
+		//public Time m_contract;
+		//public Time m_survey;
 		public Time m_degreeConferred;
-		public boolean m_feeRequirementMet;
+		//public boolean m_feeRequirementMet;
 		protected Vector m_timeCommitteeEval;
 		public boolean m_MPRecInExtract;
 		public boolean m_OARDRecInExtract;
@@ -12227,7 +9269,7 @@ public abstract class BaseDissertationService
 			m_parentSiteId = "";
 			m_properties = new BaseResourcePropertiesEdit();
 			addLiveProperties(m_properties);
-			m_feeRequirementMet = false;
+			//m_feeRequirementMet = false;
 			m_committeeEvalsCompleted = new Vector();
 			m_timeCommitteeEval = new Vector();
 			m_MPRecInExtract = false;
@@ -12616,7 +9658,7 @@ public abstract class BaseDissertationService
 					retVal = m_committeeCert;
 					break;
 
-
+				/*
 				case 9:
 					if(m_finalFormatRecorder != null && !m_finalFormatRecorder.equals(""))
 					{
@@ -12624,7 +9666,6 @@ public abstract class BaseDissertationService
 					}
 					break;
 
-				/* remove step 29.
 				case 10:
 					if((m_committeeApproval != null) && 
 					   (m_binderReceipt != null) &&
@@ -12650,10 +9691,11 @@ public abstract class BaseDissertationService
 					}
 					break;
 
-				
+				/*
 				case 12:
 					retVal = m_bound;
 					break;
+				*/
 			}
 			
 			return retVal;
@@ -12985,102 +10027,113 @@ public abstract class BaseDissertationService
 		/**
 		* Set the Rackham data value.
 		* @param recorder The final format recorder.
-		*/
+		*
 		public void setFinalFormatRecorder(String recorder)
 		{
 			if(recorder != null)
 				m_finalFormatRecorder = recorder;
 		}
+		*/
 
 		/**
 		* Set the time of completion of the Rackham milestone.
 		* @param receipt The binder receipt time.
-		*/
+		*
 		public void setTimeBinderReceipt(Time receipt)
 		{
 			m_binderReceipt = receipt;
 		}
+		*/
 
 		/**
 		* Set the Rackham data value.
 		* @param met The fee requirement.
-		*/
+		*
 		public void setFeeRequirementMet(boolean met)
 		{
 			m_feeRequirementMet = met;
 		}
+		*/
 
 		/**
 		* Set the time of completion of the Rackham milestone.
 		* @param seen The time receipt seen.
-		*/
+		*
 		public void setTimeReceiptSeen(Time seen)
 		{
 			m_receiptSeen = seen;
 		}
+		*/
 
 		/**
 		* Set the time of completion of the Rackham milestone.
 		* @param fee The time the publication fee paid.
-		*/
+		*
 		public void setTimePubFee(Time fee)
 		{
 			m_pubFee = fee;
 		}
+		*/
 
 		/**
 		* Set the time of completion of the Rackham milestone.
 		* @param unbound The unbound time.
-		*/
+		*
 		public void setTimeUnbound(Time unbound)
 		{
 			m_unbound = unbound;
 		}
+		*/
 
 		/**
 		* Set the time of completion of the Rackham milestone.
 		* @param abst The abstract time.
-		*/
+		*
 		public void setTimeAbstract(Time abst)
 		{
 			m_abstract = abst;
 		}
+		*/
 
 		/**
 		* Set the time of completion of the Rackham milestone.
 		* @param bound The bound time.
-		*/
+		*
 		public void setTimeBound(Time bound)
 		{
 			m_bound = bound;
 		}
+		*/
 
 		/**
 		* Set the time of completion of the Rackham milestone.
 		* @param app The diploma app time.
-		*/
+		*
 		public void setTimeDiplomaApp(Time app)
 		{
 			m_diplomaApp = app;
 		}
+		*/
 
 		/**
 		* Set the time of completion of the Rackham milestone.
 		* @param contract The contract time.
-		*/
+		*
 		public void setTimeContract(Time contract)
 		{
 			m_contract = contract;
 		}
+		*/
 
 		/**
 		* Set the time of completion of the Rackham milestone.
 		* @param survey The survey time.
-		*/
+		*
 		public void setTimeSurvey(Time survey)
 		{
 			m_survey = survey;
 		}
+		*/
 
 		/**
 		* Set the time of completion of the Rackham milestone.
@@ -15032,7 +12085,925 @@ public abstract class BaseDissertationService
 		}
 		return aTime;
 	}
-}
+	
+	/**
+	* Get the collection of Checklist Section Headings for display.
+	* @return Vector of ordered String objects, one for each section head.
+	*/
+	public Vector getSectionHeads()
+	{
+		Vector retVal = new Vector();
+		retVal.add("None");
+		retVal.add(DissertationService.CHECKLIST_SECTION_HEADING1);
+		retVal.add(DissertationService.CHECKLIST_SECTION_HEADING2);
+		retVal.add(DissertationService.CHECKLIST_SECTION_HEADING3);
+		retVal.add(DissertationService.CHECKLIST_SECTION_HEADING4);
+		return retVal;
+	}
+	
+	/**
+	* Get the section head identifier for the checklist section heading.
+	* @param String head The text of the section heading.
+	* @return String containing the section identifier.
+	*/
+	public String getSectionId(String head)
+	{
+		String retVal = "";
+		if(head!=null && !head.equals(""))
+		{
+			if(head.equals(DissertationService.CHECKLIST_SECTION_HEADING1))
+			{
+				retVal = "1";
+			}
+			else if(head.equals(DissertationService.CHECKLIST_SECTION_HEADING2))
+			{
+				retVal = "2";
+			}
+			else if(head.equals(DissertationService.CHECKLIST_SECTION_HEADING3))
+			{
+				retVal = "3";
+			}
+			else if(head.equals(DissertationService.CHECKLIST_SECTION_HEADING4))
+			{
+				retVal = "4";
+			}
+		}
+		return retVal;
+	}
+	
+	/**
+	* Add a new dissertation step to dissertation(s) and paths
+	* Long-running process runs in a separate thread under Quartz.
+	* Returns status messages to Announcements.
+	* 
+	* @param retro - Whether or not to apply the change to existing 
+	* 	dissertations and paths
+	* @param parm - Job execution parameters:
+	* Object[0] retro - Boolean value true is retroactive change
+	* - Whether or not to apply the change to existing 
+	* 	dissertations and paths
+	* Object[1] dissref - String reference to the current dissertation.
+	* Object[2] currentSite - String id of the current site.
+	* Object[3] location - String key to location of new step.
+	* Object[4] section - String checklist section description.
+	* Object[5] prereqs - String[] prerequisites.
+	* Object[6] instructionsText - String step instructions.
+	* Object[7] validType - String type of step completion validator.
+	* Object[8] autoValid - String key for automatic step status update.
+	* @throws JobExceptionException - Required by Quartz.
+	*/
+	private String execNewStepJob(Object[] parm)
+		throws JobExecutionException
+	{
+		
+		/** update the current Dissertation so display may be refreshed.
+		 * take current Dissertation out of Collection to be updated in job. */
+		
+		String dissRef = (String)parm[1];
+		String currentSite = (String)parm[2];
+		String location = (String)parm[3];
+		String section = (String)parm[4];
+		String[] prereqs = (String[])parm[5];
+		String instructionsText = (String)parm[6];
+		String validType = (String)parm[7];
+		String autoValid = (String)parm[8];
+		Scheduler scheduler = null;
+		
+		//TODO pass String for Quartz serialization to db
+		
+		boolean notdone = true;
+		Dissertation dissertation = null;
+		DissertationEdit dissEdit = null;
+		String stepRef = null;
+		DissertationStepEdit stepEdit = null;
+		String keystring = null;
+		String refstring = null;
+		
+		/** update the current Dissertation so display may be refreshed, and
+		 *  take current Dissertation out of Collection to be updated in job. */
+		try
+		{
+			stepEdit = addDissertationStep(currentSite);
+		}
+		catch(Exception e)
+		{
+			if(stepEdit != null && stepEdit.isActiveEdit())
+				cancelEdit(stepEdit);
+			
+			if(m_logger.isWarnEnabled())
+				m_logger.warn(this + ".execute() addDissertationStep(" + currentSite + ") " + e);
+			return e.toString();
+		}
+		if(stepEdit == null)
+		{
+			
+			if(m_logger.isWarnEnabled())
+				m_logger.warn(this + ".execute() addDissertationStep(" + currentSite + ") step edit null");
+			return "exception creating new step: stepEdit == null";
+		}
+		
+		stepEdit.setInstructionsText(instructionsText);
+		stepEdit.setValidationType(validType);
+		stepEdit.setAutoValidationId(autoValid);
+
+		//school steps have a section, department steps do not
+		if(section != null)
+		{
+			//convert from section header to key
+			stepEdit.setSection((String)getSectionId(section));
+		}
+		
+		//add step prerequisites if any
+		if(prereqs != null)
+		{
+			for(int y = 0; y < prereqs.length; y++)
+			{
+				if(!("".equals(prereqs[y])))
+				{
+					stepEdit.addPrerequisiteStep(prereqs[y]);
+				}
+			}
+		}
+		
+		//add the step to the system
+		commitEdit(stepEdit);
+		
+		//get step reference to pass to job
+		stepRef = stepEdit.getReference();
+		
+		//can we get the current Dissertation
+		try
+		{
+			dissertation = getDissertation(dissRef);
+		}
+		catch(Exception e)
+		{
+			if(m_logger.isWarnEnabled())
+				m_logger.warn(this + ".execNewStep()  dissRef " + dissRef + " " + e);
+			return (e.toString());
+		}
+
+		//get the key of step location within ordered steps
+		List previousStepRefs = new Vector();
+		previousStepRefs.add("start");
+		Hashtable orderedsteps = dissertation.getOrderedSteps();
+		if("start".equals(location))
+			notdone = false;
+		for(int z = 1; z < (orderedsteps.size()+1); z++)
+		{
+			if(notdone)
+			{
+				keystring = "" + z;
+				refstring = (String)orderedsteps.get(keystring);
+				if(refstring != null)
+				{
+					previousStepRefs.add(refstring);
+					if(refstring.equals(location))
+						notdone = false;
+				}
+			}
+		}
+		
+		//add new step to the current Dissertation at that location
+		try
+		{
+			dissEdit = editDissertation(dissertation.getReference());
+			dissEdit.addStep(stepEdit, location);
+			
+			//save the change to the system
+			commitEdit(dissEdit);
+		}
+		catch(Exception e)
+		{
+			if(dissEdit != null && dissEdit.isActiveEdit())
+				cancelEdit(dissEdit);
+			
+			if(m_logger.isWarnEnabled())
+				m_logger.warn(this + ".execute() School change - dissertation id " + dissEdit.getId() + " " + e);
+
+			return (e.toString());
+		}
+
+		/** start a Quartz job to add the step to all derived checklists */
+		
+		//pass the parameters to the job as job detail data
+		JobDetail jobDetail = new JobDetail("NewStepJob",
+				Scheduler.DEFAULT_GROUP, m_stepChangeJob.getClass());
+		JobDataMap jobDataMap = jobDetail.getJobDataMap();
+		jobDataMap.put("RETROACTIVE", (Boolean)parm[0]);
+		jobDataMap.put("DISSERTATION_REF", (String)parm[1]);
+		jobDataMap.put("STEP_REF", stepRef);
+		jobDataMap.put("CURRENT_SITE", (String)parm[2]);
+		jobDataMap.put("LOCATION", (String)parm[3]);
+		jobDataMap.put("JOB_TYPE", "New");
+		jobDataMap.put("PREVIOUS_STEP_REFS", (List)previousStepRefs);
+		jobDataMap.put("CURRENT_USER", (String)SessionManager.getCurrentSessionUserId());
+		
+		//job name + group should be unique
+		String jobGroup = IdService.getUniqueId();
+		
+		//associate a trigger with the job
+		SimpleTrigger trigger = new SimpleTrigger("NewStepTrigger", jobGroup, new Date());
+		try
+		{
+			//get a scheduler instance from the factory
+			scheduler = StdSchedulerFactory.getDefaultScheduler();
+			
+			//associate job with schedule
+			scheduler.scheduleJob(jobDetail, trigger);
+			
+			//start the scheduler
+			scheduler.start();
+		}
+		catch(SchedulerException e)
+		{
+			throw new JobExecutionException(e);
+		}
+		return "NewStepJob started. Announcements will have a job report later.";
+		
+	}//execNewStepJob
+	
+	/**
+	* Revise a dissertation step in dissertation(s) and paths
+	* Long-running process runs in a separate thread under Quartz.
+	* Returns status messages to Announcements.
+	* 
+	* @param retro - Whether or not to apply the change to existing 
+	* 	dissertations and paths
+	* @param parm - Job execution parameters:
+	* Object[0] retro - Boolean value true is retroactive change
+	* - Whether or not to apply the change to existing 
+	* 	dissertations and paths
+	* Object[1] dissertation.getReference() - String reference to the current dissertation.
+	* Object[2] currentSite - String id of the current site.
+	* Object[3] section - String checklist section description.
+	* Object[4] addprereqs - String[] prerequisites to add to step.
+	* Object[5] removeprereqs - String[] prerequisites to remove from step.
+	* Object[6] instructionsText - String step instructions.
+	* Object[7] validType - String type of step completion approver.
+	* Object[8] autoValid - String automatic validation of step completion id.
+	* Object[9] stepReference - String reference to the step to revise.
+	* Object[10] dissertation.getType() - String type of dissertation containing step.
+	* @throws JobExceptionException - Required by Quartz.
+	*/
+	private String execReviseStepJob(Object[] parm)
+		throws JobExecutionException
+	{
+		/** update the current Dissertation so display may be refreshed.
+		 * take current Dissertation out of Collection to be updated in job. */
+		
+		String m_section = (String)parm[3];
+		String[] m_addPrereqs = (String[])parm[4];
+		String[] m_removePrereqs = (String[])parm[5];
+		String m_instructionsText = (String)parm[6];
+		String m_validType = (String)parm[7];
+		String m_autoValid = (String)parm[8];
+		String m_stepRef = (String)parm[9];
+
+		DissertationStep before = null;
+		DissertationStepEdit stepEdit = null;
+		
+		//see if this is a school or department step change
+		boolean school;
+		if((String)parm[2] != null)
+			school = ((String)parm[2]).equals(m_schoolSite) ? true: false;
+		else
+			throw new JobExecutionException("(String)parm[2] is null.");
+		
+		if(m_stepRef != null)
+		{
+			try
+			{
+				//get the step before change(s) are made
+				before = getDissertationStep(m_stepRef);
+				if(before != null)
+				{
+					stepEdit = editDissertationStep(m_stepRef);
+					if(stepEdit != null)
+					{
+						stepEdit.setInstructionsText(m_instructionsText);
+						stepEdit.setValidationType(m_validType);
+						
+						//school steps have a section, department steps do not
+						if(school)
+							stepEdit.setSection(getSectionId(m_section));
+						
+						if(m_autoValid != null)
+							stepEdit.setAutoValidationId(m_autoValid);
+						
+						//remove prerequisites
+						if(m_removePrereqs != null)
+						{
+							for(int z = 0; z < m_removePrereqs.length; z++)
+							{
+								 stepEdit.removePrerequisiteStep(m_removePrereqs[z]);
+								 //TODO continue
+								 continue;
+							}//for all prerequisites
+						}
+						
+						//add prerequisites
+						if(m_addPrereqs != null)
+						{
+							for(int z = 0; z < m_addPrereqs.length; z++)
+							{
+								stepEdit.addPrerequisiteStep(m_addPrereqs[z]);
+								continue;
+							}
+						}
+						
+						//add step revision to the system
+						commitEdit(stepEdit);
+					}//stepEdit != null
+					
+				}//before != null
+			}
+			catch(Exception e)
+			{
+				if(stepEdit != null && stepEdit.isActiveEdit())
+					cancelEdit(stepEdit);
+				
+				if(m_logger.isWarnEnabled())
+					m_logger.warn(this + ".execute() exception - step id " + stepEdit.getId() + " " + e);
+			}
+		}//m_stepref != null
+		
+		//TODO pass String for Quartz serialization to db
+		
+		//TODO get distype from the current dissertation instead
+		
+		Scheduler scheduler = null;
+		
+		//pass the parameters to the job as job detail data
+		JobDetail jobDetail = new JobDetail("ReviseStepJob",
+				Scheduler.DEFAULT_GROUP, m_stepChangeJob.getClass());
+		JobDataMap jobDataMap = jobDetail.getJobDataMap();
+		jobDataMap.put("RETROACTIVE", (Boolean)parm[0]);
+		jobDataMap.put("DISSERTATION_REF", (String)parm[1]);
+		jobDataMap.put("CURRENT_SITE", (String)parm[2]);
+		jobDataMap.put("SECTION", (String)parm[3]);
+		jobDataMap.put("INSTRUCTIONS_TEXT", (String)parm[6]);
+		jobDataMap.put("VALID_TYPE", (String)parm[7]);
+		jobDataMap.put("AUTO_VALID", (String)parm[8]);
+		jobDataMap.put("STEP_REF", (String)parm[9]);
+		jobDataMap.put("BEFORE", (DissertationStep)before);
+		jobDataMap.put("DISSERTATION_TYPE", (String)parm[10]);
+		jobDataMap.put("JOB_TYPE", "Revise");
+		jobDataMap.put("CURRENT_USER",(String)SessionManager.getCurrentSessionUserId());
+		
+		//job name + group should be unique
+		String jobGroup = IdService.getUniqueId();
+		
+		//associate a trigger with the job
+		SimpleTrigger trigger = new SimpleTrigger("ReviseStepTrigger", jobGroup, new Date());
+		try
+		{
+			//get a scheduler instance from the factory
+			scheduler = StdSchedulerFactory.getDefaultScheduler();
+			
+			//associate job with schedule
+			scheduler.scheduleJob(jobDetail, trigger);
+			
+			//start the scheduler
+			scheduler.start();
+		}
+		catch(SchedulerException e)
+		{
+			throw new JobExecutionException(e);
+		}
+		return "ReviseStepJob started. Announcements will have a job report later.";
+		
+	}//execReviseStepJob
+	
+	/**
+	* Move a dissertation step in dissertation(s) and paths
+	* Long-running process runs in a separate thread under Quartz.
+	* Returns status messages to Announcements.
+	* 
+	* @param parm - Job execution parameters:
+	* Object[0] retro - Boolean value true is retroactive change
+	*  - Whether or not to apply the change to existing 
+	* 	dissertations and paths
+	* Object[1] currentDissRef - String reference to the current dissertation.
+	* Object[2] currentSite - String key to location of new step.
+	* Object[3] location - 
+	* Object[4] section - String checklist section description.
+	* Object[5] stepToMoveRef - String reference to the step to move.
+	* @throws JobExceptionException - Required by Quartz.
+	*/
+ 	private String execMoveStepJob(Object[] parm)
+ 		throws JobExecutionException
+	{
+ 		
+		/** update the current Dissertation so display may be refreshed.
+		 * take current Dissertation out of Collection to be updated in job. */
+		
+ 		DissertationEdit dissEdit = null;
+ 		String dissRef = (String)parm[1];
+ 		String location = (String)parm[3];
+ 		String section = (String)parm[4];
+ 		String stepRef = (String)parm[5];
+ 		DissertationStepEdit stepEdit = null;
+ 		
+		//see if this is a school or department step move
+		boolean school;
+		if((String)parm[2] != null)
+			school = ((String)parm[2]).equals(m_schoolSite) ? true: false;
+		else
+			throw new JobExecutionException("(String)parm[2] is null.");
+ 		
+		//school steps have an m_section, department steps do not
+		if(school)
+		{
+			try
+			{
+				//get the step being moved
+				stepEdit = editDissertationStep(stepRef);
+				
+				//edit the m_section of the step being moved
+				stepEdit.setSection(getSectionId(section));
+				commitEdit(stepEdit);
+			}
+			catch(Exception e)
+			{
+				if(stepEdit != null && stepEdit.isActiveEdit())
+					cancelEdit(stepEdit);
+				if(m_logger.isWarnEnabled())
+					m_logger.warn(this + ".execute() setSection() " + e);
+			}
+		}
+ 		
+ 		//move step in the current dissertation so view is current
+		try
+		{
+			dissEdit = editDissertation(dissRef);
+			dissEdit.moveStep(stepRef, location);
+			commitEdit(dissEdit);
+		}
+		catch(Exception e)
+		{
+			if(dissEdit != null && dissEdit.isActiveEdit())
+				cancelEdit(dissEdit);
+			
+			if(m_logger.isWarnEnabled())
+				m_logger.warn(this + ".execute() " + e);
+		}
+ 		
+		Scheduler scheduler = null;
+		
+		//TODO pass String for Quartz serialization to db
+		
+		//pass the parameters to the job as job detail data
+		JobDetail jobDetail = new JobDetail("MoveStepJob",
+				Scheduler.DEFAULT_GROUP, m_stepChangeJob.getClass());
+		JobDataMap jobDataMap = jobDetail.getJobDataMap();
+		jobDataMap.put("RETROACTIVE", (Boolean)parm[0]);
+		jobDataMap.put("DISSERTATION_REF", (String)parm[1]);
+		jobDataMap.put("CURRENT_SITE", (String)parm[2]);
+		jobDataMap.put("LOCATION", (String)parm[3]);
+		jobDataMap.put("SECTION", (String)parm[4]);
+		jobDataMap.put("STEP_REF", (String)parm[5]);
+		jobDataMap.put("JOB_TYPE", "Move");
+		jobDataMap.put("CURRENT_USER",(String)SessionManager.getCurrentSessionUserId());
+		
+		/** update the current Dissertation so display may be refreshed.
+		 * take current Dissertation out of Collection to be updated in job. */
+		//job name + group should be unique
+		String jobGroup = IdService.getUniqueId();
+		
+		//associate a trigger with the job
+		SimpleTrigger trigger = new SimpleTrigger("MoveStepTrigger", jobGroup, new Date());
+		try
+		{
+			//get a scheduler instance from the factory
+			scheduler = StdSchedulerFactory.getDefaultScheduler();
+			
+			//associate job with schedule
+			scheduler.scheduleJob(jobDetail, trigger);
+			
+			//start the scheduler
+			scheduler.start();
+		}
+		catch(SchedulerException e)
+		{
+			throw new JobExecutionException(e);
+		}
+		return "MoveStepJob started. Announcements will have a job report later.";
+ 		
+	}//execMoveStepJob
+
+	/**
+	* Delete one or more steps in dissertation(s) and paths
+	* Long-running process runs in a separate thread under Quartz.
+	* Returns status messages to Announcements.
+	* 
+	* @param parm - Job execution parameters:
+	* Object[0] retro Boolean value true is retroactive change
+	*  - Whether or not to apply the change to existing 
+	* 	dissertations and paths
+	* Object[1] dissref - String reference to the current dissertation.
+	* Object[2] currentSite - String site.
+	* Object[3] selectedStepRefs - String[] references to steps to delete .
+	* @throws JobExceptionException - Required by Quartz.
+	*/
+ 	private String execDeleteStepJob(Object[] parm)
+ 			throws JobExecutionException
+	{
+		/** update the current Dissertation so display may be refreshed.
+		 * take current Dissertation out of Collection to be updated in job. */
+ 		
+ 		String[] stepRefs = (String[])parm[3];
+ 		String dissRef = (String)parm[1];
+ 		String stepRef = null;
+		DissertationEdit dissEdit = null;
+		DissertationStepEdit stepEdit = null;
+		DissertationStep aStep = null;
+		Dissertation dissertation = null;
+		List prereqs = null;
+	
+		/** first, cycle through all steps in the current Dissertation 
+		 *  and remove prerequisite references to these steps.
+		 */
+		//TODO just get steps that HAVE prerequisites
+		try
+		{
+			dissertation = getDissertation(dissRef);
+		}
+		catch(Exception e)
+		{
+			throw new JobExecutionException(e);
+		}
+		if(dissertation == null)
+			throw new JobExecutionException("current dissertation was null");
+		
+		//get the step references for the steps in the current Dissertation
+		Hashtable steps = dissertation.getOrderedSteps();
+		
+			//for each step being deleted 
+			for(int counter = 0; counter < stepRefs.length; counter++)
+			{
+				//for each steps in the current Dissertation
+				for(Iterator i = steps.values().iterator(); i.hasNext();)
+				{
+					stepRef = (String)i.next();
+					try
+					{
+						aStep = getDissertationStep(stepRef);
+					}
+					catch(Exception e)
+					{
+						
+					}
+					
+					//the prereqs for this step
+					prereqs = aStep.getPrerequisiteStepReferences();
+					
+					//for each prereq of this step
+					for(int x = 0; x < prereqs.size(); x++)
+					{
+						//if step has step being deleted as a prereq
+						if(prereqs.get(x).equals(stepRefs[counter]))
+						{
+							try
+							{
+								stepEdit = editDissertationStep(stepRefs[counter]);
+								
+								//remove the to-be-deleted step as prereq
+								stepEdit.removePrerequisiteStep(stepRefs[counter]);
+								commitEdit(stepEdit);
+							}
+							catch(Exception e)
+							{
+								if(stepEdit != null && stepEdit.isActiveEdit())
+									cancelEdit(stepEdit);
+								
+								if(m_logger.isWarnEnabled())
+									m_logger.warn(this + ".execute() exception - step id " + stepEdit.getId() + " " + e);
+								
+								//keep going
+								continue;
+								
+							}
+						}
+					}
+				}
+			}
+			
+			//now remove the step(s) from the current Dissertation
+			for(int x = 0; x < stepRefs.length; x++)
+			{
+				try
+				{
+					//delete step from current Dissertation
+					dissEdit = editDissertation(dissRef);
+					dissEdit.removeStep(stepRefs[x]);
+					commitEdit(dissEdit);
+				}
+				catch(Exception e)
+				{
+					//keep going
+					continue;
+				}
+			}
+			
+		//start Quartz job to remove step(s) from derived checklists
+		Scheduler scheduler = null;
+		
+		//TODO pass String for Quartz serialization to db
+		
+		//pass the parameters to the job as job detail data
+		JobDetail jobDetail = new JobDetail("DeleteStepJob",
+				Scheduler.DEFAULT_GROUP, m_stepChangeJob.getClass());
+		JobDataMap jobDataMap = jobDetail.getJobDataMap();
+		jobDataMap.put("RETROACTIVE",(Boolean)parm[0]);
+		jobDataMap.put("DISSERTATION_REF",(String)parm[1]);
+		jobDataMap.put("CURRENT_SITE",(String)parm[2]);
+		jobDataMap.put("STEP_REFS", (String[])parm[3]);
+		jobDataMap.put("JOB_TYPE", "Delete");
+		jobDataMap.put("CURRENT_USER",(String)SessionManager.getCurrentSessionUserId());
+		
+		/** update the current Dissertation so display may be refreshed.
+		 * take current Dissertation out of Collection to be updated in job. */
+		//job name + group should be unique
+		String jobGroup = IdService.getUniqueId();
+		
+		//associate a trigger with the job
+		SimpleTrigger trigger = new SimpleTrigger("DeleteStepTrigger", jobGroup, new Date());
+		try
+		{
+			//get a scheduler instance from the factory
+			scheduler = StdSchedulerFactory.getDefaultScheduler();
+			
+			//associate job with schedule
+			scheduler.scheduleJob(jobDetail, trigger);
+			
+			//start the scheduler
+			scheduler.start();
+		}
+		catch(SchedulerException e)
+		{
+			throw new JobExecutionException(e);
+		}
+		return "DeleteStepJob started. Announcements will have a job report later.";
+ 		
+	}//execDeleteStepJob
+ 	
+ 	/*
+ 	 *  (non-Javadoc)
+ 	 * @see org.sakaiproject.api.app.dissertation.DissertationService#executeStepChangeJob(java.lang.String, java.lang.Object[])
+ 	 */
+	public String executeStepChangeJob(
+			String type,
+			Object[] params)
+		throws JobExecutionException
+	{
+		//check that there isn't a batch operation already in progress
+		if(isLoading())
+			return "A data upload is in progress. Please wait for it to complete.";
+		else if(isChangingStep())
+			return "A step change is in progress. Please wait for it to complete.";
+		
+		//take out a lock
+		//TODO replace CandidateInfoEdit as lock object
+		try
+		{
+			/** we are starting a load - add a well-known record to CandidateInfo
+			 * that persists across sessions
+			 */
+			CandidateInfoEdit lock = addStepChangeLock(getSchoolSite());
+			if(lock == null)
+				throw new JobExecutionException("Unable to lock db for batch update. Please contact support.");
+			commitEdit(lock);
+		}
+		catch(Exception e)
+		{
+			//TODO throw InUseException
+			//but we should not get here because tool checks earlier
+			if(m_logger.isWarnEnabled())
+				m_logger.warn(this + ".loadData addStepChangeLock " + e);
+			throw new JobExecutionException("Exception starting batch upload. " + e);
+		}
+		
+		if(type == null)
+			throw new JobExecutionException("no job type");
+		if(params == null || params.length == 0)
+			throw new JobExecutionException("no job parameters");
+		
+		String msg = null;
+ 		
+		//dispatch based on job type
+		if(type.equals("New"))
+			try
+			{
+				msg = execNewStepJob(params);
+			}
+			catch(Exception e)
+			{
+				msg = e.toString();
+			}
+		else if (type.equals("Revise"))
+			try
+			{
+				msg = execReviseStepJob(params);
+			}
+			catch(Exception e)
+			{
+				msg = e.toString();
+			}
+		else if (type.equals("Move"))
+			try
+			{
+				msg = execMoveStepJob(params);
+			}
+			catch(Exception e)
+			{
+				msg = e.toString();
+			}
+		else if (type.equals("Delete"))
+			try
+			{
+				msg = execDeleteStepJob(params);
+			}
+			catch(Exception e)
+			{
+				msg = e.toString();
+			}
+		else
+			throw new JobExecutionException("unrecognized job type");
+		
+		//return instructions to check Announcements for job report later
+		return msg;
+			
+	}//executeStepChangeJob
+	
+	/*
+	 *  (non-Javadoc)
+	 * @see org.sakaiproject.api.app.dissertation.DissertationService#executeUploadExtractsJob(byte[], byte[])
+	 */
+	public String executeUploadExtractsJob(String currentSite, byte[] o, byte[] m)
+		throws JobExecutionException
+	{
+		/** replaces loadData()
+		 *  two byte arrays are expected, but one might be a dummy
+		 *  of length 1 indicating no corresponding extract file */
+		
+		//check that we have at least one file
+		if((o == null || o.length <= 1) && (m == null || m.length <= 1))
+			throw new JobExecutionException("no data");
+		
+		//if set up as a Quartz stateful job we could set concurrent=false
+		
+		//check that there isn't a batch operation already in progress
+		if(isLoading())
+			return "A data upload is in progress. Please wait for it to complete.";
+		else if(isChangingStep())
+			return "A step change is in progress. Please wait for it to complete.";
+		
+		//TODO replace CandidateInfoEdit as lock object
+		try
+		{
+			/** we are starting a load - add a well-known record to CandidateInfo
+			 * that persists across sessions
+			 */
+			CandidateInfoEdit lock = addUploadLock(getSchoolSite());
+			if(lock == null)
+				throw new JobExecutionException("Unable to lock db for batch update. Please contact support.");
+			commitEdit(lock);
+		}
+		catch(Exception e)
+		{
+			//but we should not get here because tool checks earlier
+			if(m_logger.isWarnEnabled())
+				m_logger.warn(this + ".loadData addCandidateInfoLock " + e);
+			throw new JobExecutionException("Exception starting batch upload. " + e);
+		}
+		
+		//pass data as standard Java objects for db job detail serialization
+		String[] oardRecords = 	((String)new String(o)).split("\n");
+		String[] mpRecords = ((String)new String(m)).split("\n");
+		
+		//a last check that there is data to pass to job
+		if((oardRecords == null || oardRecords.length < 1) && 
+				(mpRecords == null || mpRecords.length < 1))
+			throw new JobExecutionException("no data");
+		
+		Scheduler scheduler = null;
+		
+		//job name + group should be unique
+		String jobGroup = IdService.getUniqueId();
+		
+		//pass the parameters to the job as job detail data
+		JobDetail jobDetail = new JobDetail("UploadExtractJob",
+				jobGroup, m_uploadExtractsJob.getClass());
+		JobDataMap jobDataMap = jobDetail.getJobDataMap();
+		jobDataMap.put("OARD_RECORDS", (String[])oardRecords);
+		jobDataMap.put("MP_RECORDS", (String[])mpRecords);
+		jobDataMap.put("SCHOOL_SITE", m_schoolSite);
+		jobDataMap.put("MUSIC_PERFORMANCE_SITE", m_musicPerformanceSite);
+		jobDataMap.put("SCHOOL_GROUPS", (Hashtable) m_schoolGroups);
+		jobDataMap.put("CURRENT_USER", (String)SessionManager.getCurrentSessionUserId());
+		jobDataMap.put("CURRENT_SITE", currentSite);
+		
+		//associate a trigger with the job
+		SimpleTrigger trigger = new SimpleTrigger("NewStepTrigger", jobGroup, new Date());
+		try
+		{
+			//get a scheduler instance from the factory
+			scheduler = StdSchedulerFactory.getDefaultScheduler();
+			
+			//associate job with schedule
+			scheduler.scheduleJob(jobDetail, trigger);
+			
+			//start the scheduler
+			scheduler.start();
+		}
+		catch(SchedulerException e)
+		{
+			throw new JobExecutionException(e);
+		}
+		
+		//return instructions to check Announcements for job report later
+		return "UploadExtractsJob started. Announcements will have a job report later.";
+		
+	}//executeUploadExtractsJob
+	
+	/** 
+	* Adds a well-known CandidateInfo as a lock during uploads.
+	* @param site - The site for which permissions are being checked.
+	* @throws PermissionException if the current User does not have permission
+	*  to do this.
+	* @return CandidateInfoEdit The edit used to lock uploads.
+	*/
+	public CandidateInfoEdit addUploadLock(String site)
+		throws PermissionException
+	{
+		String infoId = null;
+		CandidateInfoEdit info = null;
+			
+		//set an id that can be easily identified in the datbase
+		infoId = DissertationService.IS_LOADING_LOCK_ID;
+
+		//check for the locked object
+		if(m_infoStorage.check(infoId))
+			return info;
+		
+		String key = infoReference(site, infoId);
+		unlock(SECURE_ADD_DISSERTATION_CANDIDATEINFO, key);
+		info = m_infoStorage.put(infoId, site);
+		info.setSite(site);
+		try
+		{
+			((BaseCandidateInfoEdit) info).setEvent(SECURE_ADD_DISSERTATION_CANDIDATEINFO);
+		}
+		catch(Exception e)
+		{
+			m_logger.warn(this + ".addUploadLock setEvent " + e);
+		}
+		
+		return info;
+		
+	}//addUploadLock
+
+	/** 
+	* Adds a well-known CandidateInfo as a lock during admin step changes.
+	* @param site - The site for which permissions are being checked.
+	* @throws PermissionException if the current User does not have permission
+	*  to do this.
+	* @return CandidateInfoEdit The edit used to lock step changes.
+	*/
+	public CandidateInfoEdit addStepChangeLock(String site)
+		throws PermissionException
+	{
+		String infoId = null;
+		CandidateInfoEdit info = null;
+			
+		//set an id that can be easily identified in the datbase
+		infoId = DissertationService.IS_CHANGING_STEP_LOCK_ID;
+
+		//check for the locked object
+		if(m_infoStorage.check(infoId))
+			return info;
+		
+		String key = infoReference(site, infoId);
+		unlock(SECURE_ADD_DISSERTATION_CANDIDATEINFO, key);
+		info = m_infoStorage.put(infoId, site);
+		info.setSite(site);
+		try
+		{
+			((BaseCandidateInfoEdit) info).setEvent(SECURE_ADD_DISSERTATION_CANDIDATEINFO);
+		}
+		catch(Exception e)
+		{
+			m_logger.warn(this + ".addStepChangeLock setEvent " + e);
+		}
+		
+		return info;
+		
+	}//addStepChangeLock
+
+
+		 	
+}//BaseDissertationService
 
 /**********************************************************************************
 *
