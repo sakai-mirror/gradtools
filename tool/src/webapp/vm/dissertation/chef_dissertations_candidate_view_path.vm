@@ -89,7 +89,7 @@
 						#if($step.getAuxiliaryText())
 							#set($lines = $step.getAuxiliaryText())
 							#if($lines.size() > 0)
-								<br/><i>Evaluations required from:</i><br/>
+								<br/>
 								#foreach($line in $lines)
 									$line<br/>
 								#end
