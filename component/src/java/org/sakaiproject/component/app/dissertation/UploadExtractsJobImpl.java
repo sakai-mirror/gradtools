@@ -427,6 +427,7 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 	*/
 	private String createOARDRecords(String[] lns)
 	{
+		boolean replace = true;
 		String message = "";
 		String prefix = "";
 		int lineNumber = 0;
@@ -439,8 +440,29 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 				//skip last line which contains a single hex value 0x1A
 				if(lns[i].length() > 1)
 				{
+					//replace commas used as field separators, but leave commas within quoted fields
+					StringBuffer bufL = new StringBuffer(lns[i]);
+					for (int j = 0; j < ((String) lns[i]).length(); j++)
+					{
+						char ch = lns[i].charAt(j);
+						if(ch == '"') 
+							replace = !replace;
+						if(ch == ',')
+						{
+							if(replace) 
+								bufL.setCharAt(j, '%');
+							else
+								bufL.setCharAt(j, ch);
+						}
+						else
+							bufL.setCharAt(j, ch);
+					}
+						
+					String line = bufL.toString();
+					bufL.setLength(0);
+									
 					//get the fields
-					String[] flds = lns[i].split(",");
+					String[] flds = line.split("[%]");
 					
 					lineNumber = i + 1;
 					prefix = "Source: OARD File: Location: line " + lineNumber + ", field ";
