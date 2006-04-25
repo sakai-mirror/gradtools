@@ -1084,7 +1084,7 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 										program = rec.m_fos;
 								}
 							}
-							if(program != null)
+							if(program != null && !program.equals(""))
 							{
 								//set student's program
 								infoEdit.setProgram(getProgram(program));
@@ -1099,7 +1099,7 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 										if(rec.m_academic_plan != null) 
 											program = rec.m_academic_plan.substring(0,4);
 								}
-								if(program != null)
+								if(program != null && !program.equals(""))
 								{
 									//set student's program
 									infoEdit.setProgram(getProgram(program));
@@ -1108,7 +1108,8 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 								else
 								{
 									//TODO note exception
-									
+									m_logger.warn(this + ".queryLists() no program found for " + infoEdit.getChefId());
+	
 									//continue with next student
 									continue;
 								}
