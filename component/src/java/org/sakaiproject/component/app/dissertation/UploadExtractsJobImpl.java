@@ -95,13 +95,10 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 	
 	//execution parameters
 	private String m_currentUser = null;
-	
-	//private String m_currentSite = null;
 	private String[] m_oardRecords;
 	private String[] m_mpRecords;
 	
 	//TODO get from ServerConfiguration
-	//private String m_schoolSite = null;
 	private String m_musicPerformanceSite = null;
 	
 	/** Holds the School administrative Block Grant Group numbers. */
@@ -123,15 +120,17 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 	private static Pattern m_patternDateCompl = Pattern.compile("(^([0-9]|[0-9][0-9])/([0-9]|[0-9][0-9])/[0-9]{4}$|)");
 	private static Pattern m_patternMilestone = Pattern.compile("(^\"[A-Za-z]*\"$|^\"\"$)");
 	private static Pattern m_patternAcademicPlan = Pattern.compile("(^\"[0-9]{4}[A-Z0-9]*\"|^\"[0-9]{4}[A-Z0-9]*\"\r?$|^\"\"$|^\"\"\r?$)");
+	private static Pattern m_patternRole = Pattern.compile("(^\".*\"$|^\"\"$|^\"#EMPTY\"$)"); //not restrictive
+	private static Pattern m_patternMember = Pattern.compile("(^\".*\"$|^\"\"$|^\"#EMPTY\"$)"); //not restrictive
+	private static Pattern m_patternEvalDate = Pattern.compile("(^\"([0-9]|[0-9][0-9])/([0-9]|[0-9][0-9])/([0-9]{4} 0:00)\"$|^\"([0-9]|[0-9][0-9])/([0-9]|[0-9][0-9])/([0-9]{4} 0:00)\"$|^\"#EMPTY\"$|^\"\"$|)");
+	private static Pattern m_patternCommitteeApprovedDate = Pattern.compile("(^\"([0-9]|[0-9][0-9])/([0-9]|[0-9][0-9])/([0-9]{4} 0:00)\"$|^\"([0-9]|[0-9][0-9])/([0-9]|[0-9][0-9])/([0-9]{4} 0:00)\"\r$|^\"#EMPTY\"\r$|^\"\"\r$|)");
 		
 	//Rackham OARD database fields
 	private static Pattern 	m_patternFOS = Pattern.compile("(^\"[0-9]{4}\"$|^\"\"$)");
 	private static Pattern 	m_patternDegreeTermTrans = Pattern.compile("(^\"[A-Za-z]{2}( |-)[0-9]{4}\"$|^\"\"$)");
 	private static Pattern 	m_patternOralExamTime = Pattern.compile("(^\".*\"$|^\"\"$)"); //not restrictive
 	private static Pattern	m_patternOralExamPlace = Pattern.compile("(^\".*\"$|^\"\"$)"); //not restrictive
-	private static Pattern 	m_patternRole = Pattern.compile("(^\".*\"$|^\"\"$|^\"#EMPTY\"$)"); //not restrictive
-	private static Pattern  m_patternMember = Pattern.compile("(^\".*\"$|^\"\"$|^\"#EMPTY\"$)"); //not restrictive
-	private static Pattern 	m_patternEvalDate = Pattern.compile("(^\"([0-9]|[0-9][0-9])/([0-9]|[0-9][0-9])/([0-9]{4} 0:00)\"$|^\"([0-9]|[0-9][0-9])/([0-9]|[0-9][0-9])/([0-9]{4} 0:00)\"\r$|^\"#EMPTY\"$|^\"\"\r$|)");
+
 
 	/* (non-Javadoc)
 	 * @see org.quartz.Job#execute(org.quartz.JobExecutionContext)
@@ -469,7 +468,7 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 					message = "";
 						
 					//check that we have the right number of fields
-					if((flds.length==15))
+					if((flds.length==14))
 					{
 						OARDRecord oard = new OARDRecord();
 						
@@ -559,98 +558,81 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 							//strip quotation marks from quoted field
 							oard.m_oral_exam_place = flds[7].substring(1,flds[7].length()-1);
 						}
-							
-						//* 9 ¦  Committee approved date ¦  D - date committee was approved
+						
+						//*9 ¦  First format date  ¦  D - date of pre defense meeting in Rackham
 						matcher = m_patternDate.matcher(flds[8]);
 						if(!(flds[8] == null || matcher.matches()))
 						{
 							vErrors = true;
-							bufO.append(prefix + "9  Explanation: committee_approved_date = " + flds[8] + NEWLINE);
+							bufO.append(prefix + "9  Explanation: first_format_date = " + flds[8] + NEWLINE);
 						}
 						else
 						{
-							oard.m_committee_approved_date = flds[8];
+							oard.m_first_format_date = flds[8];
 						}
-							 
-						//*10 ¦  First format date  ¦  D - date of pre defense meeting in Rackham
-						matcher.reset(flds[9]);
+						 
+						//*10 ¦  Oral report return date ¦  D
+						matcher = m_patternDate.matcher(flds[9]);
 						if(!(flds[9] == null || matcher.matches()))
 						{
 							vErrors = true;
-							bufO.append(prefix + "10  Explanation: first_format_date = " + flds[9] + NEWLINE);
+							bufO.append(prefix + "10  Explanation: oral_report_return_date = " + flds[9] + NEWLINE);
 						}
 						else
 						{
-							oard.m_first_format_date = flds[9];
+							oard.m_oral_report_return_date = flds[9];
 						}
-						 
-						//*11 ¦  Oral report return date ¦  D
-						matcher.reset(flds[10]);
+
+						//*11 ¦  Degree conferred date ¦  D - date the degree was conferred in OARD system
+						matcher = m_patternDate.matcher(flds[10]);
 						if(!(flds[10] == null || matcher.matches()))
 						{
 							vErrors = true;
-							bufO.append(prefix + "11  Explanation: oral_report_return_date = " + flds[14] + NEWLINE);
+							bufO.append(prefix + "11  Explanation: degree_conferred_date = " + flds[10] + NEWLINE);
 						}
 						else
 						{
-							oard.m_oral_report_return_date = flds[10];
+							oard.m_degree_conferred_date = flds[10];	
 						}
-
-						//*12 ¦  Degree conferred date ¦  D - date the degree was conferred in OARD system
-						matcher.reset(flds[11]);
+						
+						//*12 ¦  Update date  ¦  D - date record was last modified
+						matcher = m_patternDate.matcher(flds[11]);
 						if(!(flds[11] == null || matcher.matches()))
 						{
 							vErrors = true;
-							bufO.append(prefix + "12  Explanation: degree_conferred_date = " + flds[21] + NEWLINE);
+							bufO.append(prefix + "12  Explanation: update_date = " + flds[11] + NEWLINE);
 						}
 						else
 						{
-							oard.m_degree_conferred_date = flds[11];	
+							oard.m_update_date = flds[11];	
 						}
-						
-						//*13 ¦  Update date  ¦  D - date record was last modified
+							
+						//*13 ¦  Comm cert date  ¦  D -
 						matcher = m_patternDate.matcher(flds[12]);
 						if(!(flds[12] == null || matcher.matches()))
 						{
 							vErrors = true;
-							bufO.append(prefix + "13  Explanation: update_date = " + flds[23] + NEWLINE);
+							bufO.append(prefix + "13  Explanation: comm_cert_date = " + flds[12] + NEWLINE);
 						}
 						else
 						{
-							oard.m_update_date = flds[12];	
+							oard.m_comm_cert_date = flds[12];
 						}
-							
-						//*14 ¦  Comm cert date  ¦  D -
-						matcher.reset(flds[13]);
+							 
+						//*14 ¦  Campus id  ¦  A1-A8 - uniqname
+						matcher = m_patternCampusId.matcher(flds[13]);
 						if(!(flds[13] == null || matcher.matches()))
 						{
 							vErrors = true;
-							bufO.append(prefix + "14  Explanation: comm_cert_date = " + flds[24] + NEWLINE);
-						}
-						else
-						{
-							oard.m_comm_cert_date = flds[13];
-						}
-							 
-						//*15 ¦  Campus id  ¦  A1-A8 - uniqname
-						matcher = m_patternCampusId.matcher(flds[14]);
-						if(!(flds[14] == null || matcher.matches()))
-						{
-							vErrors = true;
-							bufO.append(prefix + "15  Explanation: campus_id = " + flds[28] + NEWLINE);
+							bufO.append(prefix + "14  Explanation: campus_id = " + flds[13] + NEWLINE);
 						}
 						else
 						{
 							//strip quotation marks from quoted field
-							if(flds[14].indexOf("\r") != -1)
-							{
-								oard.m_campus_id = flds[14].substring(1,flds[14].length()-2);
-							}
+							if(flds[13].indexOf("\r") != -1)
+								oard.m_campus_id = flds[13].substring(1,flds[13].length()-2);
 							else
-							{
-								oard.m_campus_id = flds[14].substring(1,flds[14].length()-1);
-							}
-							
+								oard.m_campus_id = flds[13].substring(1,flds[13].length()-1);
 						}
 							
 						//check that there is a group roll-up code that matches this field of study value
@@ -677,7 +659,7 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 						//number of fields exception
 						lineNumber = i + 1;
 						message = "Source: OARD File: Location: line " + lineNumber + " Explanation: has " 
-							+ flds.length + " fields: 15 expected." + NEWLINE;
+							+ flds.length + " fields: 14 expected." + NEWLINE;
 						if(m_logger.isInfoEnabled())
 							m_logger.info(this + ".validateOARD: " + message);
 						bufO.append(message);
@@ -752,7 +734,7 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 					message = "";
 
 					//check that we have the right number of fields
-					if(flds.length == 10)
+					if(flds.length == 11)
 					{
 						MPRecord mp = new MPRecord();
 						
@@ -844,7 +826,7 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 							if(!matcher.matches())
 							{
 								vErrors = true;
-								bufM.append(prefix + "7  Explanation: role = " + flds[25] + NEWLINE);
+								bufM.append(prefix + "7  Explanation: role = " + flds[6] + NEWLINE);
 							}
 							else
 							{
@@ -859,7 +841,7 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 							if(!matcher.matches())
 							{
 								vErrors = true;
-								bufM.append(prefix + "8  Explanation: member = " + flds[26] + NEWLINE);
+								bufM.append(prefix + "8  Explanation: member = " + flds[7] + NEWLINE);
 							}
 							else
 							{
@@ -894,10 +876,24 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 						}
 						else
 						{
-							if(flds[9].indexOf("\r") != -1)
-								mp.m_campus_id = flds[9].substring(1,flds[9].length()-2);
+							mp.m_campus_id = flds[9].substring(1,flds[9].length()-1);
+						}
+						
+						//* 11 ¦  Committee approved date ¦  D - date committee was approved
+						matcher = m_patternCommitteeApprovedDate.matcher(flds[10]);
+						if(!(flds[10] == null || matcher.matches()))
+						{
+							vErrors = true;
+							bufM.append(prefix + "11  Explanation: committee_approved_date = " + flds[10] + NEWLINE);
+						}
+						else
+						{
+							if(flds[10].indexOf("\r") != -1)
+								mp.m_committee_approved_date = flds[10].substring(1,flds[10].length()-2);
 							else
-								mp.m_campus_id = flds[9].substring(1,flds[9].length()-1);
+								mp.m_committee_approved_date = flds[10].substring(1,flds[10].length()-1);
+							if(mp.m_committee_approved_date.equals("#EMPTY"))
+								mp.m_committee_approved_date = "";
 						}
 							
 						//check that there is a group roll-up code that matches this field of study value
@@ -1112,11 +1108,9 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 	
 									//continue with next student
 									continue;
-								}
-									
-							}//else if
-						
-						}//if we didn't get program
+								}	
+							}
+						}
 							
 						//set flag to save this edit later
 						commitEdit = true;
@@ -1161,6 +1155,9 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 								if(!rec.m_eval_date.equals(""))
 									infoEdit.addTimeCommitteeEval(parseTimeString(rec.m_eval_date));
 								
+								//	COMMITTE_APPROVED_DATE
+								infoEdit.setTimeCommitteeApproval(parseTimeString(rec.m_committee_approved_date));
+								
 								//Add Committee Members and their Role and Evaluation Dates
 								if(rec.m_member != null && !rec.m_member.equals(""))
 								{
@@ -1196,13 +1193,9 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 									//clear for next infoEdit
 									membersEvals.clear();
 								}
-								
-							}//else if(rec.m_milestone.equalsIgnoreCase("dissert"))
-							
-						}//for(ListIterator i = MPrecs.listIterator(); i.hasNext(); )
-						
-					}//if(existsMPrecs)
-					
+							}
+						}
+					}
 					if(existsOARDrecs)
 					{
 						//we have OARD data for this student
@@ -1225,9 +1218,6 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 							//	ORAL_EXAM_PLACE
 							infoEdit.setOralExamPlace(rec.m_oral_exam_place);
 						
-							//	COMMITTE_APPROVED_DATE
-							infoEdit.setTimeCommitteeApproval(parseTimeString(rec.m_committee_approved_date));
-						
 							//	FIRST_FORMAT_DATE
 							infoEdit.setTimeFirstFormat(parseTimeString(rec.m_first_format_date));
 						
@@ -1236,12 +1226,9 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 						
 							//	COMM_CERT_DATE
 							infoEdit.setTimeCommitteeCert(parseTimeString(rec.m_comm_cert_date));
-							
-						}//for(ListIterator i = OARDrecs.listIterator(); i.hasNext(); )
-						
-					}//if(existsOARDrecs)
-					
-				}//try to get CandidateInfo for this student
+						}
+					}
+				}
 				catch(Exception e)
 				{
 					msg = "// GET CANDIDATE INFO FOR ID " + oneEmplid + NEWLINE + e.getMessage();
@@ -1676,6 +1663,26 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 		*14 ¦  Comm cert date            ¦  D -
 		*15 |  Campus id                 |  A1-A8 - student's uniqname (Chef id)
 		*/
+		
+		/*
+		 * And here is the modified OARD structure:
+STRUCT ¦         Field Name         ¦Field Type
+     1 ¦  Emplid                    ¦  A8
+     2 ¦  Fos                       ¦  A4
+     3 ¦  Lname                     ¦  A25
+     4 ¦  Fname                     ¦  A30
+     5 ¦  Degterm trans             ¦  A7
+     6 ¦  Oral exam date            ¦  D
+     7 ¦  Oral exam time            ¦  A7
+     8 ¦  Oral exam place           ¦  A25
+     9 ¦  First format date         ¦  D
+    10 ¦  Oral report return date   ¦  D
+    11 ¦  Degree conferred date     ¦  D
+    12 ¦  Update date               ¦  D
+    13 ¦  Comm cert date            ¦  D
+    14 ¦  Campus_id                 ¦  A12
+*/
+		
 		public String m_umid = null;
 		public String m_fos = null;
 		public String m_lname = null;
@@ -1684,29 +1691,13 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 		public String m_oral_exam_date = null;
 		public String m_oral_exam_time = null;
 		public String m_oral_exam_place = null;
-		public String m_committee_approved_date = null;
 		public String m_first_format_date = null;
-		//public String m_binder_receipt_date = null;
-		//public String m_fee_requirement_met = null;
-		//public String m_fee_date_receipt_seen = null;
-		//public String m_pub_fee_date_received = null;
 		public String m_oral_report_return_date = null;
-		//public String m_unbound_date = null;
-		//public String m_abstract_date = null;
-		//public String m_bound_copy_received_date = null;
-		//public String m_diploma_application_date = null;
-		//public String m_contract_received_date = null;
-		//public String m_nsf_survey_date = null;
 		public String m_degree_conferred_date = null;
-		//public String m_final_format_recorder = null;
 		public String m_update_date = null;
 		public String m_comm_cert_date = null;
-		public String m_role = null;
-		public String m_member = null;
-		public String m_eval_date = null;
 		public String m_campus_id = null;
 		
-		//methods
 		public String getUmid(){ return m_umid; }
 		public String getFos(){ return m_fos; }
 		public String getLname(){ return m_lname; }
@@ -1715,26 +1706,11 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 		public String getOral_exam_date(){ return m_oral_exam_date; }
 		public String getOral_exam_time(){ return m_oral_exam_time; }
 		public String getOral_exam_place(){ return m_oral_exam_place; }
-		public String getCommittee_approved_date(){ return m_committee_approved_date; }
 		public String getFirst_format_date(){ return m_first_format_date; }
-		//public String getBinder_receipt_date(){ return m_binder_receipt_date; }
-		//public String getFee_requirement_met(){ return m_fee_requirement_met; }
-		//public String getFee_date_receipt_seen(){ return m_fee_date_receipt_seen; }
-		//public String getPub_fee_date_received(){ return m_pub_fee_date_received; }
 		public String getOral_report_return_date(){ return m_oral_report_return_date; }
-		//public String getUnbound_date(){ return m_unbound_date; }
-		//public String getAbstract_date(){ return m_abstract_date; }
-		//public String getBound_copy_received_date(){ return m_bound_copy_received_date; }
-		//public String getDiploma_application_date(){ return m_diploma_application_date; }
-		//public String getContract_received_date(){ return m_contract_received_date; }
-		//public String getNsf_survey_date(){ return m_nsf_survey_date; }
 		public String getDegree_conferred_date(){ return m_degree_conferred_date; }
-		//public String getFinal_format_recorder(){ return m_final_format_recorder; }
 		public String getUpdate_date(){ return m_update_date; }
 		public String getComm_cert_date(){ return m_comm_cert_date; }
-		public String getRole(){ return m_role; }
-		public String getMember(){ return m_member; }
-		public String getEval_date() { return m_eval_date; }
 		public String getCampusId() { return m_campus_id; }
 		
 	} // OARDRecord
@@ -1753,18 +1729,22 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 	{
 		/**
 		* All dates are formatted as mm/dd/ccyy.  
-		* MPEXT.txt Data Structure:
-		* 1 ¦  Emplid					¦  A9	| Student's emplid
-		* 2 ¦  Acad_prog				¦  A9	| Academic Program Code
-		* 3 ¦  Anticipate_Anticipate_1	¦  A15	| Adv to cand term code
-		* 4	¦  Date_compl				¦  D	| Date milestone was completed 
-		* 5 ¦  Milestone				¦  A10	| name of milestone PRELIM or ADVCAND
-		* 6 |  Academic plan			|  A4	| Field of study and degree (e.g. 1220PHD1)
-		* 7 |  							|  A24  | Committee role
-		* 8 ¦ 							¦  A23	| Member name
-		* 9 | 							|  A14	| Eval received date
-		*10 | Campus id					|  A1-A8| Student's uniqname (Chef id)
+		* MPEXT.txt Data Structure
+		* STRUCT 	¦  Field Name         		¦Field Type
+		* 
+		* 1 		¦  Emplid					¦  A9	| Student's emplid
+		* 2 		¦  Acad_prog				¦  A9	| Academic Program Code
+		* 3 		¦  Anticipate_Anticipate_1	¦  A15	| Adv to cand term code
+		* 4			¦  Date_compl				¦  D	| Date milestone was completed 
+		* 5 		¦  Milestone				¦  A10	| name of milestone PRELIM or ADVCAND
+		* 6 		|  Acad_plan				|  A4	| Field of study and degree (e.g. 1220PHD1)
+		* 7 		|  Committee__Committee__1	|  A24  | Committee role
+		* 8 		¦  Committee__1				¦  A23	| Member name
+		* 9 		|  Eval_recvd				|  A14	| Eval received date
+		*10 		|  Campus id				|  A1-A8| Student's uniqname (Chef id)
+		*11 		¦  Comm_appr_               ¦  A13
 		*/
+			
 		private String m_umid = null;
 		private String m_acad_prog = null;
 		private String m_anticipate = null;
@@ -1775,18 +1755,19 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 		private String m_member = null;
 		private String m_eval_date = null;
 		private String m_campus_id = null;
+		public String m_committee_approved_date = null;
 		
-		//methods
 		protected String getUmid(){ return m_umid; }
 		protected String getAcad_prog(){ return m_acad_prog; }
 		protected String getAnticipate(){ return m_anticipate; }
 		protected String getDate_compl(){ return m_date_compl; }
 		protected String getMilestone(){ return m_milestone; }
 		protected String getAcademicPlan() { return m_academic_plan; }
-		protected String getCommitteeRole() {return m_role; }
-		protected String getCommitteeMember() {return m_member; }
-		protected String getEvalDate() {return m_eval_date; }
+		protected String getCommitteeRole() { return m_role; }
+		protected String getCommitteeMember() { return m_member; }
+		protected String getEvalDate() { return m_eval_date; }
 		protected String getCampusId() { return m_campus_id; }
+		protected String getCommitteeApprovedDate() { return m_committee_approved_date;}
 		
 	}//MPRecord
 	
