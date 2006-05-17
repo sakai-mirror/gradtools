@@ -1,0 +1,59 @@
+##<!-- $Header: /cvs/ctools/gradtools/tool/src/webapp/vm/dissertation/chef_dissertations_committee_edit_stepstatus.vm,v 1.2 2005/06/01 22:23:39 gsilver.umich.edu Exp $ -->
+## Dissertations - Committee edit Dissertation Step view
+<div class="portletBody">
+	<h3>
+		Revise A Step
+	</h3>
+	<form name="editForm" id="editFrom" action="#toolForm($action)" method="post" >
+		##<input type="hidden" name="stepid" id="stepid" value="$step.Id" />
+		<input type="hidden" name="statusreference" id="statusreference" value="$step.Reference" />
+		<p class="longtext">
+			<span class="reqStar">*</span>
+			<label for="desc" class="block">Description</label>
+			<textarea name="desc" cols="70" rows="6" id="desc" wrap="virtual">$validator.escapeHtmlTextarea($step.InstructionsText)</textarea>
+		</p>
+		<p class="shorttext">
+			<span class="reqStar">*</span>
+			<label for="vtype">Actor</label>
+			<select onchange="blur()" name="vtype" id="vtype" tabindex="5">
+				#foreach ($type in $validationtypes)
+					#if ($type.equals($step.getValidationType()))
+						<option value="$type" selected="selected">$validationTypeTable.get($type)</option>
+					#else
+						<option value="$type">$validationTypeTable.get($type)</option>	
+					#end
+				#end
+			</select>
+		</p>
+		
+		#if ($currentprerequisites.hasNext())
+			<p class="shorttext">
+				<label for="removeprereqs">Current prerequisites<br />Select to remove</label>
+				<select onchange="blur()" name="removeprereqs" id="removeprereqs" multiple="multiple" tabindex="6">
+					#foreach ($currentprereq in $currentprerequisites)
+						<option value="$currentprereq.Reference">$currentprereq.ShortInstructionsText</option>
+					#end
+				</select>
+			</p>	
+		#else
+			<p class="shorttext">
+				<label for="">Current prerequisites</label>
+				None
+			</p>	
+		#end
+
+		<p class="shorttext">
+			<label for="addprereqs">Add prerequisites for this step</label>
+			<select onchange="blur()" name="addprereqs" id="addprereqs" multiple="multiple" tabindex="6">
+				#foreach ($prereq in $prerequisites)
+					<option value="$prereq.Reference">$prereq.ShortInstructionsText</option>
+				#end
+			</select>
+		</p>
+	
+		<p class="act">
+			<input class="active" type="submit" name="eventSubmit_doUpdate_stepstatus_comm" value="Save" />
+			<input type="submit" name="eventSubmit_doCancel_committee" value="Cancel" />
+		</p>
+	</form>
+</div>

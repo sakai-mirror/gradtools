@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+
+<registration>
+
+	<tool
+			id="ctools.aboutGradTools"
+			title="About Grad Tools"
+			description="Description of the features of Grad Tools.">
+
+		<configuration name="source" value="http://gradtools.umich.edu/about.html" type="final" />
+		<configuration name="height" value="475px" />
+
+		<category name="GradToolsStudent" />
+		<category name="GradToolsRackham" />
+		<category name="GradToolsDepartment" />
+
+	</tool>
+
+</registration>

@@ -1,0 +1,52 @@
+##<!-- $Header: Exp $ -->
+## Remove Students Confirmation - Rackham administrator confirms removal of students
+<div class="portletBody">
+	   	<form name="confirmRemoveStudents" 
+			id="confirmRemoveStudents" 
+			action="#toolForm($action)" 
+			method="post">
+			<input type="hidden" name="option" value="remove" />
+			<input type="hidden" name="eventSubmit_doRemove_students_confirmed" value="x" />
+		<h3>
+			Remove Students	
+		</h3>
+		<div class="instruction">
+		<p>
+			You have chosen to remove $n student(s). Please confirm below, then
+			choose "Remove" to process.
+		</p>
+		</div>
+		#if($uniqnames && $uniqnames.size() > 0)
+			<h4>Uniqnames</h4>
+			#foreach ($uniqname in $uniqnames)
+				$validator.escapeHtml($uniqname)<br/>
+			#end
+		#end
+		#if($badnames && $badnames.size() > 0)
+			<h4>Unable to remove</h4>
+			#foreach ($badname in $badnames)
+				$validator.escapeHtml($badname)<br/>
+			#end
+		#end
+		<p class="act">
+			<input 
+				type="submit"
+				name="RemoveStudents"
+				id="RemoveStudents"
+				class="active"
+				value="Remove"
+				onclick="showNotif('submitnotif','RemoveStudents','confirmRemoveStudents');
+					showNotif('submitnotif','Cancel','confirmRemoveStudents');
+					document.confirmRemoveStudents.submit(); return false;" />
+			<input 
+				type="submit"
+				name="Cancel"
+				id="Cancel"
+				value="Cancel"
+				onclick="document.confirmRemoveStudents.option.value='cancel'; 
+					document.confirmRemoveStudents.submit(); return false;" />			
+			<span id="submitnotif" 
+				style="visibility:hidden">Processing......</span>	
+		</p>
+	</form>
+</div>

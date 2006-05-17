@@ -1,0 +1,7 @@
+##<!-- $Header: /cvs/ctools/gradtools/tool/src/webapp/vm/dissertation/chef_dissertations_system_not_initialized.vm,v 1.2 2005/06/01 22:23:39 gsilver.umich.edu Exp $ -->
+## Dissertations - Administrator's system not initialized - OARD/MP data not initialized - view
+<div class="portletBody">
+	<p class="instruction">
+		Welcome to the CHEF Checklist Tool. The system is not yet initialized.  Please try back again later.
+	</p>
+</div>

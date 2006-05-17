@@ -1,0 +1,133 @@
+-----------------------------------------------------------------------------
+-- DISSERTATION_DISSERTATION
+-----------------------------------------------------------------------------
+
+CREATE TABLE DISSERTATION_DISSERTATION
+(
+    DISSERTATION_ID VARCHAR (99) NOT NULL,
+    XML LONGVARCHAR,
+    SITE VARCHAR (100),
+    TYPE VARCHAR (100),
+    CONSTRAINT DISSERTATION_DISS_INDEX UNIQUE (DISSERTATION_ID)
+);
+
+CREATE INDEX IE_DISS_DISS_SITE ON DISSERTATION_DISSERTATION
+(
+	SITE	ASC
+);
+
+CREATE INDEX IE_DISS_DISS_TYPE ON DISSERTATION_DISSERTATION
+(
+	TYPE ASC
+);
+
+CREATE INDEX IE_DISS_DISS_SITE_TYPE ON DISSERTATION_DISSERTATION
+(
+	SITE	ASC,
+	TYPE	ASC
+);
+
+-----------------------------------------------------------------------------
+-- DISSERTATION_GROUP
+-----------------------------------------------------------------------------
+
+CREATE TABLE DISSERTATION_GROUP
+(
+    GROUP_ID VARCHAR (99) NOT NULL,
+    XML LONGVARCHAR,
+    CONSTRAINT DISSERTATION_GROUP_INDEX UNIQUE (GROUP_ID)
+);
+
+-----------------------------------------------------------------------------
+-- DISSERTATION_STEP
+-----------------------------------------------------------------------------
+
+CREATE TABLE DISSERTATION_STEP
+(
+    STEP_ID VARCHAR (99) NOT NULL,
+    XML LONGVARCHAR,
+    CONSTRAINT DISSERTATION_STEP_INDEX UNIQUE (STEP_ID)
+);
+
+-----------------------------------------------------------------------------
+-- DISSERTATION_PATH
+-----------------------------------------------------------------------------
+
+CREATE TABLE DISSERTATION_PATH
+(
+    PATH_ID VARCHAR (99) NOT NULL,
+    XML LONGVARCHAR,
+    CANDIDATE VARCHAR (100),
+    PARENTSITE VARCHAR (100),
+    SORTLETTER CHAR,
+    TYPE VARCHAR  (100),
+    SITE VARCHAR (100),   
+    CONSTRAINT DISSERTATION_PATH_INDEX UNIQUE (PATH_ID)
+);
+
+CREATE INDEX IE_DISS_PATH_CANDIDATE ON DISSERTATION_PATH
+(
+	CANDIDATE	ASC
+);
+
+CREATE INDEX IE_DISS_PATH_PARENTSITE ON DISSERTATION_PATH
+(
+	PARENTSITE	ASC
+);
+
+CREATE INDEX IE_DISS_PATH_SITE ON DISSERTATION_PATH
+(
+	SITE	ASC
+);
+
+CREATE INDEX IE_DISS_PATH_SORTLETTER_TYPE ON DISSERTATION_PATH
+(
+	SORTLETTER	ASC,
+	TYPE		ASC
+);
+
+CREATE INDEX IE_DISS_PATH_TYPE ON DISSERTATION_PATH
+(
+	TYPE	ASC
+);
+
+-----------------------------------------------------------------------------
+-- DISSERTATION_STATUS
+-----------------------------------------------------------------------------
+
+CREATE TABLE DISSERTATION_STATUS
+(
+    STATUS_ID VARCHAR (99) NOT NULL,
+    XML LONGVARCHAR,
+    CONSTRAINT DISSERTATION_STATUS_INDEX UNIQUE (STATUS_ID)
+);
+
+-----------------------------------------------------------------------------
+-- DISSERTATION_CANDIDATEINFO
+-----------------------------------------------------------------------------
+
+CREATE TABLE DISSERTATION_CANDIDATEINFO
+(
+    INFO_ID VARCHAR (99) NOT NULL,
+    XML LONGVARCHAR,
+    CHEFID VARCHAR (100),
+    PARENTSITE VARCHAR (100),
+    EMPLID VARCHAR (8),
+    CONSTRAINT DISSERTATION_INFO_INDEX UNIQUE (INFO_ID)
+);
+
+CREATE INDEX IE_DISS_INFO_CHEFID ON DISSERTATION_CANDIDATEINFO
+(
+	CHEFID	ASC
+);
+
+CREATE INDEX IE_DISS_INFO_CHEFID_PARENTSITE ON DISSERTATION_CANDIDATEINFO
+(
+	CHEFID	ASC,
+	PARENTSITE	ASC
+);
+
+CREATE INDEX IE_DISS_INFO_EMPLID ON DISSERTATION_CANDIDATEINFO
+(
+	EMPLID	ASC
+);

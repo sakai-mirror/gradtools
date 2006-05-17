@@ -1,0 +1,46 @@
+##<!-- $Header: /cvs/ctools/gradtools/tool/src/webapp/vm/dissertation/chef_dissertations_candidate_add_stepstatus.vm,v 1.2 2005/06/01 22:23:39 gsilver.umich.edu Exp $ -->
+## Dissertations - Candidate's add new StepStatus form
+<div class="portletBody">
+	<h3>
+		Create A New Step
+	</h3>
+	<form name="addStep" id="addStep" action="#toolForm($action)" method="post" >
+		<h4>
+			New Step
+		</h4>	
+		<p class="instruction">The <span class="reqStarInline"> * </span> means this information is required.</p>
+		<p class="longtext">
+			<span class="reqStar">*</span>
+			<label for="desc" class="block">Description</label>
+			<textarea name="desc" cols="70" rows="6" id="desc" wrap="virtual"></textarea>
+		</p>
+		<p class="shorttext">
+			<label for="prereq">Prerequisites</label>
+			<select onchange="blur()" name="prereq" id="prereq" multiple="multiple">
+				#foreach ($prereq in $orderedsteps)
+					<option value="$prereq.Reference">$prereq.ShortInstructionsText</option>
+				#end
+			</select>
+			<p class="instruction labelindnt" style="text-indent:2.5em">
+				Note: To select more than one, hold Apple-select on mac, Ctrl-select on pc.
+			</p>
+		</p>
+		<p class="shorttext">
+			<span class="reqStar">*</span>
+			<label for="location">Location</label>
+			<select onchange="blur()" name="location" id="location">
+				<option selected="selected" value="start">START</option>
+				#foreach ($step in $orderedsteps)
+					<option value="$step.Reference">$step.ShortInstructionsText</option>
+				#end
+			</select>
+			<p class="instruction labelindnt" style="text-indent:2.5em">
+				Note: The new step will appear AFTER the selected step.
+			</p>
+		</p>	
+		<p class="act">
+			<input type="submit"class="active"  name="eventSubmit_doAddnew_stepstatus" value="Save" />
+			<input type="submit" name="eventSubmit_doCancel_candidate" value="Cancel" />
+		</p>
+	</form>
+</div>

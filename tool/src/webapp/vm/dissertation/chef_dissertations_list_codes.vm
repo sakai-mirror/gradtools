@@ -1,0 +1,57 @@
+## $Header: /cvs/ctools/gradtools/tool/src/webapp/vm/dissertation/chef_dissertations_list_codes.vm,v 1.2 2005/06/01 22:23:39 gsilver.umich.edu Exp $ 
+## Dissertations - Administrator's form for adding, editing, or removing BGG/FOS codes.
+<div class="portletBody" id="chefPortletContainer">
+	#if($menu)#toolbar($menu)#end
+	<h3>
+		Edit Codes
+	</h3>
+	#if ($alertMessage)<div class="alertMessage">Alert: $validator.escapeHtml($alertMessage)</div>#end
+	<p class="instruction">
+	The list below shows corresponding codes for
+	Field of Study and Block Grant Group. Click the
+	'New...' button above to add a new Field of Study or
+	Block Grant Group. To change, or remove an inactive,
+	field of study, check the box next to it and click the
+	appropriate button above.
+	</p>
+	<form name="listCodes" id="listCodes" action="#toolForm($action)" method="post">
+		<table class="listHier" cellspacing="0" summary="List of Field of Study and Block Grant Group codes">
+			<tr>
+				<th id="checkbox">
+					&nbsp;&nbsp;
+				</th>
+				<th id="Field Of Study code">
+					FOS
+				</th>
+				<th id="Field Of Study name">
+					FOS Name
+				</th>
+				<th id="Block Grant Group code">
+					BGG
+				</th>
+				<th id="Block Grant Group name">
+					BGG Name
+				</th>
+			</tr>
+			#foreach ($field in $listOfFields)
+				<tr>
+					<td headers="checkbox" width="3%">
+						<input type="checkbox" name="selectedfields" id="selectedfields" value="$field.getFieldCode()">
+					</td>
+					<td headers="Field Of Study code">
+						$field.getFieldCode()
+					</td>
+					<td headers="Field Of Study name">
+						$field.getFieldName()
+					</td>
+					<td headers="Block Grant Group code">
+						$field.getGroupCode()
+					</td>
+					<td headers="Block Grant Group name">
+						$field.getGroupName()
+					</td>
+				</tr>
+			#end
+		</table>
+	</form>
+</div>

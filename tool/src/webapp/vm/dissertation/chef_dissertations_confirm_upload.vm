@@ -1,0 +1,64 @@
+##<!-- $Header: /cvs/ctools/gradtools/tool/src/webapp/vm/dissertation/chef_dissertations_confirm_upload.vm,v 1.2 2005/06/01 22:23:39 gsilver.umich.edu Exp $ -->
+## Dissertations - Administrator's form for confirming selection of OARD Doctoral System and MPathways extract files
+<div class="portletBody" id="chefPortletContainer">
+	#if($menu)#toolbar($menu)#end
+	<h3>
+		Confirm extracts...
+	</h3>
+	#if ($alertMessage)<div class="alertMessage">Alert: $validator.escapeHtml($alertMessage)</div>#end
+	##<form name="loadExtracts" id="loadExtracts" action="#toolForm($action)" method="post" enctype="multipart/form-data">
+		<form name="loadExtracts" 
+			id="loadExtracts" 
+			action="#toolForm($action)" 
+			method="post"
+			enctype="multipart/form-data">
+			<input type="hidden" name="option" value="continue" />
+			<input type="hidden" name="eventSubmit_doContinue_load" value="x" />
+		<h4>
+			OARD Extract
+		</h4>	
+		$!OARDFileName &nbsp;&nbsp;<br />
+		$!OARDLines #if($OARDLines)record(s)#end &nbsp;&nbsp;<br />
+		$!OARDContentType #if($OARDContentType)content#end &nbsp;&nbsp;<br />
+		<h4>
+			MPathways Extract
+		</h4>
+		$!MPFileName &nbsp;&nbsp;<br />
+		$!MPLines #if($MPLines)record(s)#end &nbsp;&nbsp;<br />
+		$!MPContentType #if($MPContentType)content#end &nbsp;&nbsp;<br />
+		<p class="instruction">
+			<br />
+			If the file information above is correct, click 'Continue.'
+			Otherwise, click 'Cancel' to return to the file upload form.<br />
+			<br />
+			Please click only once, and wait until the data have finished 
+			loading before logging out or disconnecting.<br />
+			<br />
+		</p>
+		##<p class="act">
+			##<input type="submit" name="eventSubmit_doContinue_load" id="eventSubmit_doContinue_upload" value="Continue" />
+			##<input type="submit" name="eventSubmit_doCancel_load" id="eventSubmit_doCancel_upload" value="Cancel" />
+		##</p>
+		<p class="act">
+			<input 
+				type="submit"
+				name="ContinueLoad"
+				id="ContinueLoad"
+				class="active"
+				value="Continue"
+				onclick="showNotif('submitnotif','ContinueLoad','loadExtracts');
+					showNotif('submitnotif','Cancel','loadExtracts'); 
+					document.loadExtracts.submit(); return false;" />
+			<input 
+				type="submit"
+				name="Cancel"
+				id="Cancel"
+				value="Cancel"
+				onclick="document.loadExtracts.option.value='cancel'; 
+					document.loadExtracts.submit(); return false;"
+				 />			
+			<span id="submitnotif" 
+				style="visibility:hidden">Processing......</span>	
+		</p>
+	</form>
+</div>

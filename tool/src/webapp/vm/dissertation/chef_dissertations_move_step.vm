@@ -1,0 +1,121 @@
+##<!-- $Header: /cvs/ctools/gradtools/tool/src/webapp/vm/dissertation/chef_dissertations_move_step.vm,v 1.2 2005/06/01 22:23:39 gsilver.umich.edu Exp $ -->
+## Dissertations - All roles, move Dissertation Step/Status View
+<div class="portletBody">
+	#if ($alertMessage)<div class="alertMessage">Alert: $validator.escapeHtml($alertMessage)</div>#end
+	<h3>
+		Move a Step
+	</h3>
+	<form name="moveForm" 
+		id="moveForm" 
+		action="#toolForm($action)" 
+		method="post">
+		<input type="hidden" name="option" value="x" />
+		<input type="hidden" name="eventSubmit_doMove" value="x" />
+		<p class="instruction">
+			You have chosen to move this step&nbsp;:&nbsp;$stepdesc
+		</p>
+		<p class="shorttext">
+			<span class="reqStar">*</span>
+			<label for="location">Location</label>
+			<select onchange="blur()" name="location" id="location" tabindex="6">
+				<option selected="selected" value="start">START</option>
+				#foreach ($step in $orderedsteps)
+					<option value="$step.Reference">$step.ShortInstructionsText</option>
+				#end
+			</select>
+			<p class="instruction labelindnt" style="text-indent:2.5em">
+				Note : The step will appear AFTER the step you select.
+			</p>
+		</p>	
+		#if($userrole.equals("schoolrole"))
+			<p class="shorttext">
+				<label for="section">Section</label>
+				<select onchange="blur()" name="section" id="section">
+				#foreach($section in $sections)
+					#if($section != "None")
+						<option value ="$section"
+						#if($section == $stepToMoveHeader)
+							selected="selected"
+						#end
+						>
+						$section
+						</option>
+					#end
+				#end
+				</select>
+				<p class="instruction labelindnt" style="text-indent:2.5em">
+					Note: A change in section is required only if a location change moved the step to a different section.
+				</p>
+			</p>	
+		#end
+		#if ($activepaths.booleanValue())
+			<p class="checkbox">
+				<input type="checkbox" checked="checked" name="retroactive" id="retroactive" value="retroactive" />
+				<label for="retroactive">
+					Apply this change to all current students
+				</label>
+			</p>	
+		#end
+		<p class="act">
+			#if ($userrole.equals("adminrole") || $userrole.equals("schoolrole"))
+				<input 
+					type="submit"
+					name="MoveAdmin"
+					id="MoveAdmin"
+					class="active"
+					value="Move"
+					onclick="showNotif('submitnotif','MoveAdmin','moveForm');
+						showNotif('submitnotif','CancelAdmin','moveForm');
+						document.moveForm.option.value='move_admin';
+						document.moveForm.submit(); return false;" 
+					/>
+				<input 
+					type="submit" 
+					name="CancelAdmin"
+					id="CancelAdmin"
+					value="Cancel"
+					onclick="document.moveForm.option.value='cancel_admin'; 
+						document.moveForm.submit(); return false;"
+					/>			
+				<span id="submitnotif" 
+					style="visibility:hidden">Processing......</span>		
+			#elseif ($userrole.equals("committeerole"))
+				<input 
+					type="submit"
+					name="MoveCommittee"
+					id="MoveCommittee"
+					class="active"
+					value="Move"
+					onclick="document.moveForm.option.value='move_committee';
+						document.moveForm.submit(); return false;" 
+					/>
+				<input 
+					type="submit" 
+					name="CancelCommittee"
+					id="CancelCommittee"
+					value="Cancel"
+					onclick="document.moveForm.option.value='cancel_committee'; 
+						document.moveForm.submit(); return false;"
+					/>
+			#elseif ($userrole.equals("candidaterole"))
+				<input 
+					type="submit"
+					name="MoveCandidate"
+					id="MoveCandidate"
+					class="active"
+					value="Move"
+					onclick="document.moveForm.option.value='move_candidate';
+						document.moveForm.submit(); return false;" 
+					/>
+				<input 
+					type="submit" 
+					name="CancelCandidate"
+					id="CancelCandidate"
+					value="Cancel"
+					onclick="document.moveForm.option.value='cancel_candidate'; 
+						document.moveForm.submit(); return false;"
+					/>
+			#end
+		</p>
+	</form>
+</div>

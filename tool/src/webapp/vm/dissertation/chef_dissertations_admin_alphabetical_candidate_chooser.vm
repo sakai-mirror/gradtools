@@ -1,0 +1,31 @@
+##<!-- $Header: /cvs/ctools/gradtools/tool/src/webapp/vm/dissertation/chef_dissertations_admin_alphabetical_candidate_chooser.vm,v 1.2 2005/06/01 22:23:39 gsilver.umich.edu Exp $ -->
+## Dissertations - Administrator's choose candidate view
+<div class="portletBody">
+	<p class="instruction">
+		Select a letter.
+	</p>
+	<form name="alphabetForm" id="alphabetForm" action="#toolForm($action)" method="post" >
+		<p class="act">
+			<input type="submit" name="eventSubmit_doAdministration" value="Back To Checklist" />
+		</p>
+		<div style="margin:2em auto;clear:both;display:block">
+			<span class="abc">
+				#foreach ($letter in $letters)
+					#if ($letter.hasMembers())
+						<a href="#" onclick="location = '#toolLink($action "doAlphabetical_choice")&selected=$letter.Letter';return false;">$letter.Letter</a>
+					#else
+						$letter.Letter
+					#end
+				#end
+			</span>
+		</div>	
+		#if ($hasusers.booleanValue())
+			<p class="instruction">Select a student to view their progress</p>
+		#end
+		<ul class="attachList">
+			#foreach ($user in $users)
+				<li><a href="#" onclick="location = '#toolLink($action "doCandidate_chosen")&selectedcandidate=$user.Id';return false;">$user.SortName $emplids.get($user.Id)</a></li>
+			#end
+		</ul>
+	</form>
+</div>

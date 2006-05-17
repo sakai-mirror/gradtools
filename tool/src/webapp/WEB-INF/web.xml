@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app id="WebApp_9" version="2.4" xmlns="http://java.sun.com/xml/ns/j2ee" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
+    <display-name>ctools-gradtools-tool</display-name>
+    <description>CTools GradTools tool</description>
+
+	<!-- Sakai request filter -->
+    <filter>
+        <filter-name>sakai.request</filter-name>
+        <filter-class>org.sakaiproject.util.RequestFilter</filter-class>
+    </filter>
+
+    <filter-mapping>
+        <filter-name>sakai.request</filter-name>
+        <servlet-name>ctools.aboutGradTools</servlet-name>
+        <dispatcher>REQUEST</dispatcher>
+        <dispatcher>FORWARD</dispatcher>
+        <dispatcher>INCLUDE</dispatcher>
+    </filter-mapping>
+
+    <filter-mapping>
+        <filter-name>sakai.request</filter-name>
+        <servlet-name>ctools.dissertation.upload</servlet-name>
+        <dispatcher>REQUEST</dispatcher>
+        <dispatcher>FORWARD</dispatcher>
+        <dispatcher>INCLUDE</dispatcher>
+    </filter-mapping>
+
+    <filter-mapping>
+        <filter-name>sakai.request</filter-name>
+        <servlet-name>ctools.dissertation</servlet-name>
+        <dispatcher>REQUEST</dispatcher>
+        <dispatcher>FORWARD</dispatcher>
+        <dispatcher>INCLUDE</dispatcher>
+    </filter-mapping>
+
+    <filter-mapping>
+        <filter-name>sakai.request</filter-name>
+        <servlet-name>ctools.gradToolsHelp</servlet-name>
+        <dispatcher>REQUEST</dispatcher>
+        <dispatcher>FORWARD</dispatcher>
+        <dispatcher>INCLUDE</dispatcher>
+    </filter-mapping>
+
+	<!-- the vm handling servlet : used direct by name, not by URL path -->
+	<servlet>
+		<servlet-name>
+		   sakai.vm
+		</servlet-name>
+		<servlet-class>
+			org.sakaiproject.vm.VelocityServlet
+		</servlet-class>
+		<init-param>
+			<param-name> properties </param-name>
+			<param-value> velocity.properties </param-value>
+		</init-param>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+
+    <servlet>
+        <servlet-name>
+           ctools.dissertation
+        </servlet-name>
+        <servlet-class>
+            org.sakaiproject.tool.dissertation.DissertationAction
+        </servlet-class>
+        <init-param>
+            <param-name>template</param-name>
+            <param-value>dissertation/chef_dissertations</param-value>            
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+     </servlet>
+
+    <servlet>
+        <servlet-name>
+           ctools.dissertation.upload
+        </servlet-name>
+        <servlet-class>
+            org.sakaiproject.tool.dissertation.DissertationUploadAction
+        </servlet-class>
+        <init-param>
+            <param-name>template</param-name>
+            <param-value>dissertation/chef_dissertations</param-value>            
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+     </servlet>
+
+	 <servlet>
+        <servlet-name>
+           ctools.aboutGradTools
+        </servlet-name>
+        <servlet-class>
+            org.sakaiproject.tool.web.IFrameAction
+        </servlet-class>
+        <init-param>
+            <param-name>template</param-name>
+            <param-value>web/chef_iframe</param-value>            
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+     </servlet>
+
+	 <servlet>
+        <servlet-name>
+           ctools.gradToolsHelp
+        </servlet-name>
+        <servlet-class>
+            org.sakaiproject.tool.web.IFrameAction
+        </servlet-class>
+        <init-param>
+            <param-name>template</param-name>
+            <param-value>web/chef_iframe</param-value>            
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+     </servlet>
+
+    <listener>
+        <listener-class>org.sakaiproject.util.ToolListener</listener-class>
+    </listener>
+
+</web-app>

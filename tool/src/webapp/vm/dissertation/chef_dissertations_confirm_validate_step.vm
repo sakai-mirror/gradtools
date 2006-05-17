@@ -1,0 +1,56 @@
+##<!-- $Header: /cvs/ctools/gradtools/tool/src/webapp/vm/dissertation/chef_dissertations_confirm_validate_step.vm,v 1.2 2005/06/01 22:23:39 gsilver.umich.edu Exp $ -->
+## Dissertations - All roles, confirm validate step
+<div class="chefPortletContainerportletBody">
+	<form name="confirmValidate" id="confirmValidate" method="post" action="#toolForm($action)">
+		<p class="instruction">Mark
+			#if ($multivalid.booleanValue())
+				these steps
+			#else
+				this step 
+			#end
+			as completed ?<br />
+			You have chosen : <br /><br />
+			$stepdesc <br /><br />
+		</p>
+		
+		#if ($alertMessage)<div class="alertMessage">Alert: $validator.escapeHtml($alertMessage)</div>#end
+			Marking 
+			#if ($multivalid.booleanValue())
+				these steps
+			#else
+				this step 
+			#end
+		
+			as completed means that you certify that 
+
+			#if ($multivalid.booleanValue())
+				these steps have
+			#else
+				this step has
+			#end
+		
+			#if ($userrole.equals("adminrole") || $userrole.equals("schoolrole"))
+				been satisfactorily completed by $candidatename.<br /><br />
+			#elseif ($userrole.equals("committeerole"))
+				been satisfactorily completed by $candidatename.<br /><br />
+				Completed steps appear on the checklist by default.  If you do not want them to show on your checklist, choose "Hide Done"<br /><br />
+			#elseif ($userrole.equals("candidaterole"))
+				been satisfactorily completed.<br /><br />
+				Completed steps appear on the checklist by default.  If you do not want them to show on your checklist, choose "Hide Done"<br /><br />
+		#end
+			
+		<p class="act">
+			#if ($userrole.equals("adminrole") || $userrole.equals("schoolrole"))
+				<input type="submit" name="eventSubmit_doUpdate_candidate_path_admin" value="Mark As Completed" />
+				<input type="submit" name="eventSubmit_doCancel_admin_validate_step" value="Cancel" />
+			#elseif ($userrole.equals("committeerole"))
+				<input type="submit" name="eventSubmit_doUpdate_candidate_path_comm" value="Mark As Completed" />
+				<input type="submit" name="eventSubmit_doCancel_committee" value="Cancel" />
+		
+			#elseif ($userrole.equals("candidaterole"))
+				<input type="submit" name="eventSubmit_doUpdate_candidate_path" value="Mark As Completed" />
+				<input type="submit" name="eventSubmit_doCancel_candidate" value="Cancel" />
+			#end
+		</p>
+	</form>
+</div>

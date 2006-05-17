@@ -1,0 +1,109 @@
+##<!-- $Header: /cvs/ctools/gradtools/tool/src/webapp/vm/dissertation/chef_dissertations_confirm_delete_step.vm,v 1.2 2005/06/01 22:23:39 gsilver.umich.edu Exp $ -->
+## Dissertations - All roles, confirm delete step
+<div class="portletBody">
+	<form name="confirmDelete" 
+		id="confirmDelete" 
+		method="post" 
+		action="#toolForm($action)">
+		<input type="hidden" name="option" value="x" />
+		<input type="hidden" name="eventSubmit_doDelete" value="x" />
+		<h3>
+			#if ($multidelete.booleanValue())
+				Delete Dissertation Steps
+			#else
+				Delete a Dissertation Step
+			#end
+		</h3>
+		#if ($alertMessage.length()>0)
+			<div class="alertMessage"> $validator.escapeHtml($alertMessage)
+			Are you sure you still want to delete
+			#if ($multidelete.booleanValue())
+				these dissertation steps?
+			#else
+				this dissertation step?
+			#end
+			</div>
+		#else
+			<div class="alertMessage">Are you sure you want to delete
+			#if ($multidelete.booleanValue())
+				these dissertation steps?
+			#else
+				this dissertation step?
+			#end
+			</div>
+		#end
+		<h4>Description</td>
+		#foreach ($step in $steps)
+			<p>$validator.escapeHtml($step.Instructions)</p>
+		#end
+		#if ($activepaths.booleanValue())
+			<p class="checkbox">
+				<input type="checkbox" checked="checked" name="retroactive" id="retroactive" value="retroactive" /> 
+				<label for="retroactive">Apply this change to all current students</label>
+			</p>	
+		#end
+		<p class="act">
+			#if ($userrole.equals("adminrole") || $userrole.equals("schoolrole"))
+				<input 
+					type="submit"
+					name="DeleteAdmin"
+					id="DeleteAdmin"
+					class="active"
+					value="Delete"
+					onclick="showNotif('submitnotif','DeleteAdmin','confirmDelete');
+						showNotif('submitnotif','CancelAdmin','confirmDelete');
+						document.confirmDelete.option.value='delete_admin';
+						document.confirmDelete.submit(); return false;" 
+					/>
+				<input 
+					type="submit"
+					name="CancelAdmin"
+					id="CancelAdmin"
+					value="Cancel"
+					onclick="document.confirmDelete.option.value='cancel_admin'; 
+						document.confirmDelete.submit(); return false;"
+					/>			
+				<span id="submitnotif" 
+					style="visibility:hidden">Processing......</span>	
+				
+			#elseif ($userrole.equals("committeerole"))	
+				<input 
+					type="submit"
+					name="DeleteCommittee"
+					id="DeleteCommittee"
+					class="active"
+					value="Delete"
+					onclick="document.confirmDelete.option.value='delete_committee';
+						document.confirmDelete.submit(); return false;" 
+					/>
+				<input 
+					type="submit"
+					name="CancelCommittee"
+					id="CancelCommittee"
+					value="Cancel"
+					onclick="document.confirmDelete.option.value='cancel_committee'; 
+						document.confirmDelete.submit(); return false;"
+					/>		
+		
+			#elseif ($userrole.equals("candidaterole"))	
+				<input 
+					type="submit"
+					name="DeleteCandidate"
+					id="DeleteCandidate"
+					class="active"
+					value="Delete"
+					onclick="document.confirmDelete.option.value='delete_candidate';
+						document.confirmDelete.submit(); return false;" 
+					/>
+				<input 
+					type="submit"
+					name="CancelCandidate"
+					id="CancelCandidate"
+					value="Cancel"
+					onclick="document.confirmDelete.option.value='cancel_candidate'; 
+						document.confirmDelete.submit(); return false;"
+					/>		
+			#end
+		</p>
+	</form>
+</div>

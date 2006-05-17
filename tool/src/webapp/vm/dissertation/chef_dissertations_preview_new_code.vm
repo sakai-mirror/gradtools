@@ -1,0 +1,50 @@
+## $Header: /cvs/ctools/gradtools/tool/src/webapp/vm/dissertation/chef_dissertations_preview_new_code.vm,v 1.2 2005/06/01 22:23:39 gsilver.umich.edu Exp $ 
+## Dissertations - Administrator's form for previewing Field of Study addition
+<div class="portletBody" id="chefPortletContainer">
+	#if($menu)#toolbar($menu)#end
+	<h3>
+		Previewing matching codes
+	</h3>
+	#if ($alertMessage)<div class="alertMessage">Alert: $validator.escapeHtml($alertMessage)</div>#end
+	<p class="instruction">
+		Please check the codes below to make sure they are entered correctly. You can not add a new BGG
+		code if a department site for that code has not yet been created,  To change the codes or the
+		matching names, click 'Revise'.
+	</p>
+		<form name="preview" id="preview" action="#toolForm($action)" method="post" enctype="multipart/form-data">
+			<table class="listHier" cellspacing="0" summary="Preview of Field of Study and Block Grant Group code to add.">
+				<tr>
+					<td>
+							FOS
+					</td>
+					<td>
+						$!field.getFieldCode()
+					</td>
+					<td>
+						$!field.getFieldName()
+					</td>
+					<td>
+						&nbsp;&nbsp;
+					</td>
+					<td>
+						BGG
+					</td>
+					<td>
+						$!field.getGroupCode()
+					</td>
+					<td>
+						$!field.getGroupName()
+					</td>
+				</tr>
+			</table>
+			<div class="act">
+				<input type="hidden" name="FOS_code" value="$field.getFieldCode()">
+				<input type="hidden" name="FOS_name" value="$field.getFieldName()">
+				<input type="hidden" name="BGG_code" value="$field.getGroupCode()">
+				<input type="hidden" name="BGG_name" value="$field.getGroupName()">
+				<input class="active" type="submit" name="eventSubmit_doAdd_new_code" id="eventSubmit_doAdd_new_code" value="Submit" />
+				<input type="submit" name="eventSubmit_doRevise_new_code" id="eventSubmit_doRevise_new_code" value="Revise" />
+				<input type="submit" name="eventSubmit_doCancel_new_codes" id="eventSubmit_doCancel_new_codes" value="Cancel" />
+			</div>
+		</form>
+</div>

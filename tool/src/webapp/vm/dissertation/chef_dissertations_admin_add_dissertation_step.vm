@@ -1,0 +1,116 @@
+##<!-- $Header: /cvs/ctools/gradtools/tool/src/webapp/vm/dissertation/chef_dissertations_admin_add_dissertation_step.vm,v 1.2 2005/06/01 22:23:39 gsilver.umich.edu Exp $ -->
+## Dissertations - Administrator's add new Dissertation Step view
+<div class="portletBody">
+	#if ($alertMessage)<div class="alertMessage">Alert: $validator.escapeHtml($alertMessage)</div>#end
+	<h3>
+		New Step
+	</h3>
+	<div class="instruction">
+		Create A New Step.  The <span class="reqStarInline">*</span> means this information is required.
+	</div>
+	<form name="addStep" 
+			id="addStep" 
+			action="#toolForm($action)" 
+			method="post">
+		<input type="hidden" name="option" value="add" />
+		<input type="hidden" name="eventSubmit_doAddnew_dissertation_step" value="x" />
+		<p class="longtext">
+			<span class="reqStar">*</span>
+			<label for="desc" class="block">Description</label>
+			<textarea name="desc" cols="70" rows="6" id="desc" wrap="virtual"></textarea>
+		</p>
+		<p class="shorttext">
+			<span class="reqStar">*</span>
+			<label for="vtype">Actors</label>
+			<select onchange="blur()" name="vtype" id="vtype" tabindex="5">
+				#foreach ($type in $validationtypes)
+					<option value="$type">$validationTypeTable.get($type)</option>
+				#end
+			</select>
+		</p>
+		<p class="shorttext">
+			<label for="prereq">Prerequisites</label>
+			<select onchange="blur()" name="prereq" id="prereq" multiple="multiple" tabindex="6">
+				#foreach ($prereq in $orderedsteps)
+					<option value="$prereq.Reference">$prereq.ShortInstructionsText</option>
+				#end
+			</select>
+			<p class="instruction labelindnt">
+				Note : To select more than one, hold Apple-select on mac, Ctrl-select on pc.
+			</p>
+		</p>	
+		<p class="shorttext">
+			<span class="reqStar">*</span>
+			<label for="location">Location</label>
+			<select onchange="blur()" name="location" id="location" tabindex="6">
+				<option selected="selected" value="start">START</option>
+				#foreach ($step in $orderedsteps)
+					<option value="$step.Reference">$step.ShortInstructionsText</option>
+				#end
+			</select>
+			<p class="instruction labelindnt">
+				Note : The new step will appear AFTER the selected step.
+			</p>
+
+			#if ($userrole.equals("schoolrole"))
+				<p class="shorttext">
+					<span class="reqStar">*</span>
+					<label for="section">Section</label>
+					<select onchange="blur()" name="section" id="section" tabindex="6">
+						#foreach($section in $sections)
+							#if($section != "None")
+								<option value ="$section"
+								#if($section.equals($step.section))
+										selected="selected"
+								#end
+								>
+								$section
+								</option>
+							#end
+						#end
+					</select>
+				</p>	
+				<p class="shorttext">
+					<label for="autovalid">Auto Validation Number</label>
+					<select onchange="blur()" name="autovalid" id="autovalid" tabindex="6">
+						<option selected="selected" value"">None</option>
+						#foreach ($index in [1..12])
+							<option value="$index">$index</option>
+						#end
+					</select>
+				</p>	
+			#end
+
+			#if ($activepaths.booleanValue())
+				<p class="checkbox">
+					<input type="checkbox" checked="checked" name="retroactive" id="retroactive" value="retroactive" />
+					<label for="retroactive">Apply this change to all current students</label>
+				</p>	
+			#end
+				<p class="act">
+					<input 
+						type="submit"
+						name="AddStep"
+						id="AddStep"
+						class="active"
+						value="Save"
+						onclick="showNotif('submitnotif','AddStep','addStep');
+							showNotif('submitnotif','Cancel','addStep');
+							document.addStep.submit(); return false;" />
+					<input 
+						type="submit"
+						name="Cancel"
+						id="Cancel"
+						value="Cancel"
+						onclick="document.addStep.option.value='cancel'; 
+							document.addStep.submit(); return false;"
+						 />			
+					<span id="submitnotif" 
+						style="visibility:hidden">Processing......</span>	
+					</p>
+			
+				</p>
+			</div>
+		</fieldset>
+	</form>
+</div>
