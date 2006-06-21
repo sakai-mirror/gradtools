@@ -25,11 +25,10 @@
 //package
 package org.sakaiproject.api.app.dissertation;
 
-//imports
 import java.util.Hashtable;
 import java.util.List;
 
-import org.sakaiproject.service.legacy.entity.Entity;
+import org.sakaiproject.entity.api.Entity;
 
 /**
 * <p>CandidatePath is the interface for BaseCandidatePath, defined in BaseDissertationService.</p>

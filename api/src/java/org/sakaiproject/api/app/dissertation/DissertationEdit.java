@@ -25,11 +25,10 @@
 //package
 package org.sakaiproject.api.app.dissertation;
 
-//import
 import java.util.Hashtable;
 import java.util.List;
 
-import org.sakaiproject.service.legacy.entity.Edit;
+import org.sakaiproject.entity.api.Edit;
 
 /**
 * <p>DissertationEdit is the interface for BaseDissertationEdit, defined in BaseDissertationService.</p>

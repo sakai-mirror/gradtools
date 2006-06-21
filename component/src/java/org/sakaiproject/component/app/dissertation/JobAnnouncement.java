@@ -23,21 +23,25 @@
 
 package org.sakaiproject.component.app.dissertation;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.JobExecutionException;
-import org.sakaiproject.api.kernel.session.Session;
-import org.sakaiproject.api.kernel.session.cover.SessionManager;
+
+import org.sakaiproject.announcement.api.AnnouncementChannel;
+import org.sakaiproject.announcement.api.AnnouncementChannelEdit;
+import org.sakaiproject.announcement.api.AnnouncementMessageEdit;
+import org.sakaiproject.announcement.api.AnnouncementMessageHeaderEdit;
+import org.sakaiproject.announcement.cover.AnnouncementService;
+import org.sakaiproject.entity.api.Entity;
+import org.sakaiproject.event.cover.NotificationService;
 import org.sakaiproject.exception.IdUnusedException;
-import org.sakaiproject.service.framework.log.Logger;
-import org.sakaiproject.service.legacy.announcement.AnnouncementChannel;
-import org.sakaiproject.service.legacy.announcement.AnnouncementChannelEdit;
-import org.sakaiproject.service.legacy.announcement.AnnouncementMessageEdit;
-import org.sakaiproject.service.legacy.announcement.AnnouncementMessageHeaderEdit;
-import org.sakaiproject.service.legacy.announcement.cover.AnnouncementService;
-import org.sakaiproject.service.legacy.entity.Entity;
-import org.sakaiproject.service.legacy.notification.cover.NotificationService;
-import org.sakaiproject.service.legacy.site.cover.SiteService;
+import org.sakaiproject.site.cover.SiteService;
+import org.sakaiproject.tool.api.Session;
+import org.sakaiproject.tool.cover.SessionManager;
+
 
 /**
  * <p>
@@ -49,7 +53,7 @@ import org.sakaiproject.service.legacy.site.cover.SiteService;
  */
 public class JobAnnouncement
 {
-	private Logger m_logger = null;
+	private static final Log m_logger = LogFactory.getLog(JobAnnouncement.class);
 	private JobDetail m_jobDetail = null;
 	private String m_message = null;
 		
@@ -151,7 +155,7 @@ public class JobAnnouncement
 			try
 			{
 				//Spring injection of Logger was getting lost when Quartz instantiated job
-				m_logger = org.sakaiproject.service.framework.log.cover.Logger.getInstance();
+				//m_logger = org.sakaiproject.service.framework.log.cover.Logger.getInstance();
 				if(m_logger == null)
 					System.out.println("logger is null");
 					

@@ -25,7 +25,6 @@
 // package
 package org.sakaiproject.tool.dissertation;
 
-// imports
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
@@ -35,6 +34,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 import java.util.Vector;
+
 import org.sakaiproject.api.app.dissertation.BlockGrantGroup;
 import org.sakaiproject.api.app.dissertation.BlockGrantGroupEdit;
 import org.sakaiproject.api.app.dissertation.CandidateInfo;
@@ -45,36 +45,36 @@ import org.sakaiproject.api.app.dissertation.DissertationStep;
 import org.sakaiproject.api.app.dissertation.StepStatus;
 import org.sakaiproject.api.app.dissertation.StepStatusEdit;
 import org.sakaiproject.api.app.dissertation.cover.DissertationService;
-import org.sakaiproject.api.kernel.session.Session;
-import org.sakaiproject.api.kernel.session.cover.SessionManager;
-import org.sakaiproject.api.kernel.thread_local.cover.ThreadLocalManager;
-import org.sakaiproject.api.kernel.tool.cover.ToolManager;
 import org.sakaiproject.cheftool.Context;
 import org.sakaiproject.cheftool.JetspeedRunData;
 import org.sakaiproject.cheftool.RunData;
 import org.sakaiproject.cheftool.VelocityPortlet;
 import org.sakaiproject.cheftool.VelocityPortletPaneledAction;
-import org.sakaiproject.cheftool.menu.Menu;
+import org.sakaiproject.cheftool.api.Menu;
+import org.sakaiproject.cheftool.api.MenuItem;
 import org.sakaiproject.cheftool.menu.MenuEntry;
-import org.sakaiproject.cheftool.menu.MenuItem;
+import org.sakaiproject.cheftool.menu.MenuImpl;
+import org.sakaiproject.content.api.ContentResource;
+import org.sakaiproject.content.api.ContentResourceEdit;
+import org.sakaiproject.content.cover.ContentHostingService;
+import org.sakaiproject.entity.api.ResourceProperties;
+import org.sakaiproject.entity.api.ResourcePropertiesEdit;
+import org.sakaiproject.event.api.SessionState;
 import org.sakaiproject.exception.IdUnusedException;
-import org.sakaiproject.service.framework.portal.cover.PortalService;
-import org.sakaiproject.service.framework.session.SessionState;
-import org.sakaiproject.service.legacy.content.ContentResource;
-import org.sakaiproject.service.legacy.content.ContentResourceEdit;
-import org.sakaiproject.service.legacy.content.cover.ContentHostingService;
-import org.sakaiproject.service.legacy.entity.ResourceProperties;
-import org.sakaiproject.service.legacy.entity.ResourcePropertiesEdit;
-import org.sakaiproject.service.legacy.site.Site;
-import org.sakaiproject.service.legacy.site.cover.SiteService;
-import org.sakaiproject.service.legacy.time.Time;
-import org.sakaiproject.service.legacy.time.cover.TimeService;
-import org.sakaiproject.service.legacy.user.User;
-import org.sakaiproject.service.legacy.user.cover.UserDirectoryService;
+import org.sakaiproject.site.api.Site;
+import org.sakaiproject.site.cover.SiteService;
+import org.sakaiproject.thread_local.cover.ThreadLocalManager;
+import org.sakaiproject.time.api.Time;
+import org.sakaiproject.time.cover.TimeService;
+import org.sakaiproject.tool.api.Session;
+import org.sakaiproject.tool.cover.SessionManager;
+import org.sakaiproject.tool.cover.ToolManager;
+import org.sakaiproject.user.api.User;
+import org.sakaiproject.user.cover.UserDirectoryService;
 import org.sakaiproject.util.FileItem;
 import org.sakaiproject.util.ParameterParser;
 import org.sakaiproject.util.SortedIterator;
-import org.sakaiproject.util.java.StringUtil;
+import org.sakaiproject.util.StringUtil;
 
 /**
 * <p>DissertationUploadAction is the U-M Rackham Graduate School OARD/MP data loader.</p>
@@ -199,7 +199,8 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		String mode = (String) state.getAttribute(STATE_MODE);
 
 		//is this the Rackham site?
-		if(!DissertationService.getSchoolSite().equals(PortalService.getCurrentSiteId()))
+		//if(!DissertationService.getSchoolSite().equals(PortalService.getCurrentSiteId()))
+		if(!DissertationService.getSchoolSite().equals(ToolManager.getCurrentPlacement().getContext()))
 		{
 			mode = MODE_SITEID_NOT_RACKHAM;
 		}
@@ -285,7 +286,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	private String buildListCodesContext(VelocityPortlet portlet, RunData rundata, SessionState state, Context context)
 	{
 		// menu bar
-		Menu bar = new Menu(portlet, rundata, (String) state.getAttribute(STATE_ACTION));
+		Menu bar = new MenuImpl(portlet, rundata, (String) state.getAttribute(STATE_ACTION));
 		bar.add( new MenuEntry("Done", "doDone_edit_codes"));
 		bar.add( new MenuEntry("New...", "doNew_code"));
 		bar.add ( new MenuEntry ("Edit", null, true, MenuItem.CHECKED_NA, "doEdit_names", "listCodes") );
@@ -443,7 +444,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		}
 		return TEMPLATE_PREVIEW_CODE;
 		
-	}//buildPreviewNewCodeContext
+	}
 	
 	/**
 	* Build the context for the edit FOS and BGG names form.
@@ -470,8 +471,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		}
 
 		return TEMPLATE_EDIT_NAMES;
-		
-	}//buildEditNamesContext
+	}
 	
 	/**
 	* Get field of study name for field code in Block Grant Group
@@ -489,11 +489,9 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 			{
 				return (String)fields.get((String)fieldCode);
 			}
-			
 		}
 		return fieldName;
-		
-	}//getFieldName
+	}
 	
 	/**
 	* Build the context for the form to enter student(s) to remove.
@@ -623,7 +621,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 	private String buildUploadContext(VelocityPortlet portlet, RunData rundata, SessionState state, Context context)
 	{
 		// menu bar
-		Menu bar = new Menu(portlet, rundata, (String) state.getAttribute(STATE_ACTION));
+		Menu bar = new MenuImpl(portlet, rundata, (String) state.getAttribute(STATE_ACTION));
 		bar.add( new MenuEntry("Show...", "doShow_setting"));
 		bar.add( new MenuEntry("Edit Codes", "doList_codes"));
 		bar.add(new MenuEntry("Remove Students", "doRemove_students"));
@@ -1706,7 +1704,8 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 			{
 				try
 				{
-					currentSite = PortalService.getCurrentSiteId();
+					//currentSite = PortalService.getCurrentSiteId();
+					currentSite = ToolManager.getCurrentPlacement().getContext();
 					edit = DissertationService.addBlockGrantGroup(currentSite);
 					edit.setCode(field.getGroupCode());
 					edit.setDescription(field.getGroupName());
@@ -2139,7 +2138,8 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		String oardContent = null;
 		String mpContent = null;
 		String msg = null;
-		String currentSite = PortalService.getCurrentSiteId();
+		//String currentSite = PortalService.getCurrentSiteId();
+		String currentSite = ToolManager.getCurrentPlacement().getContext();
 		
 		//get the content of the files uploaded
 		if(state.getAttribute(STATE_OARD_CONTENT_STRING)!= null)

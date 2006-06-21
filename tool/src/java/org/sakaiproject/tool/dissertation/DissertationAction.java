@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Vector;
+
 import org.sakaiproject.api.app.dissertation.CandidateInfo;
 import org.sakaiproject.api.app.dissertation.CandidatePath;
 import org.sakaiproject.api.app.dissertation.CandidatePathEdit;
@@ -39,27 +40,28 @@ import org.sakaiproject.api.app.dissertation.DissertationStep;
 import org.sakaiproject.api.app.dissertation.StepStatus;
 import org.sakaiproject.api.app.dissertation.StepStatusEdit;
 import org.sakaiproject.api.app.dissertation.cover.DissertationService;
-import org.sakaiproject.api.kernel.tool.cover.ToolManager;
 import org.sakaiproject.cheftool.Context;
 import org.sakaiproject.cheftool.JetspeedRunData;
 import org.sakaiproject.cheftool.RunData;
 import org.sakaiproject.cheftool.VelocityPortlet;
 import org.sakaiproject.cheftool.VelocityPortletPaneledAction;
-import org.sakaiproject.cheftool.menu.Menu;
+import org.sakaiproject.cheftool.api.Menu;
+import org.sakaiproject.cheftool.api.MenuItem;
 import org.sakaiproject.cheftool.menu.MenuEntry;
-import org.sakaiproject.cheftool.menu.MenuItem;
+import org.sakaiproject.cheftool.menu.MenuImpl;
+import org.sakaiproject.content.api.ContentResource;
+import org.sakaiproject.content.cover.ContentHostingService;
+import org.sakaiproject.event.api.SessionState;
 import org.sakaiproject.exception.IdUnusedException;
 import org.sakaiproject.exception.PermissionException;
-import org.sakaiproject.service.framework.portal.cover.PortalService;
-import org.sakaiproject.service.framework.session.SessionState;
-import org.sakaiproject.service.legacy.content.ContentResource;
-import org.sakaiproject.service.legacy.content.cover.ContentHostingService;
-import org.sakaiproject.service.legacy.site.Site;
-import org.sakaiproject.service.legacy.site.cover.SiteService;
-import org.sakaiproject.service.legacy.time.Time;
-import org.sakaiproject.service.legacy.time.cover.TimeService;
-import org.sakaiproject.service.legacy.user.User;
-import org.sakaiproject.service.legacy.user.cover.UserDirectoryService;
+import org.sakaiproject.site.api.Site;
+import org.sakaiproject.site.cover.SiteService;
+import org.sakaiproject.time.api.Time;
+import org.sakaiproject.time.cover.TimeService;
+import org.sakaiproject.tool.cover.ToolManager;
+import org.sakaiproject.user.api.User;
+import org.sakaiproject.user.api.UserNotDefinedException;
+import org.sakaiproject.user.cover.UserDirectoryService;
 import org.sakaiproject.util.ParameterParser;
 
 /**
@@ -72,8 +74,6 @@ import org.sakaiproject.util.ParameterParser;
 public class DissertationAction
 	extends VelocityPortletPaneledAction
 {
-
-	
 	/** The state mode	*/
 	private static final String STATE_MODE = "Dissertation.mode";
 	
@@ -552,7 +552,7 @@ public class DissertationAction
 		
 		Boolean showdone = (Boolean)state.getAttribute(STATE_SHOW_COMPLETED_STEPS);
 		
-		Menu menu = new Menu (portlet, data, "DissertationAction");
+		Menu menu = new MenuImpl (portlet, data, "DissertationAction");
 		menu.add ( new MenuEntry ("New", null, true, MenuItem.CHECKED_NA, "doAdd_stepstatus_comm", "commViewPath") );
 		menu.add ( new MenuEntry ("Delete", null, true, MenuItem.CHECKED_NA, "doConfirm_delete_stepstatus_comm", "commViewPath") );
 		menu.add ( new MenuEntry ("Revise", null, true, MenuItem.CHECKED_NA, "doEdit_stepstatus_comm", "commViewPath") );
@@ -685,7 +685,7 @@ public class DissertationAction
 	{
 		Boolean hasSteps = null;
 		TemplateStep[] steps = (TemplateStep[])state.getAttribute(STATE_CURRENT_DISSERTATION_STEPS);
-		Menu menu = new Menu (portlet, data, "DissertationAction");
+		Menu menu = new MenuImpl (portlet, data, "DissertationAction");
 		String department = (String)state.getAttribute(STATE_USERS_DEPT_FULL_NAME);
 		
 		//deans may look but not touch
@@ -831,7 +831,7 @@ public class DissertationAction
 		context.put("sections",(Vector)DissertationService.getSectionHeads());
 		
 		//DEANS MAY LOOK BUT NOT TOUCH
-		Menu menu = new Menu (portlet, data, "DissertationAction");
+		Menu menu = new MenuImpl (portlet, data, "DissertationAction");
 		if(!dean)
 		{
 			menu.add ( new MenuEntry ("Mark as Done", null, true, MenuItem.CHECKED_NA, "doConfirm_admin_update_candidate_path", "adminViewPath") );
@@ -910,7 +910,7 @@ public class DissertationAction
 		context.put("hassteps", hasSteps);
 		context.put("sections",(Vector)DissertationService.getSectionHeads());
 
-		Menu menu = new Menu (portlet, data, "DissertationAction");
+		Menu menu = new MenuImpl (portlet, data, "DissertationAction");
 		menu.add ( new MenuEntry ("New", null, true, MenuItem.CHECKED_NA, "doAdd_stepstatus", "candidateViewPath") );
 		menu.add ( new MenuEntry ("Delete", null, true, MenuItem.CHECKED_NA, "doConfirm_delete_stepstatus", "candidateViewPath") );
 		menu.add ( new MenuEntry ("Revise", null, true, MenuItem.CHECKED_NA, "doEdit_stepstatus", "candidateViewPath") );
@@ -3777,7 +3777,7 @@ public class DissertationAction
 		
 		state.setAttribute(STATE_MODE, MODE_CANDIDATE_VIEW_PATH);
 		
-	}//doToggle_candidate_path_display_status
+	}
 	
 
 	/**
@@ -4053,7 +4053,7 @@ public class DissertationAction
 
 		state.setAttribute(STATE_MODE, MODE_CANDIDATE_VIEW_PATH);
 
-	}//doUpdate_candidate_path
+	}
 
 
 	/**
@@ -4091,7 +4091,7 @@ public class DissertationAction
 		}
 		state.setAttribute(STATE_MODE, MODE_ADMIN_VIEW_CANDIDATE_PATH);
 		
-	} //doUpdate_candidate_path_admin
+	}
 	
 	
 	/**
@@ -4103,7 +4103,7 @@ public class DissertationAction
 		
 		state.setAttribute(STATE_MODE, MODE_ADMIN_ALPHABETICAL_CANDIDATE_CHOOSER);
 		
-	} //doView_candidates_list
+	}
 
 	/**
 	* Action is to cancel the action of a candidate.
@@ -4113,7 +4113,7 @@ public class DissertationAction
 		SessionState state = ((JetspeedRunData)data).getPortletSessionState (((JetspeedRunData)data).getJs_peid ());
 		state.setAttribute(STATE_MODE, MODE_CANDIDATE_VIEW_PATH);
 		
-	} //doCancel_candidate
+	}
 
 	
 	/**
@@ -4129,7 +4129,8 @@ public class DissertationAction
 		
 		if (currentSite==null)
 		{
-			currentSite = PortalService.getCurrentSiteId();
+			//currentSite = PortalService.getCurrentSiteId();
+			currentSite = ToolManager.getCurrentPlacement().getContext();
 			state.setAttribute(STATE_CURRENT_SITE, currentSite);
 		}
 		
@@ -4385,7 +4386,8 @@ public class DissertationAction
 		Site deptSite = null;
 		if (state.getAttribute(STATE_CURRENT_SITE)==null)
 		{
-			currentSite = PortalService.getCurrentSiteId();
+			//currentSite = PortalService.getCurrentSiteId();
+			currentSite = ToolManager.getCurrentPlacement().getContext();
 			state.setAttribute(STATE_CURRENT_SITE, currentSite);
 			
 			//this department
@@ -4619,7 +4621,7 @@ public class DissertationAction
 			{
 				candidate = UserDirectoryService.getUser(path.getCandidate());
 			}
-			catch(IdUnusedException e)
+			catch(UserNotDefinedException e)
 			{
 				if(Log.isWarnEnabled())
 					Log.warn("chef", this + ".initState() UserDirectoryService.getUser(" + path.getCandidate() + ") " + e);
@@ -5936,7 +5938,7 @@ public class DissertationAction
 					retVal = sortName.substring(0,1).toUpperCase();
 				}
 			}
-			catch(IdUnusedException e) 
+			catch(UserNotDefinedException e) 
 			{
 				if(Log.isWarnEnabled())
 					Log.warn("chef", this + ".getSortLetter(String " + chefId + ")");

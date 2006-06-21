@@ -36,10 +36,15 @@ import java.util.TreeMap;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+
 import org.sakaiproject.api.app.dissertation.CandidateInfoEdit;
 import org.sakaiproject.api.app.dissertation.CandidatePath;
 import org.sakaiproject.api.app.dissertation.CandidatePathEdit;
@@ -47,16 +52,15 @@ import org.sakaiproject.api.app.dissertation.Dissertation;
 import org.sakaiproject.api.app.dissertation.StepStatus;
 import org.sakaiproject.api.app.dissertation.StepStatusEdit;
 import org.sakaiproject.api.app.dissertation.cover.DissertationService;
-import org.sakaiproject.api.kernel.session.Session;
-import org.sakaiproject.api.kernel.session.cover.SessionManager;
-import org.sakaiproject.exception.IdUnusedException;
-import org.sakaiproject.service.framework.log.Logger;
-import org.sakaiproject.service.legacy.time.Time;
-import org.sakaiproject.service.legacy.time.TimeBreakdown;
-import org.sakaiproject.service.legacy.time.cover.TimeService;
-import org.sakaiproject.service.legacy.user.cover.UserDirectoryService;
-import org.sakaiproject.util.java.StringUtil;
-import org.sakaiproject.util.web.Web;
+import org.sakaiproject.time.api.Time;
+import org.sakaiproject.time.api.TimeBreakdown;
+import org.sakaiproject.time.cover.TimeService;
+import org.sakaiproject.tool.api.Session;
+import org.sakaiproject.tool.cover.SessionManager;
+import org.sakaiproject.user.api.UserNotDefinedException;
+import org.sakaiproject.user.cover.UserDirectoryService;
+import org.sakaiproject.util.StringUtil;
+import org.sakaiproject.util.Web;
 
 /**
  * <p>
@@ -69,7 +73,7 @@ import org.sakaiproject.util.web.Web;
  */
 public class UploadExtractsJobImpl implements UploadExtractsJob
 {
-	private Logger m_logger = null;
+	private static final Log m_logger = LogFactory.getLog(UploadExtractsJobImpl.class);
 	private String jobName = null;
 	private StringBuffer buf = new StringBuffer();
 	private JobDetail jobDetail = null;
@@ -141,7 +145,7 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 		try
 		{
 			//Spring injection of Logger was getting lost when Quartz instantiated job
-			m_logger = org.sakaiproject.service.framework.log.cover.Logger.getInstance();
+			//m_logger = org.sakaiproject.service.framework.log.cover.Logger.getInstance();
 			if(m_logger == null)
 				System.out.println(this + ".execute() couldn't get a logger");
 			
@@ -339,7 +343,7 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 					retVal = sortName.substring(0,1).toUpperCase();
 				}
 			}
-			catch(IdUnusedException e) 
+			catch(UserNotDefinedException e) 
 			{
 				m_logger.warn(this + ".getSortLetter for " + chefId + " IdUnusedException " + e.toString());
 			}

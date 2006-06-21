@@ -25,9 +25,12 @@
 // package
 package org.sakaiproject.component.app.dissertation;
 
-// import
+
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import org.sakaiproject.api.app.dissertation.BlockGrantGroup;
 import org.sakaiproject.api.app.dissertation.BlockGrantGroupEdit;
@@ -41,10 +44,8 @@ import org.sakaiproject.api.app.dissertation.DissertationStep;
 import org.sakaiproject.api.app.dissertation.DissertationStepEdit;
 import org.sakaiproject.api.app.dissertation.StepStatus;
 import org.sakaiproject.api.app.dissertation.StepStatusEdit;
-import org.sakaiproject.service.framework.sql.SqlService;
-import org.sakaiproject.util.storage.BaseDbSingleStorage;
-//import org.chefproject.core.Resource;
-
+import org.sakaiproject.db.api.SqlService;
+import org.sakaiproject.util.BaseDbSingleStorage;
 
 /**
 * <p>DbCachedDissertationService is the database-storing service class for Dissertations.</p>
@@ -58,6 +59,8 @@ import org.sakaiproject.util.storage.BaseDbSingleStorage;
 */
 public class DbDissertationService extends BaseDissertationService
 {
+	private static final Log m_logger = LogFactory.getLog(DbDissertationService.class);
+	
 	/** The name of the db table holding Block Grant Group objects. */
 	protected String m_groupsTableName = "DISSERTATION_GROUP";
 	
@@ -208,13 +211,6 @@ public class DbDissertationService extends BaseDissertationService
 			}
 
 			super.init();
-
-			m_logger.info(this + ".init(): dissertations table: "
-			+ m_dissertationsTableName + " Block Grant Group table: "
-			+ m_groupsTableName + " steps table: "
-				+ m_stepsTableName + " paths table : " + m_pathsTableName + " status table: " 
-				+ m_statusTableName + " canididateinfo table : " + m_infosTableName
-				+ " locks-in-db" + m_locksInDb);
 		}
 		catch (Throwable t)
 		{
@@ -233,8 +229,7 @@ public class DbDissertationService extends BaseDissertationService
 	protected DissertationStorage newDissertationStorage()
 	{
 		return new DbCachedDissertationStorage(new DissertationStorageUser());
-
-	}	// newDissertationStorage
+	}
 
 	/**
 	 * Construct a Storage object for DissertationSteps.
@@ -243,8 +238,7 @@ public class DbDissertationService extends BaseDissertationService
 	protected DissertationStepStorage newDissertationStepStorage()
 	{
 		return new DbCachedDissertationStepStorage(new DissertationStepStorageUser());
-
-	}	// newDissertationStepStorage
+	}
 
 	/**
 	 * Construct a Storage object for CandidatePaths.
@@ -253,8 +247,7 @@ public class DbDissertationService extends BaseDissertationService
 	protected CandidatePathStorage newCandidatePathStorage()
 	{
 		return new DbCachedCandidatePathStorage(new CandidatePathStorageUser());
-
-	}	// newCandidatePathStorage
+	}
 
 	/**
 	 * Construct a Storage object for StepStatus.
@@ -263,8 +256,7 @@ public class DbDissertationService extends BaseDissertationService
 	protected StepStatusStorage newStepStatusStorage()
 	{
 		return new DbCachedStepStatusStorage(new StepStatusStorageUser());
-
-	}	// newStepStatusStorage
+	}
 	
 	/**
 	 * Construct a Storage object for BlockGrantGroups.
@@ -273,7 +265,7 @@ public class DbDissertationService extends BaseDissertationService
 	protected BlockGrantGroupStorage newBlockGrantGroupStorage()
 	{
 		return new DbCachedBlockGrantGroupStorage(new BlockGrantGroupStorageUser());
-	}	// newBlockGrantGroupStorage
+	}
 	
 	/**
 	 * Construct a Storage object for CandidateInfos.
@@ -282,8 +274,7 @@ public class DbDissertationService extends BaseDissertationService
 	protected CandidateInfoStorage newCandidateInfoStorage()
 	{
 		return new DbCachedCandidateInfoStorage(new CandidateInfoStorageUser());
-
-	}	// newCandidateInfoStorage
+	}
 
 	/*******************************************************************************
 	* Storage implementations
@@ -309,8 +300,7 @@ public class DbDissertationService extends BaseDissertationService
 		{
 			//super(m_dissertationsTableName, "DISSERTATION_ID", null, m_locksInDb, "dissertation", dissertation, m_sqlService);
 			super(m_dissertationsTableName, "DISSERTATION_ID", DISSERTATION_FIELDS, m_locksInDb, "dissertation", dissertation, m_sqlService);
-
-		}	// DbCachedDissertationStorage
+		}
 
 		public boolean check(String id) { return super.checkResource(id); }
 
@@ -336,8 +326,7 @@ public class DbDissertationService extends BaseDissertationService
 				}
 			}
 			return retVal;
-			
-		}//getAllOfType
+		}
 			
 		public Dissertation getForSite(String id)
 		{
@@ -364,8 +353,7 @@ public class DbDissertationService extends BaseDissertationService
 				}
 			}
 			return retVal;
-			
-		}//getForSite
+		}
 			
 		public Dissertation getForSiteOfType(String id, String type)
 		{
@@ -392,8 +380,7 @@ public class DbDissertationService extends BaseDissertationService
 				}
 			}
 			return retVal;
-			
-		}//getForSiteOfType
+		}
 			
 		public DissertationEdit put(String id, String context) 
 		{
@@ -410,7 +397,7 @@ public class DbDissertationService extends BaseDissertationService
 
 		public void remove(DissertationEdit edit) { super.removeResource(edit); }
 
-	}   // DbCachedDissertationStorage
+	}
 
 
 	
@@ -432,8 +419,7 @@ public class DbDissertationService extends BaseDissertationService
 		public DbCachedDissertationStepStorage(DissertationStepStorageUser step)
 		{
 			super(m_stepsTableName, "STEP_ID", null, m_locksInDb, "step", step, m_sqlService);
-
-		}	// DbCachedDissertationStepStorage
+		}
 
 		public boolean check(String id) { return super.checkResource(id); }
 
@@ -458,11 +444,8 @@ public class DbDissertationService extends BaseDissertationService
 		public void cancel(DissertationStepEdit edit) { super.cancelResource(edit); }
 
 		public void remove(DissertationStepEdit edit) { super.removeResource(edit); }
+	}
 
-	}   // DbCachedDissertationStepStorage
-
-	
-	
 	/*******************************************************************************
 	* CandidatePathStorage implementation
 	*******************************************************************************/
@@ -482,8 +465,7 @@ public class DbDissertationService extends BaseDissertationService
 		{
 			//super(m_pathsTableName, "PATH_ID", null, m_locksInDb, "path", path, m_sqlService);
 			super(m_pathsTableName, "PATH_ID", PATH_FIELDS, m_locksInDb, "path", path, m_sqlService);
-
-		}	// DbCachedCandidatePathStorage
+		}
 
 		public boolean check(String id) { return super.checkResource(id); }
 
@@ -534,8 +516,7 @@ public class DbDissertationService extends BaseDissertationService
 			}
 			if(count==0) return false;
 			return true;
-			
-		}//existsPathForParent
+		}
 		
 		public boolean existsPathOfType(String type)
 		{
@@ -554,8 +535,7 @@ public class DbDissertationService extends BaseDissertationService
 			}
 			if(count==0) return false;
 			return true;
-			
-		}//existsPathOfType
+		}
 		
 		public List getAllOfType(String type)
 		{
@@ -573,8 +553,7 @@ public class DbDissertationService extends BaseDissertationService
 				}
 			}
 			return retVal;
-			
-		}//getAllOfType
+		}
 			
 		public List getAllOfTypeForLetter(String type, String letter)
 		{
@@ -602,8 +581,7 @@ public class DbDissertationService extends BaseDissertationService
 				}
 			}
 			return retVal;
-			
-		}//getAllOfTypeForLetter
+		}
 		
 		public List getAllOfParentForLetter(String parent, String letter)
 		{
@@ -631,8 +609,7 @@ public class DbDissertationService extends BaseDissertationService
 				}
 			}
 			return retVal;
-			
-		}//getAllOfParentForLetter
+		}
 		
 		public List getAllForParent(String site)
 		{
@@ -650,8 +627,7 @@ public class DbDissertationService extends BaseDissertationService
 				}
 			}
 			return retVal;
-			
-		}//getAllForParent
+		}
 			
 		public CandidatePath getForCandidate(String id)
 		{
@@ -677,8 +653,7 @@ public class DbDissertationService extends BaseDissertationService
 				}
 			}
 			return retVal;
-			
-		}//getForCandidate
+		}
 		
 		/**
 		* Get CandidatePath for candidate with this site id.
@@ -709,8 +684,7 @@ public class DbDissertationService extends BaseDissertationService
 				}
 			}
 			return retVal;
-			
-		}//getForSite
+		}
 
 	}   // DbCachedCandidatePathStorage
 
@@ -734,8 +708,7 @@ public class DbDissertationService extends BaseDissertationService
 		public DbCachedStepStatusStorage(StepStatusStorageUser status)
 		{
 			super(m_statusTableName, "STATUS_ID", null, m_locksInDb, "status", status, m_sqlService);
-
-		}	// DbCachedStepStatusStorage
+		}
 
 		public boolean check(String id) { return super.checkResource(id); }
 
@@ -761,7 +734,7 @@ public class DbDissertationService extends BaseDissertationService
 
 		public void remove(StepStatusEdit edit) { super.removeResource(edit); }
 
-	}   // DbCachedStepStatusStorage
+	}
 
 	
 	/*******************************************************************************
@@ -782,8 +755,7 @@ public class DbDissertationService extends BaseDissertationService
 		public DbCachedBlockGrantGroupStorage(BlockGrantGroupStorageUser group)
 		{
 			super(m_groupsTableName, "GROUP_ID", null, m_locksInDb, "group", group, m_sqlService);
-
-		}	// DbCachedBlockGrantGroupStorage
+		}
 
 		public boolean check(String id) { return super.checkResource(id); }
 
@@ -808,7 +780,8 @@ public class DbDissertationService extends BaseDissertationService
 		public void cancel(BlockGrantGroupEdit edit) { super.cancelResource(edit); }
 
 		public void remove(BlockGrantGroupEdit edit) { super.removeResource(edit); }
-	}   // DbCachedBlockGrantGroupStorage
+		
+	}
 	
 	/*******************************************************************************
 	* CandidateInfoStorage implementation
@@ -831,7 +804,7 @@ public class DbDissertationService extends BaseDissertationService
 			//super(m_infosTableName, "INFO_ID", null, m_locksInDb, "info", info, m_sqlService);
 			super(m_infosTableName, "INFO_ID", INFO_FIELDS, m_locksInDb, "info", info, m_sqlService);
 
-		}	// DbCachedCandidateInfoStorage
+		}
 		
 		public boolean check(String id) { return super.checkResource(id); }
 
@@ -861,8 +834,7 @@ public class DbDissertationService extends BaseDissertationService
 				}
 			}
 			return retVal;
-			
-		}//getForCandidate
+		}
 		
 		public CandidateInfo getForEmplid(String emplid)
 		{
@@ -888,8 +860,7 @@ public class DbDissertationService extends BaseDissertationService
 				}
 			}
 			return retVal;
-			
-		}//getForEmplid
+		}
 				
 		public String getEmplid(String id)
 		{
@@ -918,8 +889,7 @@ public class DbDissertationService extends BaseDissertationService
 				}
 			}
 			return retVal;
-			
-		}//getEmplid
+		}
 		
 		public String getParent(String id)
 		{
@@ -945,8 +915,7 @@ public class DbDissertationService extends BaseDissertationService
 				}
 			}
 			return retVal;
-			
-		}//getParent
+		}
 			
 		public boolean checkMusic(String id)
 		{
@@ -965,8 +934,7 @@ public class DbDissertationService extends BaseDissertationService
 			}
 			if(count==0) return false;
 			return true;
-			
-		}//checkMusic
+		}
 			
 		public boolean checkCandidate(String id)
 		{
@@ -985,8 +953,7 @@ public class DbDissertationService extends BaseDissertationService
 			}
 			if(count==0) return false;
 			return true;
-			
-		}//checkCandidate
+		}
 
 		public List getAll() 
 		{ 
@@ -1007,11 +974,9 @@ public class DbDissertationService extends BaseDissertationService
 		public void cancel(CandidateInfoEdit edit) { super.cancelResource(edit); }
 
 		public void remove(CandidateInfoEdit edit) { super.removeResource(edit); }
+	}
 
-	}   // DbCachedCandidateInfoStorage
-
-
-} // DbCachedDissertationService
+}
 
 /**********************************************************************************
 *

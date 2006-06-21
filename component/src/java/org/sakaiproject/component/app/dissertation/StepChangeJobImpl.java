@@ -26,10 +26,15 @@ package org.sakaiproject.component.app.dissertation;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+
 import org.sakaiproject.api.app.dissertation.CandidateInfoEdit;
 import org.sakaiproject.api.app.dissertation.CandidatePath;
 import org.sakaiproject.api.app.dissertation.CandidatePathEdit;
@@ -38,10 +43,9 @@ import org.sakaiproject.api.app.dissertation.DissertationEdit;
 import org.sakaiproject.api.app.dissertation.DissertationStep;
 import org.sakaiproject.api.app.dissertation.DissertationStepEdit;
 import org.sakaiproject.api.app.dissertation.cover.DissertationService;
-import org.sakaiproject.api.kernel.session.Session;
-import org.sakaiproject.api.kernel.session.cover.SessionManager;
-import org.sakaiproject.service.framework.log.Logger;
-import org.sakaiproject.util.web.Web;
+import org.sakaiproject.tool.api.Session;
+import org.sakaiproject.tool.cover.SessionManager;
+import org.sakaiproject.util.Web;
 
 /**
  * <p>
@@ -59,7 +63,7 @@ import org.sakaiproject.util.web.Web;
  */
 public class StepChangeJobImpl implements StepChangeJob 
 {
-	private Logger m_logger = null;
+	private static final Log m_logger = LogFactory.getLog(StepChangeJobImpl.class);
 	private String m_jobType = null;
 	private String jobName = null;
 	private StringBuffer buf = new StringBuffer();
@@ -106,7 +110,7 @@ public class StepChangeJobImpl implements StepChangeJob
 		try
 		{
 			//Spring injection of Logger was getting lost when Quartz instantiated job
-			m_logger = org.sakaiproject.service.framework.log.cover.Logger.getInstance();
+			//m_logger = org.sakaiproject.service.framework.log.cover.Logger.getInstance();
 			if(m_logger == null)
 				System.out.println(this + ".execute() couldn't get a logger");
 			

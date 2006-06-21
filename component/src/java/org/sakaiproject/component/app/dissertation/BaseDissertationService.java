@@ -22,7 +22,6 @@
 *
 **********************************************************************************/
 
-// package
 package org.sakaiproject.component.app.dissertation;
 
 import java.util.ArrayList;
@@ -38,6 +37,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.quartz.Job;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
@@ -46,6 +49,7 @@ import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.SimpleTrigger;
 import org.quartz.impl.StdSchedulerFactory;
+
 import org.sakaiproject.api.app.dissertation.BlockGrantGroup;
 import org.sakaiproject.api.app.dissertation.BlockGrantGroupEdit;
 import org.sakaiproject.api.app.dissertation.CandidateInfo;
@@ -59,41 +63,39 @@ import org.sakaiproject.api.app.dissertation.DissertationStep;
 import org.sakaiproject.api.app.dissertation.DissertationStepEdit;
 import org.sakaiproject.api.app.dissertation.StepStatus;
 import org.sakaiproject.api.app.dissertation.StepStatusEdit;
-import org.sakaiproject.api.kernel.function.cover.FunctionManager;
-import org.sakaiproject.api.kernel.session.cover.SessionManager;
+import org.sakaiproject.authz.cover.FunctionManager;
+import org.sakaiproject.authz.cover.SecurityService;
+import org.sakaiproject.component.api.ServerConfigurationService;
+import org.sakaiproject.entity.api.Edit;
+import org.sakaiproject.entity.api.Entity;
+import org.sakaiproject.entity.api.EntityManager;
+import org.sakaiproject.entity.api.HttpAccess;
+import org.sakaiproject.entity.api.Reference;
+import org.sakaiproject.entity.api.ResourceProperties;
+import org.sakaiproject.entity.api.ResourcePropertiesEdit;
+import org.sakaiproject.event.api.Event;
+import org.sakaiproject.event.api.SessionStateBindingListener;
+import org.sakaiproject.event.cover.EventTrackingService;
 import org.sakaiproject.exception.IdInvalidException;
 import org.sakaiproject.exception.IdUnusedException;
 import org.sakaiproject.exception.IdUsedException;
 import org.sakaiproject.exception.InUseException;
 import org.sakaiproject.exception.PermissionException;
-import org.sakaiproject.service.framework.config.ServerConfigurationService;
-import org.sakaiproject.service.framework.log.Logger;
-import org.sakaiproject.service.framework.memory.Cache;
-import org.sakaiproject.service.framework.memory.CacheRefresher;
-import org.sakaiproject.service.framework.memory.MemoryService;
-import org.sakaiproject.service.framework.session.SessionStateBindingListener;
-import org.sakaiproject.service.legacy.entity.Edit;
-import org.sakaiproject.service.legacy.entity.Entity;
-import org.sakaiproject.service.legacy.entity.EntityManager;
-import org.sakaiproject.service.legacy.entity.EntityProducer;
-import org.sakaiproject.service.legacy.entity.HttpAccess;
-import org.sakaiproject.service.legacy.entity.Reference;
-import org.sakaiproject.service.legacy.entity.ResourceProperties;
-import org.sakaiproject.service.legacy.entity.ResourcePropertiesEdit;
-import org.sakaiproject.service.legacy.event.Event;
-import org.sakaiproject.service.legacy.event.cover.EventTrackingService;
-import org.sakaiproject.service.legacy.id.cover.IdService;
-import org.sakaiproject.service.legacy.security.cover.SecurityService;
-import org.sakaiproject.service.legacy.site.Site;
-import org.sakaiproject.service.legacy.time.Time;
-import org.sakaiproject.service.legacy.time.cover.TimeService;
-import org.sakaiproject.service.legacy.user.User;
-import org.sakaiproject.service.legacy.user.cover.UserDirectoryService;
+import org.sakaiproject.id.cover.IdManager;
+import org.sakaiproject.memory.api.Cache;
+import org.sakaiproject.memory.api.CacheRefresher;
+import org.sakaiproject.memory.api.MemoryService;
+import org.sakaiproject.time.api.Time;
+import org.sakaiproject.time.cover.TimeService;
+import org.sakaiproject.tool.cover.SessionManager;
+import org.sakaiproject.user.api.User;
+import org.sakaiproject.user.api.UserNotDefinedException;
+import org.sakaiproject.user.cover.UserDirectoryService;
+import org.sakaiproject.util.BaseResourcePropertiesEdit;
+import org.sakaiproject.util.StorageUser;
+import org.sakaiproject.util.StringUtil;
 import org.sakaiproject.util.Validator;
-import org.sakaiproject.util.java.StringUtil;
-import org.sakaiproject.util.resource.BaseResourcePropertiesEdit;
-import org.sakaiproject.util.storage.StorageUser;
-import org.sakaiproject.util.xml.Xml;
+import org.sakaiproject.util.Xml;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -110,6 +112,8 @@ import org.w3c.dom.NodeList;
 public abstract class BaseDissertationService
 	implements DissertationService
 {	
+	private static final Log m_logger = LogFactory.getLog(BaseDissertationService.class);
+	
 	/** A Storage object for persistent storage of Dissertations. */
 	protected DissertationStorage m_dissertationStorage = null;
 
@@ -219,7 +223,6 @@ public abstract class BaseDissertationService
 	protected String getAccessPoint(boolean relative)
 	{
 		return (relative ? "" : m_serverConfigurationService.getAccessUrl()) + m_relativeAccessPoint;
-
 	}
 
 	/**
@@ -235,7 +238,6 @@ public abstract class BaseDissertationService
 		else
 			retVal = getAccessPoint(true) + Entity.SEPARATOR + "d" + Entity.SEPARATOR + getSchoolSite() + Entity.SEPARATOR + site + Entity.SEPARATOR + id;
 		return retVal;
-
 	}
 	
 	/**
@@ -251,7 +253,6 @@ public abstract class BaseDissertationService
 		else
 			retVal = getAccessPoint(true) + Entity.SEPARATOR + "s" + Entity.SEPARATOR + getSchoolSite() + Entity.SEPARATOR + site + Entity.SEPARATOR + id;
 		return retVal;
-
 	}
 
 	/**
@@ -267,7 +268,6 @@ public abstract class BaseDissertationService
 		else
 			retVal = getAccessPoint(true) + Entity.SEPARATOR + "ss" + Entity.SEPARATOR + getSchoolSite() + Entity.SEPARATOR + site + Entity.SEPARATOR + id;
 		return retVal;
-
 	}
 
 	/**
@@ -283,7 +283,6 @@ public abstract class BaseDissertationService
 		else
 			retVal = getAccessPoint(true) + Entity.SEPARATOR + "p" + Entity.SEPARATOR + getSchoolSite() + Entity.SEPARATOR + site + Entity.SEPARATOR + id;
 		return retVal;
-
 	}
 
 	/**
@@ -299,7 +298,6 @@ public abstract class BaseDissertationService
 		else
 			retVal = getAccessPoint(true) + Entity.SEPARATOR + "i" + Entity.SEPARATOR + getSchoolSite() + Entity.SEPARATOR + site + Entity.SEPARATOR + id;
 		return retVal;
-
 	}
 	
 	/**
@@ -316,7 +314,6 @@ public abstract class BaseDissertationService
 			retVal = getAccessPoint(true) + Entity.SEPARATOR + "g" + Entity.SEPARATOR + getSchoolSite() + Entity.SEPARATOR + site + Entity.SEPARATOR + id;
 		
 		return retVal;
-
 	}
 	
 	/**
@@ -330,7 +327,6 @@ public abstract class BaseDissertationService
 		if (i == -1) return ref;
 		String id = ref.substring(i + 1);
 		return id;
-
 	}
 	
 	/**
@@ -344,7 +340,6 @@ public abstract class BaseDissertationService
 		if (i == -1) return ref;
 		String id = ref.substring(i + 1);
 		return id;
-
 	}
 
 	/**
@@ -358,7 +353,6 @@ public abstract class BaseDissertationService
 		if (i == -1) return ref;
 		String id = ref.substring(i + 1);
 		return id;
-
 	}
 
 	/**
@@ -372,7 +366,6 @@ public abstract class BaseDissertationService
 		if (i == -1) return ref;
 		String id = ref.substring(i + 1);
 		return id;
-
 	}
 
 	/**
@@ -386,7 +379,6 @@ public abstract class BaseDissertationService
 		if (i == -1) return ref;
 		String id = ref.substring(i + 1);
 		return id;
-
 	}
 
 	/**
@@ -400,7 +392,6 @@ public abstract class BaseDissertationService
 		if (i == -1) return ref;
 		String id = ref.substring(i + 1);
 		return id;
-
 	}
 
 
@@ -416,9 +407,7 @@ public abstract class BaseDissertationService
 		{
 			return false;
 		}
-
 		return true;
-
 	}
 
 	/**
@@ -432,9 +421,9 @@ public abstract class BaseDissertationService
 	{
 		if (!unlockCheck(lock, resource))
 		{
-			throw new PermissionException(lock, resource);
+			//throw new PermissionException(lock, resource);
+			throw new PermissionException(SessionManager.getCurrentSessionUserId(), lock, resource);
 		}
-
 	}
 
 
@@ -442,18 +431,6 @@ public abstract class BaseDissertationService
 	/*******************************************************************************
 	* Dependencies and their setter methods
 	*******************************************************************************/
-
-	/** Dependency: logging service */
-	protected Logger m_logger = null;
-
-	/**
-	 * Dependency: logging service.
-	 * @param service The logging service.
-	 */
-	public void setLogger(Logger service)
-	{
-		m_logger = service;
-	}
 
 	/** Dependency: MemoryService. */
 	protected MemoryService m_memoryService = null;
@@ -663,7 +640,9 @@ public abstract class BaseDissertationService
 		}
 		catch (Throwable t)
 		{
-			m_logger.warn(this +".init(): ", t);
+			//m_logger.warning(this + ".init(): " + t.toString());
+			if(m_logger.isWarnEnabled())
+				m_logger.warn(this + ".init(): ", t);
 		}
 
 	} // init
@@ -732,7 +711,8 @@ public abstract class BaseDissertationService
 		}
 		catch (Exception e)
 		{
-			m_logger.warn(this + " .getDataFileProperties: " + e.getMessage());
+			if(m_logger.isWarnEnabled())
+				m_logger.warn(this + " .getDataFileProperties: " + e.getMessage());
 		}
 		return retVal;
 		
@@ -890,7 +870,6 @@ public abstract class BaseDissertationService
 	{
 		String retVal = "diss" + program;
 		return retVal;
-		
 	}
 	
 	/** 
@@ -902,7 +881,6 @@ public abstract class BaseDissertationService
 	public User[] getAllUsersForSite(String site, String type)
 	{
 		User[] retVal = null;
-		
 		CandidatePath aPath = null;
 		List userIds = new Vector();
 		List paths = getCandidatePaths();
@@ -935,11 +913,13 @@ public abstract class BaseDissertationService
 			{
 				retVal[x] = UserDirectoryService.getUser((String) userIds.get(x));
 			}
-			catch(IdUnusedException e)
+			catch(UserNotDefinedException e)
 			{
-				m_logger.warn(this + ".getAllUsersForSite " + site + " User not found " + e);
+				if(m_logger.isWarnEnabled())
+					m_logger.warn(this + ".getAllUsersForSite() " + userIds.get(x) + " " + e);
 			}
 		}
+		
 		return retVal;
 		
 	} //getAllUsersForSite
@@ -961,7 +941,6 @@ public abstract class BaseDissertationService
 			catch(Exception e){}
 		}
 		return retVal;
-		
 	}
 	
 	/** 
@@ -1042,16 +1021,8 @@ public abstract class BaseDissertationService
 		do
 		{
 			badId = false;
-			blockGrantGroupId = IdService.getUniqueId();
-			try
-			{
-				Validator.checkResourceId(blockGrantGroupId);
-			}
-			catch(IdInvalidException iie)
-			{
-				badId = true;
-			}
-
+			blockGrantGroupId = IdManager.createUuid();
+			badId = !Validator.checkResourceId(blockGrantGroupId);
 			if(m_stepStorage.check(blockGrantGroupId))
 				badId = true;
 			
@@ -1119,8 +1090,14 @@ public abstract class BaseDissertationService
 		// check for closed edit
 		if (!blockGrantGroup.isActiveEdit())
 		{
-			try { throw new Exception(); }
-			catch (Exception e) { m_logger.warn(this + ".cancelEdit(): closed BlockGrantGroupEdit", e); }
+			try 
+			{ 
+				throw new Exception(); 
+			}
+			catch (Exception e) 
+			{ 
+				m_logger.warn(this + ".cancelEdit(): closed BlockGrantGroupEdit", e); 
+			}
 			return;
 		}
 
@@ -1141,8 +1118,14 @@ public abstract class BaseDissertationService
 		// check for closed edit
 		if (!blockGrantGroup.isActiveEdit())
 		{
-			try { throw new Exception(); }
-			catch (Exception e) { m_logger.warn(this + ".commitEdit(): closed BlockGrantGroupEdit", e); }
+			try 
+			{ 
+				throw new Exception(); 
+			}
+			catch (Exception e) 
+			{ 
+				m_logger.warn(this + ".commitEdit(): closed BlockGrantGroupEdit", e); 
+			}
 			return;
 		}
 
@@ -1342,16 +1325,8 @@ public abstract class BaseDissertationService
 		do
 		{
 			badId = false;
-			dissertationId = IdService.getUniqueId();
-			try
-			{
-				Validator.checkResourceId(dissertationId);
-			}
-			catch(IdInvalidException iie)
-			{
-				badId = true;
-			}
-
+			dissertationId = IdManager.createUuid();
+			badId = !Validator.checkResourceId(dissertationId);
 			if(m_dissertationStorage.check(dissertationId))
 				badId = true;
 			
@@ -1405,7 +1380,6 @@ public abstract class BaseDissertationService
 		((BaseDissertationEdit) dissertation).setEvent(SECURE_ADD_DISSERTATION);
 
 		return dissertation;
-
 	}
 	
 	/**
@@ -1521,7 +1495,6 @@ public abstract class BaseDissertationService
 			dissertations = m_dissertationStorage.getAllOfType(type);
 		}
 		return dissertations;
-		
 	}
 	
 	
@@ -1564,7 +1537,6 @@ public abstract class BaseDissertationService
 		((BaseDissertationEdit) dissertation).setEvent(SECURE_UPDATE_DISSERTATION);
 
 		return dissertation;
-
 	}
 	
 	
@@ -1594,7 +1566,6 @@ public abstract class BaseDissertationService
 
 		// close the edit object
 		((BaseDissertationEdit) dissertation).closeEdit();
-
 	}
 
 	
@@ -1662,16 +1633,8 @@ public abstract class BaseDissertationService
 		do
 		{
 			badId = false;
-			stepId = IdService.getUniqueId();
-			try
-			{
-				Validator.checkResourceId(stepId);
-			}
-			catch(IdInvalidException iie)
-			{
-				badId = true;
-			}
-
+			stepId = IdManager.createUuid();
+			badId = !Validator.checkResourceId(stepId);
 			if(m_stepStorage.check(stepId))
 				badId = true;
 			
@@ -1706,16 +1669,8 @@ public abstract class BaseDissertationService
 		do
 		{
 			badId = false;
-			stepId = IdService.getUniqueId();
-			try
-			{
-				Validator.checkResourceId(stepId);
-			}
-			catch(IdInvalidException iie)
-			{
-				badId = true;
-			}
-
+			stepId = IdManager.createUuid();
+			badId = !Validator.checkResourceId(stepId);
 			if(m_stepStorage.check(stepId))
 				badId = true;
 			
@@ -1768,8 +1723,7 @@ public abstract class BaseDissertationService
 
 		((BaseDissertationStepEdit) step).setEvent(SECURE_ADD_DISSERTATION_STEP);
 
-		return step;
-		
+		return step;	
 	}
 	
 	/**
@@ -1806,7 +1760,6 @@ public abstract class BaseDissertationService
 		unlock(SECURE_ACCESS_DISSERTATION_STEP, stepReference);
 		
 		return step;
-
 	}
 
 
@@ -1910,7 +1863,6 @@ public abstract class BaseDissertationService
 		((BaseDissertationStepEdit) step).setEvent(SECURE_UPDATE_DISSERTATION_STEP);
 
 		return step;
-
 	}
 
 	
@@ -1940,7 +1892,6 @@ public abstract class BaseDissertationService
 		
 		// close the edit object
 		((BaseDissertationStepEdit) step).closeEdit();
-
 	}
 
 	
@@ -1963,7 +1914,6 @@ public abstract class BaseDissertationService
 
 		// close the edit object
 		((BaseDissertationStepEdit) step).closeEdit();
-
 	}
 	
 	/** 
@@ -2009,16 +1959,9 @@ public abstract class BaseDissertationService
 		do
 		{
 			badId = false;
-			pathId = IdService.getUniqueId();
-			try
-			{
-				Validator.checkResourceId(pathId);
-			}
-			catch(IdInvalidException iie)
-			{
-				badId = true;
-			}
-
+			//pathId = IdService.getUniqueId();
+			pathId = IdManager.createUuid();
+			badId = !Validator.checkResourceId(pathId);
 			if(m_pathStorage.check(pathId))
 				badId = true;
 
@@ -2071,7 +2014,6 @@ public abstract class BaseDissertationService
 		((BaseCandidatePathEdit) path).setEvent(SECURE_ADD_DISSERTATION_CANDIDATEPATH);
 
 		return path;
-
 	}
 	
 	/**
@@ -2105,11 +2047,10 @@ public abstract class BaseDissertationService
 						return true;
 					}
 				}
-				catch (IdUnusedException e) {};
+				catch (UserNotDefinedException e) {};
 			}
 		}
 		return retVal;
-		
 	}
 
 	/**
@@ -2144,11 +2085,10 @@ public abstract class BaseDissertationService
 						return true;
 					}
 				}
-				catch (IdUnusedException e) {};
+				catch (UserNotDefinedException e) {};
 			}
 		}
 		return retVal;
-		
 	}
 	
 	/**
@@ -2169,7 +2109,7 @@ public abstract class BaseDissertationService
 					retVal = sortName.substring(0,1).toUpperCase();
 				}
 			}
-			catch(IdUnusedException e) 
+			catch(UserNotDefinedException e) 
 			{
 				m_logger.warn(this + ".getSortLetter for " + chefId + " IdUnusedException " + e.toString());
 			}
@@ -2179,7 +2119,6 @@ public abstract class BaseDissertationService
 			}
 		}
 		return retVal;
-		
 	}
 
 	/**
@@ -2213,13 +2152,12 @@ public abstract class BaseDissertationService
 						retVal.add(student);
 					}
 				}
-				catch (IdUnusedException e) {}
+				catch (UserNotDefinedException e) {}
 			}
 			if(retVal.size() > 1)
 				Collections.sort(retVal, new UserComparator());
 		}
 		return retVal;
-		
 	}
 	
 	/**
@@ -2253,13 +2191,12 @@ public abstract class BaseDissertationService
 						retVal.add(student);
 					}
 				}
-				catch (IdUnusedException e) {}
+				catch (UserNotDefinedException e) {}
 			}
 			if(retVal.size() > 1)
 				Collections.sort(retVal, new UserComparator());
 		}
 		return retVal;
-		
 	}
 
 	/**
@@ -2275,7 +2212,6 @@ public abstract class BaseDissertationService
 			paths = m_pathStorage.getAllOfType(type);
 		}
 		return paths;
-		
 	}
 
 	/**
@@ -2288,7 +2224,6 @@ public abstract class BaseDissertationService
 		boolean exists = false;
 		exists = m_pathStorage.existsPathOfType(type);
 		return exists;
-		
 	}
 
 	/**
@@ -2459,7 +2394,6 @@ public abstract class BaseDissertationService
 
 		// close the edit object
 		((BaseCandidatePathEdit) path).closeEdit();
-
 	}
 	
 	/**
@@ -2481,7 +2415,6 @@ public abstract class BaseDissertationService
 
 		// close the edit object
 		((BaseCandidatePathEdit) path).closeEdit();
-
 	}
 	
 	/** 
@@ -2528,17 +2461,8 @@ public abstract class BaseDissertationService
 		do
 		{
 			badId = false;
-			statusId = IdService.getUniqueId();
-		
-			try
-			{
-				Validator.checkResourceId(statusId);
-			}
-			catch(IdInvalidException iie)
-			{
-				badId = true;
-			}
-
+			statusId = IdManager.createUuid();
+			badId = !Validator.checkResourceId(statusId);
 			if(m_statusStorage.check(statusId))
 				badId = true;
 			
@@ -2572,17 +2496,8 @@ public abstract class BaseDissertationService
 		do
 		{
 			badId = false;
-			statusId = IdService.getUniqueId();
-		
-			try
-			{
-				Validator.checkResourceId(statusId);
-			}
-			catch(IdInvalidException iie)
-			{
-				badId = true;
-			}
-
+			statusId = IdManager.createUuid();
+			badId = !Validator.checkResourceId(statusId);
 			if(m_statusStorage.check(statusId))
 				badId = true;
 			
@@ -2611,17 +2526,8 @@ public abstract class BaseDissertationService
 		do
 		{
 			badId = false;
-			statusId = IdService.getUniqueId();
-		
-			try
-			{
-				Validator.checkResourceId(statusId);
-			}
-			catch(IdInvalidException iie)
-			{
-				badId = true;
-			}
-
+			statusId = IdManager.createUuid();
+			badId = !Validator.checkResourceId(statusId);
 			if(m_statusStorage.check(statusId))
 				badId = true;
 			
@@ -2674,7 +2580,6 @@ public abstract class BaseDissertationService
 		((BaseStepStatusEdit) status).setEvent(SECURE_ADD_DISSERTATION_STEPSTATUS);
 
 		return status;
-
 	}
 
 	/**
@@ -2712,7 +2617,6 @@ public abstract class BaseDissertationService
 		// EventTrackingService.post(EventTrackingService.newEvent(SECURE_ACCESS_DISSERTATION_STEPSTATUS, status.getReference(), false));
 		
 		return status;
-
 	}
 	
 	/**
@@ -2770,9 +2674,7 @@ public abstract class BaseDissertationService
 				}
 			}
 		}
-
 		return statusi;
-
 	}
 	
 	/**
@@ -2894,7 +2796,6 @@ public abstract class BaseDissertationService
 
 			((BaseStepStatusEdit)status).closeEdit();		
 		}
-
 	}
 	
 	/** 
@@ -2912,16 +2813,8 @@ public abstract class BaseDissertationService
 		do
 		{
 			badId = false;
-			infoId = IdService.getUniqueId();
-			try
-			{
-				Validator.checkResourceId(infoId);
-			}
-			catch(IdInvalidException iie)
-			{
-				badId = true;
-			}
-
+			infoId = IdManager.createUuid();
+			badId = Validator.checkResourceId(infoId);
 			if(m_infoStorage.check(infoId))
 				badId = true;
 
@@ -2981,7 +2874,6 @@ public abstract class BaseDissertationService
 		((BaseCandidateInfoEdit) info).setEvent(SECURE_ADD_DISSERTATION_CANDIDATEINFO);
 
 		return info;
-
 	}
 
 	/**
@@ -3020,7 +2912,6 @@ public abstract class BaseDissertationService
 		// EventTrackingService.post(EventTrackingService.newEvent(SECURE_ACCESS_DISSERTATION_CANDIDATEINFO, info.getReference(), false));
 		
 		return info;
-
 	}
 
 	/**
@@ -3042,9 +2933,7 @@ public abstract class BaseDissertationService
 				retVal = m_infoStorage.edit(tempInfo.getId());
 			}
 		}
-		
 		return retVal;
-
 	}	
 	
 	/**
@@ -3103,7 +2992,6 @@ public abstract class BaseDissertationService
 				}
 			}
 		}
-
 		return infos;
 
 	}//getCandidateInfos
@@ -3149,7 +3037,6 @@ public abstract class BaseDissertationService
 		((BaseCandidateInfoEdit) info).setEvent(SECURE_UPDATE_DISSERTATION_CANDIDATEINFO);
 
 		return info;
-
 	}
 
 	/**
@@ -3255,9 +3142,7 @@ public abstract class BaseDissertationService
 				}
 			}
 		}
-
 		return retVal;
-		
 	}
 	
 	/** 
@@ -3273,7 +3158,6 @@ public abstract class BaseDissertationService
 			retVal = m_pathStorage.getAllForParent(site);
 		}
 		return retVal;
-		
 	}
 	
 	/**
@@ -3291,7 +3175,6 @@ public abstract class BaseDissertationService
 			retVal = m_pathStorage.getForCandidate(candidateId);
 		}
 		return retVal;
-		
 	}
 	
 	/**
@@ -3310,7 +3193,6 @@ public abstract class BaseDissertationService
 		}
 		catch(Exception e) {}
 		return retVal;
-		
 	}
 	
 	/**
@@ -3334,8 +3216,7 @@ public abstract class BaseDissertationService
 				m_logger.warn("DISSERTATION : BASE SERVICE : GET DISSERTATION FOR SITE : EXCEPTION : " + e);
 			}
 		}
-		return retVal;
-		
+		return retVal;	
 	}
 	
 	/**
@@ -3352,7 +3233,6 @@ public abstract class BaseDissertationService
 			retVal = m_dissertationStorage.getForSite(site);
 		}
 		return retVal;
-		
 	}
 	
 	
@@ -3393,7 +3273,6 @@ public abstract class BaseDissertationService
 			m_infoStorage.getForCandidate(candidate);
 		}
 		return retVal;
-		
 	}
 	
 	/** 
@@ -3413,7 +3292,6 @@ public abstract class BaseDissertationService
 			catch(Exception e){}
 		}
 		return retVal;
-		
 	}
 	
 	/**
@@ -3470,7 +3348,6 @@ public abstract class BaseDissertationService
 
 		props.addProperty(ResourceProperties.PROP_MODIFIED_DATE,
 			TimeService.newTime().toString());
-
 	}
 
 	/**
@@ -3886,13 +3763,6 @@ public abstract class BaseDissertationService
 	public String getEntityUrl(Reference ref)
 	{
 		return null;
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	public void syncWithSiteChange(Site site, EntityProducer.ChangeType change)
-	{
 	}
 
 	/**
@@ -4449,7 +4319,6 @@ public abstract class BaseDissertationService
 			m_site = el.getAttribute("site");
 			m_type = el.getAttribute("type");
 			m_timeLastModified = getTimeObject(el.getAttribute("lastmod"));
-
 			
 				// READ THE CHILD ELEMENTS
 			NodeList children = el.getChildNodes();
@@ -6060,7 +5929,6 @@ public abstract class BaseDissertationService
 				retVal = DissertationStep.STUDENT_SCHOOL_VALIDATION_STRING;
 			else
 				retVal = "Unknown Validation Type";
-
 
 			return retVal;
 		}
@@ -8994,158 +8862,7 @@ public abstract class BaseDissertationService
 		
 	}//BaseStepStatusEdit
 
-	
-	/*******************************************************************************
-	* MPRecord implementation
-	*******************************************************************************/	
-	/**
-	*
-	* Contains a Rackham MPathways data record
-	* 
-	*
-	private class MPRecord
-	{
-		/**
-		* All dates are formatted as mm/dd/ccyy.  
-		* MPEXT.txt Data Structure:
-		* 1 ¦  Emplid					¦  A9	| Student's emplid
-		* 2 ¦  Acad_prog				¦  A9	| Academic Program Code
-		* 3 ¦  Anticipate_Anticipate_1	¦  A15	| Adv to cand term code
-		* 4	¦  Date_compl				¦  D	| Date milestone was completed 
-		* 5 ¦  Milestone				¦  A10	| name of milestone PRELIM or ADVCAND
-		* 6 | Academic plan				|  A4	| Field of study and degree (e.g. 1220PHD1)
-		* 7 | Campus id					|  A1-A8| Student's uniqname (Chef id)
-		*
-		public String m_umid = null;
-		public String m_acad_prog = null;
-		public String m_anticipate = null;
-		public String m_date_compl = null;
-		public String m_milestone = null;
-		public String m_academic_plan = null;
-		public String m_campus_id = null;
-		
-		//methods
-		public String getUmid(){ return m_umid; }
-		public String getAcad_prog(){ return m_acad_prog; }
-		public String getAnticipate(){ return m_anticipate; }
-		public String getDate_compl(){ return m_date_compl; }
-		public String getMilestone(){ return m_milestone; }
-		public String getAcademicPlan() { return m_academic_plan; }
-		public String getCampusId() { return m_campus_id; }
-		
-	}//MPRecord
 
-	/*******************************************************************************
-	* OARDRecord implementation
-	*******************************************************************************/	
-	
-	/**
-	*
-	* Contains a Rackham OARD data record
-	* 
-	*
-	private class OARDRecord
-	{
-		/**
-		* corresponding to OARD db output fields
-		* All dates are formatted as mm/dd/ccyy.  
-		* 
-		* OARDEXT.txt Data Structure:
-		* STRUCT ¦ Field Name            ¦Field Type
-		* 1 ¦  Emplid                    ¦  A8 - Student's emplid
-		* 2 ¦  Fos                       ¦  A4    - Students field of study code
-		* 3 ¦  Lname                     ¦  A25 - Students last name
-		* 4 ¦  Fname                     ¦  A30 - Students first name
-		* 5 ¦  Degterm trans             ¦  A7 - Students degree term as TT-CCYY (e.g. FA-2003)
-		* 6 ¦  Oral exam date            ¦  D - Date of oral defense
-		* 7 ¦  Oral exam time            ¦  A7 - Time of oral defense
-		* 8 ¦  Oral exam place           ¦  A25 - Place of oral defense
-		* 9 ¦  Committee approved date   ¦  D - date committee was approved
-		*10 ¦  First format date         ¦  D - date of pre defense meeting in Rackham
-		*11 ¦  Binder receipt date       ¦  D 
-		*12 ¦  Fee requirement met       ¦  A1 - Y or N 
-		*13 ¦  Fee date receipt seen     ¦  D 
-		*14 ¦  Pub fee date received     ¦  D
-		*15 ¦  Oral report return date   ¦  D
-		*16 ¦  Unbound date              ¦  D
-		*17 ¦  Abstract date             ¦  D
-		*18 ¦  Bound copy received date  ¦  D
-		*19 ¦  Diploma application date  ¦  D
-		*20 ¦  Contract received date    ¦  D
-		*21 ¦  NSF Survey date           ¦  D
-		*22 ¦  Degree conferred date     ¦  D - date the degree was conferred in OARD system
-		*23 ¦  Final format recorder     ¦  A3 - initials
-		*24 ¦  Update date               ¦  D - date record was last modified
-		*25 ¦  Comm cert date            ¦  D -
-		*26 ¦  Role                      ¦  A2 - role code
-		*27 ¦  Member                    ¦  A40 - faculty member name
-		*28 ¦  Eval date                 ¦  D - evaluation received date
-		*29 |  Campus id                 |  A1-A8 - student's uniqname (Chef id)
-		*
-		public String m_umid = null;
-		public String m_fos = null;
-		public String m_lname = null;
-		public String m_fname = null;
-		public String m_degreeterm_trans = null;
-		public String m_oral_exam_date = null;
-		public String m_oral_exam_time = null;
-		public String m_oral_exam_place = null;
-		public String m_committee_approved_date = null;
-		public String m_first_format_date = null;
-		public String m_binder_receipt_date = null;
-		public String m_fee_requirement_met = null;
-		public String m_fee_date_receipt_seen = null;
-		public String m_pub_fee_date_received = null;
-		public String m_oral_report_return_date = null;
-		public String m_unbound_date = null;
-		public String m_abstract_date = null;
-		public String m_bound_copy_received_date = null;
-		public String m_diploma_application_date = null;
-		public String m_contract_received_date = null;
-		public String m_nsf_survey_date = null;
-		public String m_degree_conferred_date = null;
-		public String m_final_format_recorder = null;
-		public String m_update_date = null;
-		public String m_comm_cert_date = null;
-		public String m_role = null;
-		public String m_member = null;
-		public String m_eval_date = null;
-		public String m_campus_id = null;
-		
-		//methods
-		public String getUmid(){ return m_umid; }
-		public String getFos(){ return m_fos; }
-		public String getLname(){ return m_lname; }
-		public String getFname(){ return m_fname; }
-		public String getDegreeterm_trans(){ return m_degreeterm_trans; }
-		public String getOral_exam_date(){ return m_oral_exam_date; }
-		public String getOral_exam_time(){ return m_oral_exam_time; }
-		public String getOral_exam_place(){ return m_oral_exam_place; }
-		public String getCommittee_approved_date(){ return m_committee_approved_date; }
-		public String getFirst_format_date(){ return m_first_format_date; }
-		public String getBinder_receipt_date(){ return m_binder_receipt_date; }
-		public String getFee_requirement_met(){ return m_fee_requirement_met; }
-		public String getFee_date_receipt_seen(){ return m_fee_date_receipt_seen; }
-		public String getPub_fee_date_received(){ return m_pub_fee_date_received; }
-		public String getOral_report_return_date(){ return m_oral_report_return_date; }
-		public String getUnbound_date(){ return m_unbound_date; }
-		public String getAbstract_date(){ return m_abstract_date; }
-		public String getBound_copy_received_date(){ return m_bound_copy_received_date; }
-		public String getDiploma_application_date(){ return m_diploma_application_date; }
-		public String getContract_received_date(){ return m_contract_received_date; }
-		public String getNsf_survey_date(){ return m_nsf_survey_date; }
-		public String getDegree_conferred_date(){ return m_degree_conferred_date; }
-		public String getFinal_format_recorder(){ return m_final_format_recorder; }
-		public String getUpdate_date(){ return m_update_date; }
-		public String getComm_cert_date(){ return m_comm_cert_date; }
-		public String getRole(){ return m_role; }
-		public String getMember(){ return m_member; }
-		public String getEval_date() { return m_eval_date; }
-		public String getCampusId() { return m_campus_id; }
-		
-	} // OARDRecord
-	*/
-	
 	/**
 	* Comparator for alphabetizing User's Display Name
 	*/
@@ -9240,17 +8957,7 @@ public abstract class BaseDissertationService
 		public Time m_firstFormat;
 		public Time m_oralReportReturned;
 		public Time m_committeeCert;
-		//public Time m_binderReceipt;
-		//public Time m_receiptSeen;
-		//public Time m_pubFee;
-		//public Time m_unbound;
-		//public Time m_abstract;
-		//public Time m_bound;
-		//public Time m_diplomaApp;
-		//public Time m_contract;
-		//public Time m_survey;
 		public Time m_degreeConferred;
-		//public boolean m_feeRequirementMet;
 		protected Vector m_timeCommitteeEval;
 		public boolean m_MPRecInExtract;
 		public boolean m_OARDRecInExtract;
@@ -9269,7 +8976,6 @@ public abstract class BaseDissertationService
 			m_parentSiteId = "";
 			m_properties = new BaseResourcePropertiesEdit();
 			addLiveProperties(m_properties);
-			//m_feeRequirementMet = false;
 			m_committeeEvalsCompleted = new Vector();
 			m_timeCommitteeEval = new Vector();
 			m_MPRecInExtract = false;
@@ -9648,41 +9354,13 @@ public abstract class BaseDissertationService
 					retVal = getTimeCommitteeEvalCompleted();
 					break;
 
-
 				case 7:
 					retVal = m_oralReportReturned;
 					break;
 
-
 				case 8:
 					retVal = m_committeeCert;
 					break;
-
-				/*
-				case 9:
-					if(m_finalFormatRecorder != null && !m_finalFormatRecorder.equals(""))
-					{
-						retVal = TimeService.newTime();
-					}
-					break;
-
-				case 10:
-					if((m_committeeApproval != null) && 
-					   (m_binderReceipt != null) &&
-					   ((m_feeRequirementMet && m_receiptSeen==null) || 
-					   (!m_feeRequirementMet && m_receiptSeen!=null)) &&
-					   (m_pubFee != null) && 
-					   (m_oralReportReturned != null) &&
-					   (m_abstract != null) &&
-					   (m_diplomaApp != null) && 
-					   (m_contract != null) && 
-					   (m_survey != null) && 
-					   (m_committeeCert != null))
-					{
-						retVal = m_committeeCert;
-					}
-					break;
-				*/
 
 				case 11:
 					if((m_degreeTermTrans != null) && (m_degreeConferred != null))
@@ -9690,12 +9368,6 @@ public abstract class BaseDissertationService
 						retVal = m_degreeConferred;
 					}
 					break;
-
-				/*
-				case 12:
-					retVal = m_bound;
-					break;
-				*/
 			}
 			
 			return retVal;
@@ -10025,117 +9697,6 @@ public abstract class BaseDissertationService
 		}
 
 		/**
-		* Set the Rackham data value.
-		* @param recorder The final format recorder.
-		*
-		public void setFinalFormatRecorder(String recorder)
-		{
-			if(recorder != null)
-				m_finalFormatRecorder = recorder;
-		}
-		*/
-
-		/**
-		* Set the time of completion of the Rackham milestone.
-		* @param receipt The binder receipt time.
-		*
-		public void setTimeBinderReceipt(Time receipt)
-		{
-			m_binderReceipt = receipt;
-		}
-		*/
-
-		/**
-		* Set the Rackham data value.
-		* @param met The fee requirement.
-		*
-		public void setFeeRequirementMet(boolean met)
-		{
-			m_feeRequirementMet = met;
-		}
-		*/
-
-		/**
-		* Set the time of completion of the Rackham milestone.
-		* @param seen The time receipt seen.
-		*
-		public void setTimeReceiptSeen(Time seen)
-		{
-			m_receiptSeen = seen;
-		}
-		*/
-
-		/**
-		* Set the time of completion of the Rackham milestone.
-		* @param fee The time the publication fee paid.
-		*
-		public void setTimePubFee(Time fee)
-		{
-			m_pubFee = fee;
-		}
-		*/
-
-		/**
-		* Set the time of completion of the Rackham milestone.
-		* @param unbound The unbound time.
-		*
-		public void setTimeUnbound(Time unbound)
-		{
-			m_unbound = unbound;
-		}
-		*/
-
-		/**
-		* Set the time of completion of the Rackham milestone.
-		* @param abst The abstract time.
-		*
-		public void setTimeAbstract(Time abst)
-		{
-			m_abstract = abst;
-		}
-		*/
-
-		/**
-		* Set the time of completion of the Rackham milestone.
-		* @param bound The bound time.
-		*
-		public void setTimeBound(Time bound)
-		{
-			m_bound = bound;
-		}
-		*/
-
-		/**
-		* Set the time of completion of the Rackham milestone.
-		* @param app The diploma app time.
-		*
-		public void setTimeDiplomaApp(Time app)
-		{
-			m_diplomaApp = app;
-		}
-		*/
-
-		/**
-		* Set the time of completion of the Rackham milestone.
-		* @param contract The contract time.
-		*
-		public void setTimeContract(Time contract)
-		{
-			m_contract = contract;
-		}
-		*/
-
-		/**
-		* Set the time of completion of the Rackham milestone.
-		* @param survey The survey time.
-		*
-		public void setTimeSurvey(Time survey)
-		{
-			m_survey = survey;
-		}
-		*/
-
-		/**
 		* Set the time of completion of the Rackham milestone.
 		* @param conferred The degree conferred time.
 		*/
@@ -10162,7 +9723,7 @@ public abstract class BaseDissertationService
 		{
 			setAll(info);
 
-		}   // set
+		}
 
 		/**
 		* Access the event code for this edit.
@@ -10184,7 +9745,7 @@ public abstract class BaseDissertationService
 		{
 			return m_properties;
 
-		}	// getPropertiesEdit
+		}
 
 		/**
 		* Enable editing.
@@ -10193,7 +9754,7 @@ public abstract class BaseDissertationService
 		{
 			m_active = true;
 
-		}	// activate
+		}
 
 		/**
 		* Check to see if the edit is still active, or has already been closed.
@@ -10203,7 +9764,7 @@ public abstract class BaseDissertationService
 		{
 			return m_active;
 
-		}	// isActiveEdit
+		}
 
 		/**
 		* Close the edit object - it cannot be used after this.
@@ -10212,7 +9773,7 @@ public abstract class BaseDissertationService
 		{
 			m_active = false;
 
-		}	// closeEdit
+		}
 
 		/*******************************************************************************
 		* SessionStateBindingListener implementation
@@ -10239,7 +9800,7 @@ public abstract class BaseDissertationService
 				cancelEdit(this);
 			}
 	
-		}	// valueUnbound
+		}
 
 	}//BaseCandidateInfoEdit
 	
@@ -10576,29 +10137,11 @@ public abstract class BaseDissertationService
 		public boolean existsPathForParent(String siteId);
 		
 		/**
-		* Determine if a CandidatePath of Type with candidate SortName mathing letter exists.
-		* @param The type of the CandiatePath (e.g., "Dissertation Steps", "Dissertation Steps: Music Performance")
-		* @param A letter of the alphabet, A-Za-z.
-		* @return true if exists, false if not.
-		*
-		public boolean existsUserOfTypeForLetter(String type, char letter);
-		*/
-		
-		/**
 		* Get all CandidatePaths of this Type.
 		* @param The type of the CandiatePath (e.g., "Dissertation Steps", "Dissertation Steps: Music Performance")
 		* @return The list of such CandidatePaths.
 		*/
 		public List getAllOfType(String type);
-		
-		/**
-		* Get sorted Users with CandidatePath of type and first letter of last name equal to letter.
-		* @param The type of the CandiatePath (e.g., "Dissertation Steps", "Dissertation Steps: Music Performance")
-		* @param The letter to compare with start of last name.
-		* @return The list of such User objects.
-		*
-		public List getUsersOfTypeForLetter(String type, char letter);
-		*/
 		
 		/**
 		* Get CandidatePaths with parent site equal to site.
@@ -11101,13 +10644,6 @@ public abstract class BaseDissertationService
 			e.activate();
 			return e;
 		}
-
-		/**
-		* Collect the fields that need to be stored outside the XML (for the resource).
-		* @return An array of field values to store in the record outside the XML (for the resource).
-		*
-		public Object[] storageFields(Resource r) { return null; }
-		*/
 		
 		/* 
 		* Collect the fields that need to be stored outside the XML (for the resource).
@@ -11750,13 +11286,6 @@ public abstract class BaseDissertationService
 			e.activate();
 			return e;
 		}
-
-		/**
-		* Collect the fields that need to be stored outside the XML (for the resource).
-		* @return An array of field values to store in the record outside the XML (for the resource).
-		*
-		public Object[] storageFields(Resource r) { return null; }
-		*/
 		
 		/* 
 		* Collect the fields that need to be stored outside the XML (for the resource).
@@ -11978,8 +11507,7 @@ public abstract class BaseDissertationService
 			CandidateInfo info = m_infoStorage.get(id);
 
 			return info;
-
-		}	// refresh
+		}
 
 	}//CandidateInfoCacheRefresher
 
@@ -12055,9 +11583,9 @@ public abstract class BaseDissertationService
 			{
 				retVal = UserDirectoryService.getUser(id);
 			}
-			catch(IdUnusedException iue)
+			catch(UserNotDefinedException nde)
 			{
-				m_logger.warn(this + " Exception getting user from user dir service with id : " + id + " : " + iue);
+				m_logger.warn(this + " Exception getting user from user dir service with id : " + id + " : " + nde);
 			}
 		}
 		return retVal;
@@ -12300,7 +11828,7 @@ public abstract class BaseDissertationService
 		jobDataMap.put("CURRENT_USER", (String)SessionManager.getCurrentSessionUserId());
 		
 		//job name + group should be unique
-		String jobGroup = IdService.getUniqueId();
+		String jobGroup = IdManager.createUuid();
 		
 		//associate a trigger with the job
 		SimpleTrigger trigger = new SimpleTrigger("NewStepTrigger", jobGroup, new Date());
@@ -12452,7 +11980,7 @@ public abstract class BaseDissertationService
 		jobDataMap.put("CURRENT_USER",(String)SessionManager.getCurrentSessionUserId());
 		
 		//job name + group should be unique
-		String jobGroup = IdService.getUniqueId();
+		String jobGroup = IdManager.createUuid();
 		
 		//associate a trigger with the job
 		SimpleTrigger trigger = new SimpleTrigger("ReviseStepTrigger", jobGroup, new Date());
@@ -12569,7 +12097,7 @@ public abstract class BaseDissertationService
 		/** update the current Dissertation so display may be refreshed.
 		 * take current Dissertation out of Collection to be updated in job. */
 		//job name + group should be unique
-		String jobGroup = IdService.getUniqueId();
+		String jobGroup = IdManager.createUuid();
 		
 		//associate a trigger with the job
 		SimpleTrigger trigger = new SimpleTrigger("MoveStepTrigger", jobGroup, new Date());
@@ -12725,7 +12253,7 @@ public abstract class BaseDissertationService
 		/** update the current Dissertation so display may be refreshed.
 		 * take current Dissertation out of Collection to be updated in job. */
 		//job name + group should be unique
-		String jobGroup = IdService.getUniqueId();
+		String jobGroup = IdManager.createUuid();
 		
 		//associate a trigger with the job
 		SimpleTrigger trigger = new SimpleTrigger("DeleteStepTrigger", jobGroup, new Date());
@@ -12890,7 +12418,7 @@ public abstract class BaseDissertationService
 		Scheduler scheduler = null;
 		
 		//job name + group should be unique
-		String jobGroup = IdService.getUniqueId();
+		String jobGroup = IdManager.createUuid();
 		
 		//pass the parameters to the job as job detail data
 		JobDetail jobDetail = new JobDetail("UploadExtractJob",

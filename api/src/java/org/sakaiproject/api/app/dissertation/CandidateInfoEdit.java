@@ -25,11 +25,10 @@
 //package
 package org.sakaiproject.api.app.dissertation;
 
-//imports
 import java.util.Collection;
 
-import org.sakaiproject.service.legacy.entity.Edit;
-import org.sakaiproject.service.legacy.time.Time;
+import org.sakaiproject.entity.api.Edit;
+import org.sakaiproject.time.api.Time;
 
 /**
 * <p>CandidateInfoEdit is the interface for BaseCandidateInfoEdit, defined in BaseDissertationService.</p>

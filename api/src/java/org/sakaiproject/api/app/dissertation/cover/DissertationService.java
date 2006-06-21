@@ -25,7 +25,7 @@
 package org.sakaiproject.api.app.dissertation.cover;
 
 import org.quartz.JobExecutionException;
-import org.sakaiproject.service.framework.component.cover.ComponentManager;
+import org.sakaiproject.component.cover.ComponentManager;
 
 /**
 * <p>DissertationService is a static Cover for the {@link org.sakaiproject.api.app.dissertation.DissertationService DissertationService};
@@ -42,7 +42,9 @@ public class DissertationService
 	 */
 	public static org.sakaiproject.api.app.dissertation.DissertationService getInstance()
 	{
-		if (ComponentManager.CACHE_SINGLETONS)
+		
+		//if (ComponentManager.CACHE_SINGLETONS)
+		if(ComponentManager.CACHE_COMPONENTS)
 		{
 			if (m_instance == null) m_instance = (org.sakaiproject.api.app.dissertation.DissertationService) ComponentManager.get(org.sakaiproject.api.app.dissertation.DissertationService.class);
 			return m_instance;
@@ -921,7 +923,7 @@ public class DissertationService
 		return service.isUserOfParentForLetter(param0, param1);
 	}
 	
-	public static org.sakaiproject.service.legacy.user.User[] getAllUsersForSite(java.lang.String param0, java.lang.String param1)
+	public static org.sakaiproject.user.api.User[] getAllUsersForSite(java.lang.String param0, java.lang.String param1)
 	{
 		org.sakaiproject.api.app.dissertation.DissertationService service = getInstance();
 		if (service == null)

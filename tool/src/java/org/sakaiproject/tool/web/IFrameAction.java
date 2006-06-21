@@ -24,26 +24,24 @@
 // package
 package org.sakaiproject.tool.web;
 
-// imports
 import java.util.Properties;
 import java.util.ResourceBundle;
 
-import org.sakaiproject.api.kernel.tool.Placement;
-import org.sakaiproject.api.kernel.tool.cover.ToolManager;
 import org.sakaiproject.cheftool.Context;
 import org.sakaiproject.cheftool.JetspeedRunData;
 import org.sakaiproject.cheftool.RunData;
 import org.sakaiproject.cheftool.VelocityPortlet;
 import org.sakaiproject.cheftool.VelocityPortletPaneledAction;
-import org.sakaiproject.service.framework.config.cover.ServerConfigurationService;
-import org.sakaiproject.service.framework.portal.cover.PortalService;
-import org.sakaiproject.service.framework.session.SessionState;
-import org.sakaiproject.service.legacy.entity.Reference;
-import org.sakaiproject.service.legacy.resource.cover.EntityManager;
-import org.sakaiproject.service.legacy.site.Site;
-import org.sakaiproject.service.legacy.site.SitePage;
-import org.sakaiproject.service.legacy.site.cover.SiteService;
-import org.sakaiproject.util.java.StringUtil;
+import org.sakaiproject.component.cover.ServerConfigurationService;
+import org.sakaiproject.entity.api.Reference;
+import org.sakaiproject.entity.cover.EntityManager;
+import org.sakaiproject.event.api.SessionState;
+import org.sakaiproject.site.api.Site;
+import org.sakaiproject.site.api.SitePage;
+import org.sakaiproject.site.cover.SiteService;
+import org.sakaiproject.tool.api.Placement;
+import org.sakaiproject.tool.cover.ToolManager;
+import org.sakaiproject.util.StringUtil;
 
 /**
  * <p>
@@ -193,7 +191,8 @@ public class IFrameAction extends VelocityPortletPaneledAction
 		else if (SPECIAL_WORKSITE.equals(special))
 		{
 			// set the url to the site of this request's config'ed url
-			String siteId = PortalService.getCurrentSiteId();
+			//String siteId = PortalService.getCurrentSiteId();
+			String siteId = ToolManager.getCurrentPlacement().getContext();
 			try
 			{
 				// get the site's info URL, if defined
@@ -423,14 +422,16 @@ public class IFrameAction extends VelocityPortletPaneledAction
 		if (state.getAttribute(SPECIAL) == null)
 		{
 			// for web content tool, if it is the only tool on the page, update the page title also.
-			SitePage p = SiteService.findPage(PortalService.getCurrentSitePageId());
+			//SitePage p = SiteService.findPage(PortalService.getCurrentSitePageId());
+			SitePage p = SiteService.findPage((SiteService.findTool((ToolManager.getCurrentPlacement().getToolId()))).getPageId());
 			if (p.getTools() != null && p.getTools().size() == 1)
 			{
 				// if this is the only tool on that page, update the page's title also
 				try
 				{
 					// TODO: save site page title? -ggolden
-					Site sEdit = SiteService.getSite(PortalService.getCurrentSiteId());
+					//Site sEdit = SiteService.getSite(PortalService.getCurrentSiteId());
+					Site sEdit = SiteService.getSite(ToolManager.getCurrentPlacement().getContext());
 					SitePage pEdit = sEdit.getPage(p.getId());
 					pEdit.setTitle(title);
 					SiteService.save(sEdit);

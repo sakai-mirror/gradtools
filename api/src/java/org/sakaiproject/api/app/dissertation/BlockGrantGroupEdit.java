@@ -26,8 +26,7 @@
 //package
 package org.sakaiproject.api.app.dissertation;
 
-//imports
-import org.sakaiproject.service.legacy.entity.Edit;
+import org.sakaiproject.entity.api.Edit;
 
 
 /**

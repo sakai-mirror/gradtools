@@ -26,11 +26,10 @@
 //package
 package org.sakaiproject.api.app.dissertation;
 
-//imports
 import java.util.List;
 
-import org.sakaiproject.service.legacy.entity.Edit;
-import org.sakaiproject.service.legacy.time.Time;
+import org.sakaiproject.entity.api.Edit;
+import org.sakaiproject.time.api.Time;
 
 /**
 * <p>StepStatusEdit is the interface for BaseStepStatusEdit, defined in BaseDissertationService.</p>

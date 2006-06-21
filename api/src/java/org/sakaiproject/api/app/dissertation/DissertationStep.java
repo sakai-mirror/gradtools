@@ -25,11 +25,10 @@
 //package
 package org.sakaiproject.api.app.dissertation;
 
-//import
 import java.util.List;
 
-import org.sakaiproject.service.legacy.entity.Entity;
-import org.sakaiproject.service.legacy.time.Time;
+import org.sakaiproject.entity.api.Entity;
+import org.sakaiproject.time.api.Time;
 
 /**
 * <p>DissertationStep is the interface for BaseDissertationStep, defined in BaseDissertationService.</p>

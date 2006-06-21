@@ -25,7 +25,7 @@
 //package
 package org.sakaiproject.api.app.dissertation;
 
-import org.sakaiproject.service.legacy.entity.Edit;
+import org.sakaiproject.entity.api.Edit;
 
 /**
 * <p>DissertationStepEdit is the interface for BaseDissertationStepEdit, defined in BaseDissertationService.</p>
