@@ -3730,7 +3730,7 @@ public abstract class BaseDissertationService
 	/**
 	 * {@inheritDoc}
 	 */
-	public Collection getEntityAuthzGroups(Reference ref)
+	public Collection getEntityAuthzGroups(Reference ref, String userId)
 	{
 		// double check that it's mine
 		if (SERVICE_NAME != ref.getType()) return null;
