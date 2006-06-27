@@ -43,8 +43,9 @@
 		
 		<p class="act">
 			<input type="hidden" name="FOS_code" id="FOS_code" value="$field.getFieldCode()" />
-			<input type="submit" name="eventSubmit_doSave_edited_names" id="eventSubmit_doSave_edited_names" value="Save" />
-			<input type="submit" name="eventSubmit_doCancel_code" id="eventSubmit_doCancel_code" value="Cancel" />
+			<input type="submit" name="eventSubmit_doSave_edited_names" id="eventSubmit_doSave_edited_names" value="Save" accesskey="s" />
+			<input type="submit" name="eventSubmit_doCancel_code" id="eventSubmit_doCancel_code" value="Cancel" 
+			accesskey="x" />
 		</p>
 
 	</form>

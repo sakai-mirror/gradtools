@@ -85,7 +85,7 @@
 		#end
 
 		#if ($activepaths.booleanValue())
-			<p class="checkbox">
+			<p class="checkbox labelindnt">
 				<input type="checkbox" checked="checked" name="retroactive" id="retroactive" value="retroactive" /> 
 				<label for="retroactive">Apply this change to all current students</label>
 			</p>	
@@ -94,6 +94,7 @@
 			<input type="submit" 
 				name="UpdateStep"
 				class="active"
+				accesskey="s"
 				id="updatestep"
 				onclick="showNotif('submitnotif','UpdateStep','editForm');
 					showNotif('submitnotif','Cancel','editForm');
@@ -105,6 +106,7 @@
 				name="Cancel"
 				id="Cancel"
 				value="Cancel"
+				accesskey="x"
 				onclick="document.editForm.option.value='cancel'; 
 					document.editForm.submit(); return false;"
 			/>	

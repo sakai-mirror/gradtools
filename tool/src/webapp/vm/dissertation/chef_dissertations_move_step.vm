@@ -63,6 +63,7 @@
 					name="MoveAdmin"
 					id="MoveAdmin"
 					class="active"
+					accesskey="s"
 					value="Move"
 					onclick="showNotif('submitnotif','MoveAdmin','moveForm');
 						showNotif('submitnotif','CancelAdmin','moveForm');
@@ -74,6 +75,7 @@
 					name="CancelAdmin"
 					id="CancelAdmin"
 					value="Cancel"
+					accesskey="x"
 					onclick="document.moveForm.option.value='cancel_admin'; 
 						document.moveForm.submit(); return false;"
 					/>			
@@ -85,6 +87,7 @@
 					name="MoveCommittee"
 					id="MoveCommittee"
 					class="active"
+					accesskey="s"
 					value="Move"
 					onclick="document.moveForm.option.value='move_committee';
 						document.moveForm.submit(); return false;" 
@@ -94,6 +97,7 @@
 					name="CancelCommittee"
 					id="CancelCommittee"
 					value="Cancel"
+					accesskey="x"
 					onclick="document.moveForm.option.value='cancel_committee'; 
 						document.moveForm.submit(); return false;"
 					/>
@@ -103,6 +107,7 @@
 					name="MoveCandidate"
 					id="MoveCandidate"
 					class="active"
+					accesskey="s"
 					value="Move"
 					onclick="document.moveForm.option.value='move_candidate';
 						document.moveForm.submit(); return false;" 
@@ -112,6 +117,7 @@
 					name="CancelCandidate"
 					id="CancelCandidate"
 					value="Cancel"
+					accesskey="x"
 					onclick="document.moveForm.option.value='cancel_candidate'; 
 						document.moveForm.submit(); return false;"
 					/>

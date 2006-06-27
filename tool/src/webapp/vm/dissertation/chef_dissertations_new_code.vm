@@ -71,8 +71,8 @@
 			</tr>
 		</table>
 		<p class="act">
-			<input class="active" type="submit" name="eventSubmit_doPreview_code" id="eventSubmit_doPreview_code" value="Preview" />
-			<input type="submit" name="eventSubmit_doCancel_code" id="eventSubmit_doCancel_code" value="Cancel" />
+			<input class="active" type="submit" name="eventSubmit_doPreview_code" id="eventSubmit_doPreview_code" value="Preview"  accesskey="s" />
+			<input type="submit" name="eventSubmit_doCancel_code" id="eventSubmit_doCancel_code" value="Cancel" accesskey="x" />
 		</p>
 	</form>
 </div>

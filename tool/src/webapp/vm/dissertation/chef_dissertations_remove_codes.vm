@@ -13,7 +13,7 @@
 		this FOS.
 	</div>
 		<form name="confirmRemoveCode" id="confirmRemoveCode" action="#toolForm($action)" method="post" enctype="multipart/form-data">
-			<table class="listHier" cellspacing="0" summary="Confirm intent to remove the listed FOS code(s)">
+			<table class="listHier lines nolines" cellspacing="0" summary="Confirm intent to remove the listed FOS code(s)">
 				#foreach($field in $fields)
 				<tr>
 					<td>
@@ -38,8 +38,8 @@
 				#end
 			</table>
 			<div class="act">
-				<input class="active" type="submit" name="eventSubmit_doRemove_codes_confirmed" id="eventSubmit_doRemove_code_confirmed" value="Remove" />
-				<input type="submit" name="eventSubmit_doCancel_code" id="eventSubmit_doCancel_code" value="Cancel" />
+				<input class="active" type="submit" name="eventSubmit_doRemove_codes_confirmed" id="eventSubmit_doRemove_code_confirmed" value="Remove" accesskey="s" />
+				<input type="submit" name="eventSubmit_doCancel_code" id="eventSubmit_doCancel_code" value="Cancel" accesskey="x" />
 			</div>
 		</form>
 </div>

@@ -49,6 +49,7 @@
 					name="DeleteAdmin"
 					id="DeleteAdmin"
 					class="active"
+					accesskey="s"
 					value="Delete"
 					onclick="showNotif('submitnotif','DeleteAdmin','confirmDelete');
 						showNotif('submitnotif','CancelAdmin','confirmDelete');
@@ -60,6 +61,7 @@
 					name="CancelAdmin"
 					id="CancelAdmin"
 					value="Cancel"
+					accesskey="x"
 					onclick="document.confirmDelete.option.value='cancel_admin'; 
 						document.confirmDelete.submit(); return false;"
 					/>			
@@ -72,6 +74,7 @@
 					name="DeleteCommittee"
 					id="DeleteCommittee"
 					class="active"
+					accesskey="s"
 					value="Delete"
 					onclick="document.confirmDelete.option.value='delete_committee';
 						document.confirmDelete.submit(); return false;" 
@@ -81,6 +84,7 @@
 					name="CancelCommittee"
 					id="CancelCommittee"
 					value="Cancel"
+					accesskey="x"
 					onclick="document.confirmDelete.option.value='cancel_committee'; 
 						document.confirmDelete.submit(); return false;"
 					/>		
@@ -91,6 +95,7 @@
 					name="DeleteCandidate"
 					id="DeleteCandidate"
 					class="active"
+					accesskey="s"
 					value="Delete"
 					onclick="document.confirmDelete.option.value='delete_candidate';
 						document.confirmDelete.submit(); return false;" 
@@ -100,6 +105,7 @@
 					name="CancelCandidate"
 					id="CancelCandidate"
 					value="Cancel"
+					accesskey="x"
 					onclick="document.confirmDelete.option.value='cancel_candidate'; 
 						document.confirmDelete.submit(); return false;"
 					/>		

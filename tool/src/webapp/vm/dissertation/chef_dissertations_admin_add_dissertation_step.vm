@@ -93,6 +93,7 @@
 						name="AddStep"
 						id="AddStep"
 						class="active"
+						accesskey="s"
 						value="Save"
 						onclick="showNotif('submitnotif','AddStep','addStep');
 							showNotif('submitnotif','Cancel','addStep');
@@ -102,6 +103,7 @@
 						name="Cancel"
 						id="Cancel"
 						value="Cancel"
+						accesskey="x"
 						onclick="document.addStep.option.value='cancel'; 
 							document.addStep.submit(); return false;"
 						 />			

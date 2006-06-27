@@ -19,7 +19,7 @@
 		#if($uniqnames && $uniqnames.size() > 0)
 			<h4>Uniqnames</h4>
 			#foreach ($uniqname in $uniqnames)
-				$validator.escapeHtml($uniqname)<br/>
+				$validator.escapeHtml($uniqname)<br />
 			#end
 		#end
 		#if($badnames && $badnames.size() > 0)
@@ -34,6 +34,7 @@
 				name="RemoveStudents"
 				id="RemoveStudents"
 				class="active"
+				accesskey="s"
 				value="Remove"
 				onclick="showNotif('submitnotif','RemoveStudents','confirmRemoveStudents');
 					showNotif('submitnotif','Cancel','confirmRemoveStudents');
@@ -43,6 +44,7 @@
 				name="Cancel"
 				id="Cancel"
 				value="Cancel"
+				accesskey="x"
 				onclick="document.confirmRemoveStudents.option.value='cancel'; 
 					document.confirmRemoveStudents.submit(); return false;" />			
 			<span id="submitnotif" 

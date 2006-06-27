@@ -26,7 +26,7 @@
 		</table>
 		<br /><br />
 		#if($alertMessage)<div class="alertMessage">Alert: $alertMessage</div>#end
-		<table class="listHier" summary="All Steps in the Candidate's Path" border="0" cellspacing="0" cellpadding="0" width="100%">
+		<table class="listHier lines nolines" summary="All Steps in the Candidate's Path" border="0" cellspacing="0" cellpadding="0" width="100%">
 			#if ($hassteps.booleanValue())
 				<tr>
 					<th id="empty1" align="left" valign="bottom">
@@ -46,7 +46,7 @@
 					</th>
 				</tr>
 				#set($last=1)
-				<tr>
+				<tr class="exclude">
 					<td colspan="5" style="font-weight:bold;color:#616161; padding-bottom:15px; padding-top:15px">
 						$sections.get($last)
 					</td>
@@ -55,7 +55,7 @@
 					#set($indexOfHead = $step.section)
 					#if($indexOfHead!=0)
 						#if($indexOfHead!=$last)
-							<tr>
+							<tr class="exclude">
 								<td colspan="5" style="font-weight:bold;color:#616161; padding-bottom:15px; padding-top:15px">
 									$sections.get($indexOfHead)
 								</td>

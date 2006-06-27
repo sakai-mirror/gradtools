@@ -15,21 +15,21 @@
 	appropriate button above.
 	</p>
 	<form name="listCodes" id="listCodes" action="#toolForm($action)" method="post">
-		<table class="listHier" cellspacing="0" summary="List of Field of Study and Block Grant Group codes">
+		<table class="listHier lines" cellspacing="0" summary="List of Field of Study and Block Grant Group codes">
 			<tr>
 				<th id="checkbox">
 					&nbsp;&nbsp;
 				</th>
-				<th id="Field Of Study code">
+				<th id="FOS">
 					FOS
 				</th>
-				<th id="Field Of Study name">
+				<th id="FOSname">
 					FOS Name
 				</th>
-				<th id="Block Grant Group code">
+				<th id="BGG">
 					BGG
 				</th>
-				<th id="Block Grant Group name">
+				<th id="BGGname">
 					BGG Name
 				</th>
 			</tr>
@@ -38,16 +38,16 @@
 					<td headers="checkbox" width="3%">
 						<input type="checkbox" name="selectedfields" id="selectedfields" value="$field.getFieldCode()">
 					</td>
-					<td headers="Field Of Study code">
+					<td headers="FOS">
 						$field.getFieldCode()
 					</td>
-					<td headers="Field Of Study name">
+					<td headers="FOSname">
 						$field.getFieldName()
 					</td>
-					<td headers="Block Grant Group code">
+					<td headers="BGG">
 						$field.getGroupCode()
 					</td>
-					<td headers="Block Grant Group name">
+					<td headers="BGGname">
 						$field.getGroupName()
 					</td>
 				</tr>

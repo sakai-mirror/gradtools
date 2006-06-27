@@ -45,6 +45,7 @@
 				name="ContinueLoad"
 				id="ContinueLoad"
 				class="active"
+				accesskey="s"
 				value="Continue"
 				onclick="showNotif('submitnotif','ContinueLoad','loadExtracts');
 					showNotif('submitnotif','Cancel','loadExtracts'); 
@@ -54,6 +55,7 @@
 				name="Cancel"
 				id="Cancel"
 				value="Cancel"
+				accesskey="x"
 				onclick="document.loadExtracts.option.value='cancel'; 
 					document.loadExtracts.submit(); return false;"
 				 />			

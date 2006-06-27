@@ -25,7 +25,7 @@
 					<td><center>Rackham</center></td>
 				</tr>
 			</table>
-			<table class="listHier" border="0" cellspacing="0" cellpadding="5" width="100%">
+			<table class="listHier lines nolines" border="0" cellspacing="0" cellpadding="5" width="100%">
 				#if ($hassteps.booleanValue())
 					<tr>
 						<th id="empty1">
@@ -44,7 +44,7 @@
 						</th>
 					</tr>
 				#set($last=1)
-				<tr>
+				<tr class="exclude">
 					<td colspan="5" style="font-weight:bold;color:#616161; padding-bottom:15px; padding-top:15px">
 						$sections.get($last)
 					</td>

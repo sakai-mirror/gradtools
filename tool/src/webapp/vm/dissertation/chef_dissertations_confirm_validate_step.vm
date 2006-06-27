@@ -41,15 +41,15 @@
 			
 		<p class="act">
 			#if ($userrole.equals("adminrole") || $userrole.equals("schoolrole"))
-				<input type="submit" name="eventSubmit_doUpdate_candidate_path_admin" value="Mark As Completed" />
-				<input type="submit" name="eventSubmit_doCancel_admin_validate_step" value="Cancel" />
+				<input type="submit" name="eventSubmit_doUpdate_candidate_path_admin" value="Mark As Completed" accesskey="s" />
+				<input type="submit" name="eventSubmit_doCancel_admin_validate_step" value="Cancel"  accesskey="x"/>
 			#elseif ($userrole.equals("committeerole"))
-				<input type="submit" name="eventSubmit_doUpdate_candidate_path_comm" value="Mark As Completed" />
-				<input type="submit" name="eventSubmit_doCancel_committee" value="Cancel" />
+				<input type="submit" name="eventSubmit_doUpdate_candidate_path_comm" value="Mark As Completed" accesskey="s" />
+				<input type="submit" name="eventSubmit_doCancel_committee" value="Cancel" accesskey="x" />
 		
 			#elseif ($userrole.equals("candidaterole"))
-				<input type="submit" name="eventSubmit_doUpdate_candidate_path" value="Mark As Completed" />
-				<input type="submit" name="eventSubmit_doCancel_candidate" value="Cancel" />
+				<input type="submit" name="eventSubmit_doUpdate_candidate_path" value="Mark As Completed" accesskey="s" />
+				<input type="submit" name="eventSubmit_doCancel_candidate" value="Cancel"  accesskey="x"/>
 			#end
 		</p>
 	</form>

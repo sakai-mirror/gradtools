@@ -23,7 +23,7 @@
 			<input type="file" name="MP" id="MP" class="upload" size="60" />
 		</p>	
 			<div class="act">
-				<input type="submit" name="eventSubmit_doUpload" id="eventSubmit_doUpload" value="Upload" />
+				<input type="submit" name="eventSubmit_doUpload" id="eventSubmit_doUpload" value="Upload" accesskey="s" />
 			</div>
 		</fieldset>
 	</form>

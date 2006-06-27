@@ -52,8 +52,8 @@
 		</p>
 	
 		<p class="act">
-			<input class="active" type="submit" name="eventSubmit_doUpdate_stepstatus_comm" value="Save" />
-			<input type="submit" name="eventSubmit_doCancel_committee" value="Cancel" />
+			<input class="active" type="submit" name="eventSubmit_doUpdate_stepstatus_comm" value="Save" accesskey="s" />
+			<input type="submit" name="eventSubmit_doCancel_committee" value="Cancel" accesskey="x" />
 		</p>
 	</form>
 </div>
