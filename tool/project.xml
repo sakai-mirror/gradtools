@@ -2,7 +2,7 @@
 
 <project>
 	<pomVersion>3</pomVersion>
-	<extend>../../master/project.xml</extend>
+	<extend>../../../master/project.xml</extend>
 	<name>CTools GradTools Tool</name>
 	<groupId>sakaiproject</groupId>
 	<id>ctools-gradtools-tool</id>
@@ -167,7 +167,12 @@
 		<sourceDirectory>src/java</sourceDirectory>
 
 		<resources>
-
+			<resource>
+				<directory>${basedir}/src/bundle</directory>
+				<includes>
+					<include>**/*.properties</include>
+				</includes>
+			</resource>
 		</resources>
 
 	</build>
