@@ -2040,6 +2040,7 @@ public abstract class BaseDissertationService
 				path = (CandidatePath)paths.get(i);
 				try
 				{
+					//path.getCandidate() returns User id
 					User student = UserDirectoryService.getUser(path.getCandidate());
 					sortName = student.getSortName();
 					if(sortName.startsWith(letter.toUpperCase()) || sortName.startsWith(letter.toLowerCase()))
@@ -2078,6 +2079,7 @@ public abstract class BaseDissertationService
 				path = (CandidatePath)paths.get(i);
 				try
 				{
+					//path.getCandidate() returns User id
 					User student = UserDirectoryService.getUser(path.getCandidate());
 					sortName = student.getSortName();
 					if(sortName.startsWith(letter.toUpperCase()) || sortName.startsWith(letter.toLowerCase()))
@@ -2145,6 +2147,7 @@ public abstract class BaseDissertationService
 				path = (CandidatePath)paths.get(i);
 				try
 				{
+					//path.getCandidate() returns User id
 					User student = UserDirectoryService.getUser(path.getCandidate());
 					sortName = student.getSortName();
 					if(sortName.startsWith(letter.toUpperCase()) || sortName.startsWith(letter.toLowerCase()))
@@ -2184,6 +2187,7 @@ public abstract class BaseDissertationService
 				path = (CandidatePath)paths.get(i);
 				try
 				{
+					//path.getCandidate() returns User id
 					User student = UserDirectoryService.getUser(path.getCandidate());
 					sortName = student.getSortName();
 					if(sortName.startsWith(letter.toUpperCase()) || sortName.startsWith(letter.toLowerCase()))
@@ -2814,7 +2818,7 @@ public abstract class BaseDissertationService
 		{
 			badId = false;
 			infoId = IdManager.createUuid();
-			badId = Validator.checkResourceId(infoId);
+			badId = !Validator.checkResourceId(infoId);
 			if(m_infoStorage.check(infoId))
 				badId = true;
 

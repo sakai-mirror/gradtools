@@ -2,7 +2,7 @@
 
 <project>
 	<pomVersion>3</pomVersion>
-	<extend>../../master/project.xml</extend>
+	<extend>../../../master/project.xml</extend>
 	<name>CTools GradTools API</name>
 	<groupId>sakaiproject</groupId>
 	<id>ctools-gradtools-api</id>
@@ -19,9 +19,14 @@
 		<!-- deploy to "shared", "common" or "server" -->
 		<deploy.target>shared</deploy.target>
 	</properties>
-
+	
 	<dependencies>
-
+		<dependency>
+			<groupId>quartz</groupId>
+			<artifactId>quartz</artifactId>
+			<version>1.4.0</version>		
+		</dependency>
+		
 		<dependency>
 			<groupId>sakaiproject</groupId>
 			<artifactId>sakai-component</artifactId>
@@ -46,11 +51,20 @@
 			<version>${sakai.version}</version>
 		</dependency>
 		
+		<!--  in shared/lib
+
 		<dependency>
-			<groupId>quartz</groupId>
-			<artifactId>quartz</artifactId>
-			<version>1.4.0</version>		
+			<groupId>sakaiproject</groupId>
+			<artifactId>sakai-entity-api</artifactId>
+			<version>${sakai.version}</version>
 		</dependency>
+		
+		<dependency>
+			<groupId>sakaiproject</groupId>
+			<artifactId>sakai-util-api</artifactId>
+			<version>${sakai.version}</version>
+		</dependency>
+		-->
 		
 	</dependencies>
 

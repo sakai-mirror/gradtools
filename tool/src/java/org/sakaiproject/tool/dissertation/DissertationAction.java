@@ -4102,7 +4102,6 @@ public class DissertationAction
 		SessionState state = ((JetspeedRunData)data).getPortletSessionState (((JetspeedRunData)data).getJs_peid ());
 		
 		state.setAttribute(STATE_MODE, MODE_ADMIN_ALPHABETICAL_CANDIDATE_CHOOSER);
-		
 	}
 
 	/**
@@ -4112,10 +4111,8 @@ public class DissertationAction
 	{
 		SessionState state = ((JetspeedRunData)data).getPortletSessionState (((JetspeedRunData)data).getJs_peid ());
 		state.setAttribute(STATE_MODE, MODE_CANDIDATE_VIEW_PATH);
-		
 	}
 
-	
 	/**
 	* Action is to present the alphabetical candidate chooser to an adminstrator.
 	**/
@@ -4619,6 +4616,7 @@ public class DissertationAction
 		{
 			try
 			{
+				//path.getCandidate() returns User id
 				candidate = UserDirectoryService.getUser(path.getCandidate());
 			}
 			catch(UserNotDefinedException e)
@@ -4868,6 +4866,7 @@ public class DissertationAction
 		}
 		state.setAttribute(STATE_ACTIVE_PATHS, new Boolean(activeCandidates));
 		Hashtable order = dissertation.getOrderedSteps();
+		Hashtable validationtable = validationTypeTable();
 		int numberOfSteps = order.size();
 		DissertationStep step = null;
 		String keyString = null;
@@ -4884,6 +4883,7 @@ public class DissertationAction
 				tsteps[x-1].setStepReference(step.getReference());
 				tsteps[x-1].setInstructions(step.getInstructions());
 				tsteps[x-1].setValidationImage(step.getValidationType());
+				tsteps[x-1].setValidationTypeString((String)validationtable.get(step.getValidationType()));
 				tsteps[x-1].setPrereqs(dissertation.getPrerequisiteStepsDisplayString(step));
 				
 				//unconverted Rackham steps and departmental steps have no section attribute
@@ -4917,6 +4917,7 @@ public class DissertationAction
 	private TemplateStep[] getTemplateSteps(CandidatePath path, SessionState state, boolean committee)
 	{
 		Hashtable order = path.getOrderedStatus();
+		Hashtable validationtable = validationTypeTable();
 		String ref = null;
 		int numberOfSteps = order.size();
 		StepStatus status = null;
@@ -4958,6 +4959,7 @@ public class DissertationAction
 				templateSteps[x-1].setStatusReference(status.getReference());
 				templateSteps[x-1].setInstructions(status.getInstructions());
 				templateSteps[x-1].setValidationImage(status.getValidationType());
+				templateSteps[x-1].setValidationTypeString((String)validationtable.get(status.getValidationType()));
 				
 				//find the step status
 				templateSteps[x-1].setStatus(path.getStatusStatus(status));
@@ -5714,6 +5716,7 @@ public class DissertationAction
 		private String statusReference;
 		private String instructions;
 		private String validationImage;
+		private String validationTypeString;
 		private String status;
 		private String prereqs;
 		private String timeCompleted;
@@ -5729,6 +5732,7 @@ public class DissertationAction
 			statusReference = "";
 			instructions = "";
 			validationImage = "";
+			validationTypeString = "";
 			status = "";
 			prereqs = "";
 			timeCompleted = "";
@@ -5813,6 +5817,17 @@ public class DissertationAction
 		{
 			if(type != null)
 				validationImage = "sakai/diss_validate" + type + ".gif";
+		}
+		
+		public String getValidationTypeString()
+		{
+			return validationTypeString;
+		}
+
+		public void setValidationTypeString(String type)
+		{
+			if(type != null)
+				validationTypeString = type;
 		}
 
 		public String getStatus()

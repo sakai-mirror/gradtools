@@ -46,6 +46,8 @@ import org.sakaiproject.api.app.dissertation.cover.DissertationService;
 import org.sakaiproject.tool.api.Session;
 import org.sakaiproject.tool.cover.SessionManager;
 import org.sakaiproject.util.Web;
+import org.sakaiproject.user.api.UserNotDefinedException;
+import org.sakaiproject.user.cover.UserDirectoryService;
 
 /**
  * <p>
@@ -117,10 +119,10 @@ public class StepChangeJobImpl implements StepChangeJob
 			//TODO set user to current user
 			Session s = SessionManager.getCurrentSession();
 			if (s != null)
-				s.setUserId("admin");
+				s.setUserId(UserDirectoryService.ADMIN_ID);
 			else
 				if(m_logger.isWarnEnabled())
-					m_logger.warn(this + ".execute() could not setUserId to admin");
+					m_logger.warn(this + ".execute() could not setUserId to ADMIN_ID");
 			
 			//get the job detail
 			jobDetail = context.getJobDetail();
@@ -963,9 +965,19 @@ public class StepChangeJobImpl implements StepChangeJob
 		retroactive = (Boolean)dataMap.get("RETROACTIVE");
 		m_dissRef = (String)dataMap.get("DISSERTATION_REF");
 		m_currentSite = (String)dataMap.get("CURRENT_SITE");
-		m_currentUser = (String)dataMap.get("CURRENT_USER");
 		m_retro =  retroactive.booleanValue();
 		m_stepRef = (String)dataMap.get("STEP_REF");
+		
+		try
+		{
+			//using eid (campus id) for display purposes
+			m_currentUser = UserDirectoryService.getUserEid((String)dataMap.get("CURRENT_USER"));
+		}
+		catch(UserNotDefinedException e)
+		{
+			if(m_logger.isWarnEnabled())
+				m_logger.warn(this + ".setJobExecutionParameters() CURRENT_USER is " + (String)dataMap.get("CURRENT_USER") + " " + e);
+		}
 		
 		//if step ref was included in map, get it's step attributes
 		if(m_stepRef != null)

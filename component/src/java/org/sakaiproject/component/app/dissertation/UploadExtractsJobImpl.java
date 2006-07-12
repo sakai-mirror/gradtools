@@ -85,7 +85,7 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 	static final String START_ITALIC = Web.escapeHtmlFormattedText("<i>");
 	static final String END_ITALIC = Web.escapeHtmlFormattedText("</i>");
 	
-	//key = emplid value = uniqname
+	//key = emplid, value = uniqname (campus_id, Sakai eid)
 	private Hashtable ids = new Hashtable();
 	
 	//collection of OARD records
@@ -152,10 +152,10 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 			//TODO set user to current user
 			Session s = SessionManager.getCurrentSession();
 			if (s != null)
-				s.setUserId("admin");
+				s.setUserId(UserDirectoryService.ADMIN_ID);
 			else
 				if(m_logger.isWarnEnabled())
-					m_logger.warn(this + ".execute() could not setUserId to admin");
+					m_logger.warn(this + ".execute() could not setUserId to ADMIN_ID");
 		
 			//get the job detail
 			jobDetail = context.getJobDetail();
@@ -337,6 +337,7 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 		{
 			try
 			{
+				//chefId has been converted to id
 				String sortName = UserDirectoryService.getUser(chefId).getSortName();
 				if(sortName != null)
 				{
@@ -345,7 +346,7 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 			}
 			catch(UserNotDefinedException e) 
 			{
-				m_logger.warn(this + ".getSortLetter for " + chefId + " IdUnusedException " + e.toString());
+				m_logger.warn(this + ".getSortLetter for " + chefId + " " + e.toString());
 			}
 			catch(Exception e)
 			{
@@ -624,6 +625,7 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 						}
 							 
 						//*14 ¦  Campus id  ¦  A1-A8 - uniqname
+						// eid in terms of Sakai
 						matcher = m_patternCampusId.matcher(flds[13]);
 						if(!(flds[13] == null || matcher.matches()))
 						{
@@ -872,6 +874,7 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 						}
 						
 						//*10  | Campus id  | A1-A8   | uniqname
+						// eid in terms of Sakai
 						matcher = m_patternCampusId.matcher(flds[9]);
 						if(!matcher.matches())
 						{
@@ -1040,15 +1043,16 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 						commitEdit = true;
 					}
 					
-					//check for uniqname
+					//chefId contains Sakai id
 					try
 					{
 						chefId = infoEdit.getChefId();
 						if(chefId.equals(""))
 						{
-							chefId = (String)ids.get(oneEmplid);
+							//ids contain emplid, eid (campus_id, uniqname)
+							chefId = UserDirectoryService.getUserId((String)ids.get(oneEmplid));
 							if(chefId != null)
-								infoEdit.setChefId(chefId.toLowerCase());
+								infoEdit.setChefId(chefId);
 							
 							//set flag to save it later
 							commitEdit = true;
@@ -1317,7 +1321,7 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 					//if there is no path, create one
 					
 					/** there is no student site id yet or we don't know it
-					 *  site attribute is set to uniqname initially */
+					 *  site attribute is set to user Sakai id initially */
 					
 					String currentSite = info.getChefId();
 					String parentSite = info.getParentSite();
@@ -1337,7 +1341,7 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 							m_logger.warn(this + ". dumpData dissertation for school is null");
 							bufD.append(info.getChefId() + ": cannot create student's path, because dissertation for school is null" + NEWLINE);
 							
-							//note execption and continue with next student
+							//note exception and continue with next student
 							continue;
 						}
 					}
@@ -1355,7 +1359,7 @@ public class UploadExtractsJobImpl implements UploadExtractsJob
 							continue;
 						}
 						
-						//set attributes of the path
+						//set candidate to Sakai id
 						pathEdit.setCandidate(info.getChefId());
 						
 						//set alphabetical candidate chooser letter

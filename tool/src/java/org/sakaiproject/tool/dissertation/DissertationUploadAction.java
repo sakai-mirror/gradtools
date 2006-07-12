@@ -792,10 +792,10 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		StringBuffer buf = null;
 		Time now = TimeService.newTime();
 		List sections = getSectionHeads();
-		String uniqname = path.getCandidate();
 		try
 		{
-			User candidate = UserDirectoryService.getUser(uniqname);
+			//path.getCandidate() returns User id
+			User candidate = UserDirectoryService.getUser(path.getCandidate());
 			if(candidate != null)
 			{
 				fname = candidate.getFirstName();
@@ -1608,6 +1608,7 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 		String name = "";
 		try
 		{
+			//path.getCandidate() returns User id
 			name = ((User)UserDirectoryService.getUser(path.getCandidate())).getDisplayName();
 		}
 		catch(Exception e){}
@@ -2757,11 +2758,11 @@ public class DissertationUploadAction extends VelocityPortletPaneledAction
 				Session s = SessionManager.getCurrentSession();
 				if (s != null)
 				{
-					s.setUserId("admin");
+					s.setUserId(UserDirectoryService.ADMIN_ID);
 				}
 				else
 				{
-					Log.warn("chef", this + ".run - no SessionManager.getCurrentSession, cannot set to admin user");
+					Log.warn("chef", this + ".run() - Session is null, cannot set user id to ADMIN_ID user");
 				}
 
 				if(m_id != null)

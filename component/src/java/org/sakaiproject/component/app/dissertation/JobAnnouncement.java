@@ -41,6 +41,7 @@ import org.sakaiproject.exception.IdUnusedException;
 import org.sakaiproject.site.cover.SiteService;
 import org.sakaiproject.tool.api.Session;
 import org.sakaiproject.tool.cover.SessionManager;
+import org.sakaiproject.user.cover.UserDirectoryService;
 
 
 /**
@@ -164,11 +165,11 @@ public class JobAnnouncement
 				if (s != null)
 				{
 					//TODO set user to current user
-					s.setUserId("admin");
+					s.setUserId(UserDirectoryService.ADMIN_ID);
 				}
 				else
 				{
-					m_logger.warn(this + ".execute() could not setUserId to admin");
+					m_logger.warn(this + ".execute() could not setUserId to ADMIN_ID");
 						throw new JobExecutionException("Could not get permission to execute job.");
 				}
 			}
